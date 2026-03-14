@@ -2,7 +2,6 @@ const express = require("express");
 const { Pool } = require("pg");
 
 const app = express();
-app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -10,7 +9,7 @@ const pool = new Pool({
 });
 
 app.get("/", (req, res) => {
-  res.send("Server is running 🚀");
+  res.send("Server running 🚀");
 });
 
 app.get("/test-db", async (req, res) => {
@@ -18,6 +17,7 @@ app.get("/test-db", async (req, res) => {
     const result = await pool.query("SELECT NOW()");
     res.json(result.rows);
   } catch (err) {
+    console.error(err);
     res.status(500).send("Database error");
   }
 });
