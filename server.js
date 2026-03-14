@@ -1,29 +1,101 @@
 const express = require("express");
+const { Pool } = require("pg");
 const cors = require("cors");
-
-const auth = require("./modules/auth");
-const farms = require("./modules/farms");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/auth", auth);
-app.use("/farms", farms);
-
-app.get("/", (req,res)=>{
-res.json({message:"Poultry Enterprise API"});
+// ใช้ DATABASE_URL จาก Render
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-app.get("/test-db", async(req,res)=>{
-const pool = require("./db");
-const result = await pool.query("SELECT NOW()");
-res.json(result.rows);
+
+// ---------------------
+// Test Server
+// ---------------------
+app.get("/", (req, res) => {
+  res.send("Poultry Enterprise API Running");
 });
 
+
+// ---------------------
+// Test Database
+// ---------------------
+app.get("/test-db", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Database Error");
+  }
+});
+
+
+// ---------------------
+// GET chickens
+// ---------------------
+app.get("/chickens", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM chickens ORDER BY id DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
+
+
+// ---------------------
+// ADD chickens
+// ---------------------
+app.post("/chickens", async (req, res) => {
+  try {
+    const { house, total } = req.body;
+
+    const result = await pool.query(
+      "INSERT INTO chickens (house,total) VALUES ($1,$2) RETURNING *",
+      [house, total]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Insert Error");
+  }
+});
+
+
+// ---------------------
+// Delete chickens
+// ---------------------
+app.delete("/chickens/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    await pool.query("DELETE FROM chickens WHERE id=$1", [id]);
+
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Delete Error");
+  }
+});
+
+
+// ---------------------
+// PORT
+// ---------------------
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT,()=>{
-console.log("Server running on port",PORT);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
