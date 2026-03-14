@@ -274,15 +274,68 @@ def init_db():
 
 init_db()
 
-# --- 4. STYLE ---
+# --- 4. STYLE (FIX WHITE SCREEN) ---
 st.markdown("""
-    <style>
-    .stApp { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-    div.stButton > button:first-child { border-radius: 10px; transition: all 0.3s ease; font-weight: bold; }
-    button[kind="primary"] { background-color: #2e59d9 !important; color: white !important; width: 100%; }
-    .stTable, div[data-testid="stExpander"] { background-color: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+
+/* Background */
+.stApp { 
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+/* Fix text color */
+html, body, [class*="css"]  {
+    color: #000000 !important;
+}
+
+/* Label text */
+label, .stMarkdown, .stTextInput label, .stNumberInput label,
+.stSelectbox label, .stSlider label {
+    color: #000000 !important;
+    font-weight: 600;
+}
+
+/* Input text */
+input, textarea {
+    color: #000000 !important;
+}
+
+/* Buttons */
+div.stButton > button:first-child { 
+    border-radius: 10px; 
+    transition: all 0.3s ease; 
+    font-weight: bold;
+}
+
+/* Primary button */
+button[kind="primary"] { 
+    background-color: #2e59d9 !important; 
+    color: white !important; 
+    width: 100%;
+}
+
+/* Cards */
+.stTable, div[data-testid="stExpander"] { 
+    background-color: white; 
+    border-radius: 15px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Streamlit input box */
+.stTextInput>div>div>input,
+.stNumberInput>div>div>input {
+    background-color: white;
+    color: black;
+}
+
+/* Selectbox */
+.stSelectbox div {
+    color: black;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 
 # --- 5. AUTHENTICATION PAGES ---
 def auth_page(T):
