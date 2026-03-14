@@ -95,6 +95,24 @@ app.delete("/chickens/:id", async (req, res) => {
 // PORT
 // ---------------------
 const PORT = process.env.PORT || 3000;
+async function createTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS chickens (
+        id SERIAL PRIMARY KEY,
+        house TEXT,
+        total INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    console.log("Table chickens ready")
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+createTable()
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
