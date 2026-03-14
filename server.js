@@ -1,29 +1,29 @@
 const express = require("express");
-const { Pool } = require("pg");
+const cors = require("cors");
+
+const auth = require("./modules/auth");
+const farms = require("./modules/farms");
 
 const app = express();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+app.use(cors());
+app.use(express.json());
+
+app.use("/auth", auth);
+app.use("/farms", farms);
+
+app.get("/", (req,res)=>{
+res.json({message:"Poultry Enterprise API"});
 });
 
-app.get("/", (req, res) => {
-  res.send("Server running 🚀");
-});
-
-app.get("/test-db", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW()");
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Database error");
-  }
+app.get("/test-db", async(req,res)=>{
+const pool = require("./db");
+const result = await pool.query("SELECT NOW()");
+res.json(result.rows);
 });
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+app.listen(PORT,()=>{
+console.log("Server running on port",PORT);
 });
