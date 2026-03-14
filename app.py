@@ -274,67 +274,78 @@ def init_db():
 
 init_db()
 
-# --- 4. STYLE (FIX WHITE SCREEN) ---
+# --- 4. STYLE # --- STYLE FIX TEXT ---
+import streamlit as st
+
 st.markdown("""
 <style>
 
-/* Background */
-.stApp { 
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+/* App background */
+.stApp {
+    background: linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);
 }
 
-/* Fix text color */
-html, body, [class*="css"]  {
-    color: #000000 !important;
+/* FIX HEADERS */
+h1,h2,h3,h4,h5,h6{
+    color:#000000 !important;
 }
 
-/* Label text */
-label, .stMarkdown, .stTextInput label, .stNumberInput label,
-.stSelectbox label, .stSlider label {
-    color: #000000 !important;
-    font-weight: 600;
+/* FIX LABEL TEXT */
+label{
+    color:#000000 !important;
+    font-weight:600;
 }
 
-/* Input text */
-input, textarea {
-    color: #000000 !important;
+/* FIX NORMAL TEXT */
+p,span,div{
+    color:#000000 !important;
 }
 
-/* Buttons */
-div.stButton > button:first-child { 
-    border-radius: 10px; 
-    transition: all 0.3s ease; 
-    font-weight: bold;
+/* INPUT TEXT */
+input,textarea{
+    color:#000000 !important;
 }
 
-/* Primary button */
-button[kind="primary"] { 
-    background-color: #2e59d9 !important; 
-    color: white !important; 
-    width: 100%;
+/* INPUT BOX STYLE */
+.stTextInput input{
+    background:white !important;
+    color:black !important;
 }
 
-/* Cards */
-.stTable, div[data-testid="stExpander"] { 
-    background-color: white; 
-    border-radius: 15px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+/* PASSWORD INPUT */
+.stTextInput div[data-baseweb="input"]{
+    background:white !important;
 }
 
-/* Streamlit input box */
-.stTextInput>div>div>input,
-.stNumberInput>div>div>input {
-    background-color: white;
-    color: black;
+/* SELECT BOX */
+.stSelectbox div{
+    color:black !important;
 }
 
-/* Selectbox */
-.stSelectbox div {
-    color: black;
+/* BUTTON STYLE */
+button[kind="primary"]{
+    background-color:#2e59d9 !important;
+    color:white !important;
+    width:100%;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+/* CARD STYLE */
+div[data-testid="stExpander"]{
+    background:white;
+    border-radius:12px;
+    padding:10px;
+}
+
+/* TABLE */
+.stTable{
+    background:white;
 }
 
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # --- 5. AUTHENTICATION PAGES ---
