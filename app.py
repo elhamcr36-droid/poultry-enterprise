@@ -1,5 +1,6 @@
 import streamlit as st
-import sqlite3
+import psycopg2
+import os
 import hashlib
 import pandas as pd
 from datetime import datetime
@@ -10,7 +11,10 @@ import time
 
 # --- 1. CONFIGURATION & FULL TRANSLATION DICTIONARY ---
 st.set_page_config(page_title="Layer Smart AI System v4.2", layout="wide")
-DB_FILE = "smart_layer_final.db"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+def get_conn():
+    return psycopg2.connect(DATABASE_URL)
 
 LANG = {
     "TH": {
