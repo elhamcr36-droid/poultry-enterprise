@@ -274,23 +274,19 @@ def init_db():
 
 init_db()
 
-# --- 4. STYLE # --- STYLE FIX TEXT ---
+# --- 4. STYLE FIX TEXT + BUTTON UI ---
+import streamlit as st
+
 st.markdown("""
 <style>
 
-/* BACKGROUND */
+/* APP BACKGROUND */
 .stApp{
     background: linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);
 }
 
 /* HEADERS */
-h1,h2,h3{
-    color:#000000 !important;
-    font-weight:700 !important;
-}
-
-/* STREAMLIT MARKDOWN TEXT */
-div[data-testid="stMarkdownContainer"]{
+h1,h2,h3,h4,h5,h6{
     color:#000000 !important;
 }
 
@@ -300,8 +296,13 @@ label{
     font-weight:600;
 }
 
+/* NORMAL TEXT */
+p,span,div{
+    color:#000000 !important;
+}
+
 /* INPUT TEXT */
-input, textarea{
+input,textarea{
     color:#000000 !important;
 }
 
@@ -309,6 +310,7 @@ input, textarea{
 .stTextInput input{
     background:white !important;
     color:black !important;
+    border-radius:8px;
 }
 
 /* PASSWORD BOX */
@@ -321,32 +323,31 @@ input, textarea{
     color:black !important;
 }
 
-/* PRIMARY BUTTON (LOGIN) */
-button[kind="primary"]{
-    background-color:#2e59d9 !important;
-    color:white !important;
+/* ===== BUTTON STYLE FIX ===== */
+
+/* LOGIN BUTTON */
+.stButton button{
+    background-color:#2e59d9;
+    color:white;
     width:100%;
     border-radius:10px;
     font-weight:bold;
+    padding:10px;
 }
 
-/* NORMAL BUTTON (REGISTER / FORGOT PASSWORD) */
-div.stButton > button{
-    background-color:#ffffff !important;
-    color:#000000 !important;
-    border:2px solid #2e59d9 !important;
-    border-radius:10px;
-    font-weight:600;
-    width:100%;
+/* SECONDARY BUTTON */
+.stButton button:hover{
+    background-color:#1f3ea3;
+    color:white;
 }
 
-/* BUTTON HOVER */
-div.stButton > button:hover{
-    background-color:#2e59d9 !important;
-    color:white !important;
+/* LIGHT BUTTON (สมัครสมาชิก) */
+button[kind="secondary"]{
+    background:#e9ecef !important;
+    color:black !important;
 }
 
-/* CARD */
+/* EXPANDER CARD */
 div[data-testid="stExpander"]{
     background:white;
     border-radius:12px;
