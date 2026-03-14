@@ -1,13 +1,12 @@
-const express = require("express")
+const express = require("express");
+const app = express();
 
-const app = express()
+const PORT = process.env.PORT || 3000;
 
-app.get("/", (req,res)=>{
- res.send("Poultry Farm API Running")
-})
+app.get("/", (req, res) => {
+  res.send("Poultry Enterprise API running 🐔");
+});
 
-const PORT = process.env.PORT || 3000
-
-app.listen(PORT, ()=>{
- console.log("server running")
-})
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
