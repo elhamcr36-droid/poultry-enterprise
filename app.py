@@ -275,9 +275,6 @@ def init_db():
 init_db()
 
 # --- 4. STYLE # --- STYLE FIX TEXT ---
-# --- 4. STYLE (FIX WHITE TEXT) ---
-import streamlit as st
-
 st.markdown("""
 <style>
 
@@ -319,12 +316,12 @@ input, textarea{
     background:white !important;
 }
 
-/* SELECTBOX */
+/* SELECT BOX */
 .stSelectbox div{
     color:black !important;
 }
 
-/* PRIMARY BUTTON */
+/* PRIMARY BUTTON (LOGIN) */
 button[kind="primary"]{
     background-color:#2e59d9 !important;
     color:white !important;
@@ -333,9 +330,20 @@ button[kind="primary"]{
     font-weight:bold;
 }
 
-/* NORMAL BUTTON */
+/* NORMAL BUTTON (REGISTER / FORGOT PASSWORD) */
 div.stButton > button{
+    background-color:#ffffff !important;
+    color:#000000 !important;
+    border:2px solid #2e59d9 !important;
     border-radius:10px;
+    font-weight:600;
+    width:100%;
+}
+
+/* BUTTON HOVER */
+div.stButton > button:hover{
+    background-color:#2e59d9 !important;
+    color:white !important;
 }
 
 /* CARD */
@@ -352,8 +360,6 @@ div[data-testid="stExpander"]{
 
 </style>
 """, unsafe_allow_html=True)
-
-
 
 # --- 5. AUTHENTICATION PAGES ---
 def auth_page(T):
