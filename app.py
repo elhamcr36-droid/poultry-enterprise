@@ -275,54 +275,56 @@ def init_db():
 init_db()
 
 # --- 4. STYLE # --- STYLE FIX TEXT ---
+# --- 4. STYLE (FIX WHITE TEXT) ---
 import streamlit as st
 
 st.markdown("""
 <style>
 
-/* App background */
-.stApp {
+/* BACKGROUND */
+.stApp{
     background: linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);
 }
 
-/* FIX HEADERS */
-h1,h2,h3,h4,h5,h6{
+/* HEADERS */
+h1,h2,h3{
+    color:#000000 !important;
+    font-weight:700 !important;
+}
+
+/* STREAMLIT MARKDOWN TEXT */
+div[data-testid="stMarkdownContainer"]{
     color:#000000 !important;
 }
 
-/* FIX LABEL TEXT */
+/* LABEL TEXT */
 label{
     color:#000000 !important;
     font-weight:600;
 }
 
-/* FIX NORMAL TEXT */
-p,span,div{
-    color:#000000 !important;
-}
-
 /* INPUT TEXT */
-input,textarea{
+input, textarea{
     color:#000000 !important;
 }
 
-/* INPUT BOX STYLE */
+/* INPUT BOX */
 .stTextInput input{
     background:white !important;
     color:black !important;
 }
 
-/* PASSWORD INPUT */
+/* PASSWORD BOX */
 .stTextInput div[data-baseweb="input"]{
     background:white !important;
 }
 
-/* SELECT BOX */
+/* SELECTBOX */
 .stSelectbox div{
     color:black !important;
 }
 
-/* BUTTON STYLE */
+/* PRIMARY BUTTON */
 button[kind="primary"]{
     background-color:#2e59d9 !important;
     color:white !important;
@@ -331,7 +333,12 @@ button[kind="primary"]{
     font-weight:bold;
 }
 
-/* CARD STYLE */
+/* NORMAL BUTTON */
+div.stButton > button{
+    border-radius:10px;
+}
+
+/* CARD */
 div[data-testid="stExpander"]{
     background:white;
     border-radius:12px;
