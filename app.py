@@ -818,29 +818,48 @@ with tabs[4]:
     st.subheader(T["tab_profile"])
 
     conn = get_conn()
-    cur = conn.cursor()
 
-    cur.execute(
+    u_info = conn.execute(
         "SELECT email FROM users WHERE username=%s",
         (st.session_state.username,)
+    ).fetchone()
+
+    if u_info:
+        st.info(f"📧 {T['em_label']}: {u_info[0]}")
+
+    new_un = st.text_input(
+        T["new_un_label"],
+        value=st.session_state.username
     )
 
-    u_info = cur.fetchone()
+    if st.button(T["btn_update_un"]):
 
-    st.info(f"📧 {T['em_label']}: {u_info[0]}")
-            
-            new_un = st.text_input(T["new_un_label"], value=st.session_state.username)
-            if st.button(T["btn_update_un"]):
-                if new_un != st.session_state.username and new_un != "":
-                    try:
-                        conn.execute("UPDATE users SET username=%s WHERE username=%s", (new_un, st.session_state.username))
-                        conn.execute("UPDATE suggestions SET username=%s WHERE username=%s", (new_un, st.session_state.username))
-                        conn.execute("UPDATE saved_recipes SET username=%s WHERE username=%s", (new_un, st.session_state.username))
-                        conn.commit()
-                        st.session_state.username = new_un
-                        st.success(T["msg_success"])
-                        st.rerun()
-                    except: st.error(T["msg_error"])
+        if new_un != st.session_state.username and new_un != "":
+
+            try:
+                conn.execute(
+                    "UPDATE users SET username=%s WHERE username=%s",
+                    (new_un, st.session_state.username)
+                )
+
+                conn.execute(
+                    "UPDATE suggestions SET username=%s WHERE username=%s",
+                    (new_un, st.session_state.username)
+                )
+
+                conn.execute(
+                    "UPDATE saved_recipes SET username=%s WHERE username=%s",
+                    (new_un, st.session_state.username)
+                )
+
+                conn.commit()
+
+                st.session_state.username = new_un
+                st.success(T["msg_success"])
+                st.rerun()
+
+            except Exception:
+                st.error(T["msg_error"])
 
 # --- 7. ADMIN PANEL ---
 def admin_page(T):
