@@ -21,33 +21,36 @@ def get_conn():
 
 # ---------------- CONFIG ---------------- #
 
-# ---------------- CONFIG ---------------- #
-
 st.markdown("""
 <style>
 
-/* ปุ่มทั้งหมดใน sidebar */
-section[data-testid="stSidebar"] button {
-    background-color: #ef4444 !important;
-    color: white !important;
-    border-radius: 8px !important;
-    border: none !important;
-    width: 100%;
+/* Sidebar background */
+section[data-testid="stSidebar"]{
+    background-color:#0f172a !important;
+}
+
+/* ข้อความทั้งหมดใน sidebar */
+section[data-testid="stSidebar"] *{
+    color:white !important;
+}
+
+/* ปุ่ม logout */
+section[data-testid="stSidebar"] div.stButton > button{
+    background-color:#ef4444 !important;
+    color:white !important;
+    border:none !important;
+    border-radius:8px !important;
+    width:100% !important;
 }
 
 /* hover */
-section[data-testid="stSidebar"] button:hover {
-    background-color: #dc2626 !important;
-}
-
-/* เอาพื้นหลังขาวของ container ออก */
-section[data-testid="stSidebar"] div[data-testid="stButton"] {
-    background-color: transparent !important;
+section[data-testid="stSidebar"] div.stButton > button:hover{
+    background-color:#dc2626 !important;
+    color:white !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
-
 # ---------------- DATABASE ---------------- #
 
 def init_db():
