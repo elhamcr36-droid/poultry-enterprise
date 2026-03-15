@@ -11,20 +11,32 @@ import time
 
 # ---------------- CONFIG ---------------- #
 
-st.set_page_config(page_title="Layer Smart AI System v4.2", layout="wide")
-
-# FIX SIDEBAR TEXT COLOR
 st.markdown("""
 <style>
 
 /* Sidebar background */
 section[data-testid="stSidebar"] {
-    background-color: #111827;
+    background-color: #0f172a !important;
 }
 
-/* Sidebar text */
+/* บังคับทุกข้อความใน sidebar เป็นสีขาว */
 section[data-testid="stSidebar"] * {
-    color: white !important;
+    color: #ffffff !important;
+}
+
+/* selectbox text */
+section[data-testid="stSidebar"] .stSelectbox div {
+    color: #ffffff !important;
+}
+
+/* radio text */
+section[data-testid="stSidebar"] .stRadio label {
+    color: #ffffff !important;
+}
+
+/* button text */
+section[data-testid="stSidebar"] button {
+    color: #ffffff !important;
 }
 
 </style>
