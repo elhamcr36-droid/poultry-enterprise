@@ -438,7 +438,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight:700;
 }
 
-p, label, span, div {
+p, label, span {
     color:#1f2937 !important;
 }
 
@@ -448,16 +448,28 @@ input {
     color:black !important;
 }
 
-/* ปุ่ม */
-div.stButton > button:first-child {
+/* ปุ่มทั้งหมด */
+div.stButton > button {
     border-radius:10px;
     font-weight:bold;
 }
 
-/* ปุ่มหลัก */
+/* ปุ่มหลัก Login */
 button[kind="primary"] {
     background-color:#2e59d9 !important;
     color:white !important;
+}
+
+/* ปุ่มรอง (สมัครสมาชิก / ลืมรหัสผ่าน) */
+div.stButton > button:not([kind="primary"]) {
+    background-color:white !important;
+    color:#1f2937 !important;
+    border:1px solid #cbd5e1 !important;
+}
+
+/* hover effect */
+div.stButton > button:not([kind="primary"]):hover {
+    background-color:#f1f5f9 !important;
 }
 
 /* กล่อง UI */
