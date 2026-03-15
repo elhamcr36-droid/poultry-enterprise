@@ -767,8 +767,86 @@ def user_page(T, L_CODE):
 
             target = cur_master[g_key]["stages"][s_key]["vals"]
 
-            # -------- AI BUTTON --------
+                   # --- 6. USER DASHBOARD ---
+def user_page(T, L_CODE):
 
+    st.title(T["title"])
+
+    tabs = st.tabs([
+        T["tab_calc"],
+        T["tab_hist"],
+        T["tab_stock"],
+        T["tab_feed"],
+        T["tab_profile"]
+    ])
+
+    # ================= TAB CALCULATOR =================
+    with tabs[0]:
+
+        c1, c2 = st.columns([1, 2])
+
+        # -------- LEFT PANEL (CONFIG) --------
+        with c1:
+
+            st.subheader(T["config_sec"])
+
+            cur_master = ANIMAL_MASTER[L_CODE]
+
+            g_key = st.selectbox(
+                T["group_label"],
+                list(cur_master.keys())
+            )
+
+            b_key = st.selectbox(
+                T["breed_label"],
+                cur_master[g_key]["breeds"]
+            )
+
+            s_key = st.selectbox(
+                T["stage_label"],
+                list(cur_master[g_key]["stages"].keys())
+            )
+
+            num = st.number_input(
+                T["count_label"],
+                1,
+                1000000,
+                100
+            )
+
+            batch = st.number_input(
+                T["batch_label"],
+                1,
+                5000,
+                100
+            )
+
+            opt_mode = st.radio(
+                T["opt_label"],
+                [T["mode_price"], T["mode_nutri"]]
+            )
+
+            st.divider()
+
+            st.subheader(T["income_sec"])
+
+            egg_p = st.number_input(
+                T["egg_price_label"],
+                1.0,
+                10.0,
+                4.3
+            )
+
+            lay_r = st.slider(
+                T["lay_rate_label"],
+                50,
+                100,
+                85
+            )
+
+            target = cur_master[g_key]["stages"][s_key]["vals"]
+
+            # -------- AI BUTTON --------
             if st.button(T["btn_ai"], use_container_width=True, type="primary"):
 
                 conn = get_conn()
@@ -825,75 +903,105 @@ def user_page(T, L_CODE):
                     st.balloons()
 
                 else:
-
                     st.error(T["msg_no_balance"])
-c1, c2 = st.columns(2)
 
-with c2:
-    if "calc" in st.session_state:
+        # -------- RIGHT PANEL (RESULT) --------
+        with c2:
 
-        r = st.session_state.calc
+            if "calc" in st.session_state:
 
-        st.subheader(T["res_header"])
+                r = st.session_state.calc
 
-        res_df = r['df'].copy()
-        res_df["Ratio (%)"] = (r['x'] * 100).round(2)
-        res_df = res_df[res_df["Ratio (%)"] > 0]
+                st.subheader(T["res_header"])
 
-        name_col = "name_th" if L_CODE == "TH" else "name_en"
+                res_df = r["df"].copy()
+                res_df["Ratio (%)"] = (r["x"] * 100).round(2)
 
-        st.plotly_chart(
-            px.pie(
-                res_df,
-                values="Ratio (%)",
-                names=name_col,
-                title=T["chart_title"],
-                hole=0.4
-            ),
-            use_container_width=True
-        )
+                res_df = res_df[
+                    res_df["Ratio (%)"] > 0
+                ]
 
-        m1, m2 = st.columns(2)
+                name_col = (
+                    "name_th"
+                    if L_CODE == "TH"
+                    else "name_en"
+                )
 
-        m1.metric(
-            T["protein_actual"],
-            f"{(r['df']['protein'] * r['x']).sum():.2f}%",
-            f"Target {r['target'][0]}%"
-        )
+                st.plotly_chart(
+                    px.pie(
+                        res_df,
+                        values="Ratio (%)",
+                        names=name_col,
+                        title=T["chart_title"],
+                        hole=0.4
+                    ),
+                    use_container_width=True
+                )
 
-        m2.metric(
-            T["energy_actual"],
-            f"{(r['df']['energy'] * r['x']).sum():.0f}",
-            f"Target {r['target'][1]}"
-        )
+                # -------- METRICS --------
+                m1, m2 = st.columns(2)
 
-        table_disp = res_df[[name_col, "Ratio (%)"]].copy()
+                m1.metric(
+                    T["protein_actual"],
+                    f"{(r['df']['protein'] * r['x']).sum():.2f}%",
+                    f"Target {r['target'][0]}%"
+                )
 
-        table_disp[T["table_need"]] = (
-            res_df["Ratio (%)"] / 100 * r['batch']
-        ).round(3)
+                m2.metric(
+                    T["energy_actual"],
+                    f"{(r['df']['energy'] * r['x']).sum():.0f}",
+                    f"Target {r['target'][1]}"
+                )
 
-        table_disp.columns = [
-            T["table_name"],
-            T["table_ratio"],
-            T["table_need"]
-        ]
+                # -------- TABLE --------
+                table_disp = res_df[
+                    [name_col, "Ratio (%)"]
+                ].copy()
 
-        st.table(table_disp)
+                table_disp[T["table_need"]] = (
+                    res_df["Ratio (%)"] / 100
+                    * r["batch"]
+                ).round(3)
 
-        st.divider()
+                table_disp.columns = [
+                    T["table_name"],
+                    T["table_ratio"],
+                    T["table_need"]
+                ]
 
-        st.subheader(T["profit_sec"])
+                st.table(table_disp)
 
-        daily_feed = (r['n'] * 120) / 1000
-        d_cost = daily_feed * r['cost']
-        d_rev = (r['n'] * r['lay_r'] / 100) * r['egg_p']
+                st.divider()
 
-        p1, p2, p3 = st.columns(3)
+                # -------- PROFIT --------
+                st.subheader(T["profit_sec"])
 
-        p1.metric(T["cost_day"], f"{d_cost:,.2f} ฿")
-        p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
-        p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
+                daily_feed = (r["n"] * 120) / 1000
+
+                d_cost = daily_feed * r["cost"]
+
+                d_rev = (
+                    r["n"]
+                    * r["lay_r"]
+                    / 100
+                ) * r["egg_p"]
+
+                p1, p2, p3 = st.columns(3)
+
+                p1.metric(
+                    T["cost_day"],
+                    f"{d_cost:,.2f} ฿"
+                )
+
+                p2.metric(
+                    T["rev_day"],
+                    f"{d_rev:,.2f} ฿"
+                )
+
+                p3.metric(
+                    T["profit_month"],
+                    f"{(d_rev - d_cost) * 30:,.2f} ฿"
+                )
 
         # ---------------- SAVE RECIPE ----------------
 
