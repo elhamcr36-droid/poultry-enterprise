@@ -7,6 +7,7 @@ from datetime import datetime
 from scipy.optimize import linprog
 import plotly.express as px
 import numpy as np
+import time
 
 # ---------------- CONFIG ---------------- #
 
@@ -712,11 +713,25 @@ def user_page(T, L_CODE):
             
             target = cur_master[g_key]['stages'][s_key]['vals']
             
-            if st.button(T["btn_ai"], use_container_width=True, type="primary"):
-                df = pd.read_sql("SELECT * FROM ingredients", sqlite3.connect(DB_FILE))
-                costs = df["cost"].tolist()
-                A = [[-p for p in df["protein"]], [-e for e in df["energy"]], [f for f in df["fiber"]]]
-                b_ub = [-target[0], -target[1], target[2]]
+if st.button(T["btn_ai"], use_container_width=True, type="primary"):
+
+    conn = get_conn()
+    df = pd.read_sql("SELECT * FROM ingredients", conn)
+    conn.close()
+
+    costs = df["cost"].tolist()
+
+    A = [
+        [-p for p in df["protein"]],
+        [-e for e in df["energy"]],
+        [f for f in df["fiber"]]
+    ]
+
+    b_ub = [
+        -target[0],
+        -target[1],
+        target[2]
+    ]
                 
                 res = linprog(costs if T["mode_price"] in opt_mode else [c*1.2 for c in costs], 
                               A_ub=A, b_ub=b_ub, A_eq=[[1.0]*len(df)], b_eq=[1.0], method="highs")
