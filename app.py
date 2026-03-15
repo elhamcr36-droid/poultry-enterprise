@@ -1,15 +1,189 @@
 import streamlit as st
+import psycopg2
+import os
 import hashlib
 import pandas as pd
 from datetime import datetime
 from scipy.optimize import linprog
 import plotly.express as px
 import numpy as np
-import time
 
-# --- 1. CONFIGURATION & FULL TRANSLATION DICTIONARY ---
+# ---------------- CONFIG ---------------- #
+
 st.set_page_config(page_title="Layer Smart AI System v4.2", layout="wide")
-DB_FILE = "smart_layer_final.db"
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+def get_conn():
+    return psycopg2.connect(
+        DATABASE_URL,
+        sslmode="require"
+    )
+
+
+# ---------------- DATABASE ---------------- #
+
+def init_db():
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        username TEXT PRIMARY KEY,
+        fullname TEXT,
+        email TEXT,
+        password TEXT,
+        birthdate TEXT,
+        age INTEGER
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS suggestions(
+        id SERIAL PRIMARY KEY,
+        username TEXT,
+        message TEXT,
+        rating INTEGER,
+        timestamp TIMESTAMP
+    )
+    """)
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+# ---------------- PASSWORD ---------------- #
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+# ---------------- USER FUNCTIONS ---------------- #
+
+def register_user(username, fullname, email, password, birthdate, age):
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO users (username,fullname,email,password,birthdate,age)
+        VALUES (%s,%s,%s,%s,%s,%s)
+        """,
+        (username, fullname, email, hash_password(password), birthdate, age)
+    )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def login_user(username, password):
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT * FROM users WHERE username=%s AND password=%s",
+        (username, hash_password(password))
+    )
+
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return user
+
+
+# ---------------- FEED OPTIMIZATION ---------------- #
+
+def optimize_feed(costs, protein, min_protein):
+
+    c = costs
+    A = [[-p for p in protein]]
+    b = [-min_protein]
+
+    bounds = [(0, None) for _ in costs]
+
+    result = linprog(c, A_ub=A, b_ub=b, bounds=bounds)
+
+    return result.x
+
+
+# ---------------- UI ---------------- #
+
+init_db()
+
+st.title("Layer Smart AI System")
+
+menu = ["Login", "Register"]
+
+choice = st.sidebar.selectbox("Menu", menu)
+
+if choice == "Register":
+
+    st.subheader("Create Account")
+
+    username = st.text_input("Username")
+    fullname = st.text_input("Full Name")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    birthdate = st.date_input("Birthdate")
+    age = st.number_input("Age", 1, 120)
+
+    if st.button("Register"):
+
+        register_user(username, fullname, email, password, str(birthdate), age)
+
+        st.success("Account created")
+
+
+elif choice == "Login":
+
+    st.subheader("Login")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+
+        user = login_user(username, password)
+
+        if user:
+
+            st.success("Login success")
+
+            st.subheader("Feed Optimization")
+
+            ingredient = ["Corn", "Soybean Meal", "Rice Bran"]
+
+            cost = st.number_input("Cost", 0.0)
+
+            if st.button("Run Optimization"):
+
+                costs = [0.3, 0.5, 0.2]
+                protein = [8, 44, 12]
+
+                result = optimize_feed(costs, protein, 16)
+
+                df = pd.DataFrame({
+                    "Ingredient": ingredient,
+                    "Amount": result
+                })
+
+                st.dataframe(df)
+
+                fig = px.pie(df, values="Amount", names="Ingredient")
+
+                st.plotly_chart(fig)
+
+        else:
+            st.error("Invalid login")
+
 
 LANG = {
     "TH": {
