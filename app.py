@@ -283,12 +283,13 @@ st.markdown("""
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-/* สีข้อความหลัก */
-html, body, [class*="css"]  {
-    color: #111111 !important;
+/* หัวข้อ login */
+h1 {
+    color: #1a1a1a !important;
+    font-weight: 800;
 }
 
-/* label ของ input */
+/* label */
 label {
     color: #000000 !important;
     font-weight: 600;
@@ -301,7 +302,7 @@ label {
 
 /* placeholder */
 ::placeholder {
-    color: #777777 !important;
+    color: #666666 !important;
 }
 
 /* ปุ่ม */
@@ -318,7 +319,7 @@ button[kind="primary"] {
     width: 100%;
 }
 
-/* ตาราง / expander */
+/* card */
 .stTable, div[data-testid="stExpander"] {
     background-color: white;
     border-radius: 15px;
@@ -327,6 +328,7 @@ button[kind="primary"] {
 
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # --- 5. AUTHENTICATION PAGES ---
