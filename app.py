@@ -639,86 +639,192 @@ def user_page(T, L_CODE):
                     st.balloons()
                 else: st.error(T["msg_no_balance"])
 
-        with c2:
-            if "calc" in st.session_state:
-                r = st.session_state.calc
-                st.subheader(T["res_header"])
-                res_df = r['df'].copy()
-                res_df["Ratio (%)"] = (r['x'] * 100).round(2)
-                res_df = res_df[res_df["Ratio (%)"] > 0]
-                name_col = "name_th" if L_CODE == "TH" else "name_en"
-                
-                st.plotly_chart(px.pie(res_df, values='Ratio (%)', names=name_col, title=T["chart_title"], hole=0.4), use_container_width=True)
-                
-                m1, m2 = st.columns(2)
-                m1.metric(T["protein_actual"], f"{(r['df']['protein']*r['x']).sum():.2f}%", f"Target {r['target'][0]}%")
-                m2.metric(T["energy_actual"], f"{(r['df']['energy']*r['x']).sum():.0f}", f"Target {r['target'][1]}")
+    with c2:
+    if "calc" in st.session_state:
 
-                table_disp = res_df[[name_col, "Ratio (%)"]].copy()
-                table_disp[T["table_need"]] = (res_df["Ratio (%)"] / 100 * r['batch']).round(3)
-                table_disp.columns = [T["table_name"], T["table_ratio"], T["table_need"]]
-                st.table(table_disp)
-                
-                st.divider()
-                st.subheader(T["profit_sec"])
-                daily_feed = (r['n'] * 120) / 1000 
-                d_cost = daily_feed * r['cost']
-                d_rev = (r['n'] * r['lay_r']/100) * r['egg_p']
-                p1, p2, p3 = st.columns(3)
-                p1.metric(T["cost_day"], f"{d_cost:,.2f} ฿")
-                p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
-                p3.metric(T["profit_month"], f"{(d_rev-d_cost)*30:,.2f} ฿")
+        r = st.session_state.calc
+        st.subheader(T["res_header"])
+
+        res_df = r['df'].copy()
+        res_df["Ratio (%)"] = (r['x'] * 100).round(2)
+        res_df = res_df[res_df["Ratio (%)"] > 0]
+
+        name_col = "name_th" if L_CODE == "TH" else "name_en"
+
+        st.plotly_chart(
+            px.pie(
+                res_df,
+                values="Ratio (%)",
+                names=name_col,
+                title=T["chart_title"],
+                hole=0.4
+            ),
+            use_container_width=True
+        )
+
+        m1, m2 = st.columns(2)
+
+        m1.metric(
+            T["protein_actual"],
+            f"{(r['df']['protein'] * r['x']).sum():.2f}%",
+            f"Target {r['target'][0]}%"
+        )
+
+        m2.metric(
+            T["energy_actual"],
+            f"{(r['df']['energy'] * r['x']).sum():.0f}",
+            f"Target {r['target'][1]}"
+        )
+
+        table_disp = res_df[[name_col, "Ratio (%)"]].copy()
+        table_disp[T["table_need"]] = (res_df["Ratio (%)"] / 100 * r['batch']).round(3)
+        table_disp.columns = [
+            T["table_name"],
+            T["table_ratio"],
+            T["table_need"]
+        ]
+
+        st.table(table_disp)
+
+        st.divider()
+        st.subheader(T["profit_sec"])
+
+        daily_feed = (r['n'] * 120) / 1000
+        d_cost = daily_feed * r['cost']
+        d_rev = (r['n'] * r['lay_r'] / 100) * r['egg_p']
+
+        p1, p2, p3 = st.columns(3)
+
+        p1.metric(T["cost_day"], f"{d_cost:,.2f} ฿")
+        p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
+        p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
 
                 if st.button(T["btn_save_rec"]):
-                    details = ", ".join([f"{row[T['table_name']]} {row[T['table_need']]}kg" for _, row in table_disp.iterrows()])
-                    conn = get_conn()
-                        conn.execute("""INSERT INTO saved_recipes 
-                                        (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date) 
-                                        VALUES (%s,%s,%s,%s,%s,%s,%s)""",
-                                     (st.session_state.username, r['b'], r['s'], r['n'], details, round(r['cost'], 2), datetime.now().strftime("%Y-%m-%d %H:%M")))
-                    st.success(T["msg_success"])
+    details = ", ".join([f"{row[T['table_name']]} {row[T['table_need']]}kg" for _, row in table_disp.iterrows()])
 
-    with tabs[1]:
-        st.subheader(T["hist_header"])
-        h_df = pd.read_sql("SELECT * FROM saved_recipes WHERE username=%s ORDER BY date DESC", 
-                           sqlite3.connect(DB_FILE), params=(st.session_state.username,))
-        for _, row in h_df.iterrows():
-            with st.expander(f"📅 {row['date']} | {row['breed_name']} | {row['cost_per_kg']} ฿/kg"):
-                st.write(row['details'])
-                if st.button(T["btn_del"], key=f"del_h_{row['id']}"):
-                    conn = get_conn() 
-                        conn.execute("DELETE FROM saved_recipes WHERE id=%s AND username=%s", (row['id'], st.session_state.username))
-                    st.rerun()
+    conn = get_conn()
+    cur = conn.cursor()
 
-    with tabs[2]:
-        st.subheader(T["stock_header"])
-        ing_data = pd.read_sql("SELECT * FROM ingredients", sqlite3.connect(DB_FILE))
-        edited = st.data_editor(ing_data, num_rows="dynamic", use_container_width=True)
-        if st.button(T["btn_update_stock"]):
-            conn = get_conn()
-                conn.execute("DELETE FROM ingredients")
-                edited.to_sql("ingredients", conn, index=False)
-            st.success(T["msg_success"])
+    cur.execute("""
+        INSERT INTO saved_recipes
+        (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date)
+        VALUES (%s,%s,%s,%s,%s,%s,%s)
+    """, (
+        st.session_state.username,
+        r['b'],
+        r['s'],
+        r['n'],
+        details,
+        round(r['cost'], 2),
+        datetime.now().strftime("%Y-%m-%d %H:%M")
+    ))
 
-    with tabs[3]:
-        st.subheader(T["tab_feed"])
-        with st.form("feedback_form"):
-            rating = st.select_slider(T["rating_label"], options=[1, 2, 3, 4, 5], value=5)
-            msg = st.text_area(T["feed_header"])
-            if st.form_submit_button(T["btn_feed_send"]):
-                if msg:
-                    conn = get_conn()
-                        conn.execute("INSERT INTO suggestions (username, message, rating, timestamp) VALUES (%s,%s,%s,%s)", 
-                                     (st.session_state.username, msg, int(rating), datetime.now()))
-                    st.success(T["msg_success"])
-                else:
-                    st.warning("กรุณากรอกข้อความ")
+    conn.commit()
+    st.success(T["msg_success"])
 
-    with tabs[4]:
-        st.subheader(T["tab_profile"])
+
+with tabs[1]:
+    st.subheader(T["hist_header"])
+
+    h_df = pd.read_sql(
+        "SELECT * FROM saved_recipes WHERE username=%s ORDER BY date DESC",
+        sqlite3.connect(DB_FILE),
+        params=(st.session_state.username,)
+    )
+
+    for _, row in h_df.iterrows():
+        with st.expander(f"📅 {row['date']} | {row['breed_name']} | {row['cost_per_kg']} ฿/kg"):
+
+            st.write(row['details'])
+
+            if st.button(T["btn_del"], key=f"del_h_{row['id']}"):
+
+                conn = get_conn()
+                cur = conn.cursor()
+
+                cur.execute(
+                    "DELETE FROM saved_recipes WHERE id=%s AND username=%s",
+                    (row['id'], st.session_state.username)
+                )
+
+                conn.commit()
+                st.rerun()
+
+
+with tabs[2]:
+    st.subheader(T["stock_header"])
+
+    ing_data = pd.read_sql(
+        "SELECT * FROM ingredients",
+        sqlite3.connect(DB_FILE)
+    )
+
+    edited = st.data_editor(
+        ing_data,
+        num_rows="dynamic",
+        use_container_width=True
+    )
+
+    if st.button(T["btn_update_stock"]):
+
         conn = get_conn()
-            u_info = conn.execute("SELECT email FROM users WHERE username=%s", (st.session_state.username,)).fetchone()
-            st.info(f"📧 {T['em_label']}: {u_info[0]}")
+        cur = conn.cursor()
+
+        cur.execute("DELETE FROM ingredients")
+        conn.commit()
+
+        edited.to_sql("ingredients", conn, index=False)
+
+        st.success(T["msg_success"])
+
+
+with tabs[3]:
+    st.subheader(T["tab_feed"])
+
+    with st.form("feedback_form"):
+
+        rating = st.select_slider(
+            T["rating_label"],
+            options=[1, 2, 3, 4, 5],
+            value=5
+        )
+
+        msg = st.text_area(T["feed_header"])
+
+        if st.form_submit_button(T["btn_feed_send"]):
+
+            if msg:
+
+                conn = get_conn()
+                cur = conn.cursor()
+
+                cur.execute(
+                    "INSERT INTO suggestions (username, message, rating, timestamp) VALUES (%s,%s,%s,%s)",
+                    (st.session_state.username, msg, int(rating), datetime.now())
+                )
+
+                conn.commit()
+
+                st.success(T["msg_success"])
+
+            else:
+                st.warning("กรุณากรอกข้อความ")
+
+
+with tabs[4]:
+    st.subheader(T["tab_profile"])
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT email FROM users WHERE username=%s",
+        (st.session_state.username,)
+    )
+
+    u_info = cur.fetchone()
+
+    st.info(f"📧 {T['em_label']}: {u_info[0]}")
             
             new_un = st.text_input(T["new_un_label"], value=st.session_state.username)
             if st.button(T["btn_update_un"]):
