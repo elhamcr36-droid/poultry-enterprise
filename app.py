@@ -768,7 +768,7 @@ def user_page(T, L_CODE):
 
             target = cur_master[g_key]["stages"][s_key]["vals"]
 
-                   # --- 6. USER DASHBOARD ---
+                  # --- 6. USER DASHBOARD ---
 def user_page(T, L_CODE):
 
     st.title(T["title"])
@@ -784,79 +784,37 @@ def user_page(T, L_CODE):
     # ================= TAB CALCULATOR =================
     with tabs[0]:
 
-        c1, c2 = st.columns([1, 2])
+        c1, c2 = st.columns([1,2])
 
-        # -------- LEFT PANEL (CONFIG) --------
+        # -------- LEFT PANEL --------
         with c1:
 
             st.subheader(T["config_sec"])
 
             cur_master = ANIMAL_MASTER[L_CODE]
 
-            g_key = st.selectbox(
-                T["group_label"],
-                list(cur_master.keys())
-            )
+            g_key = st.selectbox(T["group_label"], list(cur_master.keys()))
+            b_key = st.selectbox(T["breed_label"], cur_master[g_key]["breeds"])
+            s_key = st.selectbox(T["stage_label"], list(cur_master[g_key]["stages"].keys()))
 
-            b_key = st.selectbox(
-                T["breed_label"],
-                cur_master[g_key]["breeds"]
-            )
+            num = st.number_input(T["count_label"],1,1000000,100)
+            batch = st.number_input(T["batch_label"],1,5000,100)
 
-            s_key = st.selectbox(
-                T["stage_label"],
-                list(cur_master[g_key]["stages"].keys())
-            )
-
-            num = st.number_input(
-                T["count_label"],
-                1,
-                1000000,
-                100
-            )
-
-            batch = st.number_input(
-                T["batch_label"],
-                1,
-                5000,
-                100
-            )
-
-            opt_mode = st.radio(
-                T["opt_label"],
-                [T["mode_price"], T["mode_nutri"]]
-            )
+            opt_mode = st.radio(T["opt_label"],[T["mode_price"],T["mode_nutri"]])
 
             st.divider()
 
             st.subheader(T["income_sec"])
 
-            egg_p = st.number_input(
-                T["egg_price_label"],
-                1.0,
-                10.0,
-                4.3
-            )
-
-            lay_r = st.slider(
-                T["lay_rate_label"],
-                50,
-                100,
-                85
-            )
+            egg_p = st.number_input(T["egg_price_label"],1.0,10.0,4.3)
+            lay_r = st.slider(T["lay_rate_label"],50,100,85)
 
             target = cur_master[g_key]["stages"][s_key]["vals"]
 
-            # -------- AI BUTTON --------
             if st.button(T["btn_ai"], use_container_width=True, type="primary"):
 
                 conn = get_conn()
-
-                df = pd.read_sql(
-                    "SELECT * FROM ingredients",
-                    conn
-                )
-
+                df = pd.read_sql("SELECT * FROM ingredients", conn)
                 conn.close()
 
                 costs = df["cost"].tolist()
@@ -867,22 +825,14 @@ def user_page(T, L_CODE):
                     [f for f in df["fiber"]]
                 ]
 
-                b_ub = [
-                    -target[0],
-                    -target[1],
-                    target[2]
-                ]
+                b_ub = [-target[0], -target[1], target[2]]
 
                 res = linprog(
-                    costs if opt_mode == T["mode_price"]
-                    else [c * 1.2 for c in costs],
-
+                    costs if opt_mode == T["mode_price"] else [c*1.2 for c in costs],
                     A_ub=A,
                     b_ub=b_ub,
-
-                    A_eq=[[1.0] * len(df)],
+                    A_eq=[[1.0]*len(df)],
                     b_eq=[1.0],
-
                     method="highs"
                 )
 
@@ -906,7 +856,7 @@ def user_page(T, L_CODE):
                 else:
                     st.error(T["msg_no_balance"])
 
-        # -------- RIGHT PANEL (RESULT) --------
+        # -------- RESULT PANEL --------
         with c2:
 
             if "calc" in st.session_state:
@@ -916,17 +866,10 @@ def user_page(T, L_CODE):
                 st.subheader(T["res_header"])
 
                 res_df = r["df"].copy()
-                res_df["Ratio (%)"] = (r["x"] * 100).round(2)
+                res_df["Ratio (%)"] = (r["x"]*100).round(2)
+                res_df = res_df[res_df["Ratio (%)"]>0]
 
-                res_df = res_df[
-                    res_df["Ratio (%)"] > 0
-                ]
-
-                name_col = (
-                    "name_th"
-                    if L_CODE == "TH"
-                    else "name_en"
-                )
+                name_col = "name_th" if L_CODE=="TH" else "name_en"
 
                 st.plotly_chart(
                     px.pie(
@@ -939,32 +882,27 @@ def user_page(T, L_CODE):
                     use_container_width=True
                 )
 
-                # -------- METRICS --------
-                m1, m2 = st.columns(2)
+                m1,m2 = st.columns(2)
 
                 m1.metric(
                     T["protein_actual"],
-                    f"{(r['df']['protein'] * r['x']).sum():.2f}%",
+                    f"{(r['df']['protein']*r['x']).sum():.2f}%",
                     f"Target {r['target'][0]}%"
                 )
 
                 m2.metric(
                     T["energy_actual"],
-                    f"{(r['df']['energy'] * r['x']).sum():.0f}",
+                    f"{(r['df']['energy']*r['x']).sum():.0f}",
                     f"Target {r['target'][1]}"
                 )
 
-                # -------- TABLE --------
-                table_disp = res_df[
-                    [name_col, "Ratio (%)"]
-                ].copy()
+                table_disp = res_df[[name_col,"Ratio (%)"]].copy()
 
                 table_disp[T["table_need"]] = (
-                    res_df["Ratio (%)"] / 100
-                    * r["batch"]
+                    res_df["Ratio (%)"]/100*r["batch"]
                 ).round(3)
 
-                table_disp.columns = [
+                table_disp.columns=[
                     T["table_name"],
                     T["table_ratio"],
                     T["table_need"]
@@ -974,134 +912,111 @@ def user_page(T, L_CODE):
 
                 st.divider()
 
-                # -------- PROFIT --------
                 st.subheader(T["profit_sec"])
 
-                daily_feed = (r["n"] * 120) / 1000
+                daily_feed = (r["n"]*120)/1000
+                d_cost = daily_feed*r["cost"]
+                d_rev = (r["n"]*r["lay_r"]/100)*r["egg_p"]
 
-                d_cost = daily_feed * r["cost"]
+                p1,p2,p3 = st.columns(3)
 
-                d_rev = (
-                    r["n"]
-                    * r["lay_r"]
-                    / 100
-                ) * r["egg_p"]
+                p1.metric(T["cost_day"],f"{d_cost:,.2f} ฿")
+                p2.metric(T["rev_day"],f"{d_rev:,.2f} ฿")
+                p3.metric(T["profit_month"],f"{(d_rev-d_cost)*30:,.2f} ฿")
 
-                p1, p2, p3 = st.columns(3)
+                if st.button(T["btn_save_rec"]):
 
-                p1.metric(
-                    T["cost_day"],
-                    f"{d_cost:,.2f} ฿"
-                )
+                    details = ", ".join([
+                        f"{row[T['table_name']]} {row[T['table_need']]}kg"
+                        for _,row in table_disp.iterrows()
+                    ])
 
-                p2.metric(
-                    T["rev_day"],
-                    f"{d_rev:,.2f} ฿"
-                )
+                    conn = get_conn()
 
-                p3.metric(
-                    T["profit_month"],
-                    f"{(d_rev - d_cost) * 30:,.2f} ฿"
-                )
+                    conn.execute(
+                        """
+                        INSERT INTO saved_recipes
+                        (username,breed_name,stage_name,chicken_count,details,cost_per_kg,date)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s)
+                        """,
+                        (
+                            st.session_state.username,
+                            r['b'],
+                            r['s'],
+                            r['n'],
+                            details,
+                            round(r['cost'],2),
+                            datetime.now().strftime("%Y-%m-%d %H:%M")
+                        )
+                    )
 
-        # ---------------- SAVE RECIPE ----------------
+                    conn.commit()
 
-        if st.button(T["btn_save_rec"]):
+                    st.success(T["msg_success"])
 
-            details = ", ".join(
-                [
-                    f"{row[T['table_name']]} {row[T['table_need']]}kg"
-                    for _, row in table_disp.iterrows()
-                ]
-            )
+    # ================= TAB HISTORY =================
+    with tabs[1]:
 
-            conn = get_conn()
-            cur = conn.cursor()
+        st.subheader(T["tab_hist"])
 
-            cur.execute("""
-                INSERT INTO saved_recipes
-                (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date)
-                VALUES (%s,%s,%s,%s,%s,%s,%s)
-            """, (
-                st.session_state.username,
-                r['b'],
-                r['s'],
-                r['n'],
-                details,
-                round(r['cost'], 2),
-                datetime.now().strftime("%Y-%m-%d %H:%M")
-            ))
+        conn = get_conn()
+        df = pd.read_sql("SELECT * FROM saved_recipes ORDER BY date DESC", conn)
+        conn.close()
 
-            conn.commit()
+        if df.empty:
+            st.info("ยังไม่มีสูตรที่บันทึก")
+        else:
+            st.dataframe(df,use_container_width=True)
 
-            st.success(T["msg_success"])
-            # ================= TAB HISTORY =================
-with tabs[1]:
+    # ================= TAB STOCK =================
+    with tabs[2]:
 
-    st.subheader(T["tab_hist"])
+        st.subheader(T["tab_stock"])
 
-    conn = get_conn()
-    df = pd.read_sql(
-        "SELECT * FROM saved_recipes ORDER BY date DESC",
-        conn
-    )
-    conn.close()
+        conn = get_conn()
+        df = pd.read_sql(
+            "SELECT name_th,protein,energy,fiber,cost FROM ingredients",
+            conn
+        )
+        conn.close()
 
-    if df.empty:
-        st.info("ยังไม่มีสูตรที่บันทึก")
-    else:
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df,use_container_width=True)
 
+    # ================= TAB FEED =================
+    with tabs[3]:
 
-# ================= TAB STOCK =================
-with tabs[2]:
+        st.subheader(T["tab_feed"])
+        st.info("ระบบแนะนำวัตถุดิบ AI จะเพิ่มในเวอร์ชันถัดไป")
 
-    st.subheader(T["tab_stock"])
+    # ================= TAB PROFILE =================
+    with tabs[4]:
 
-    conn = get_conn()
-    df = pd.read_sql(
-        "SELECT name_th, protein, energy, fiber, cost FROM ingredients",
-        conn
-    )
-    conn.close()
+        st.subheader(T["tab_profile"])
+        st.write("Username:",st.session_state.username)
 
-    st.dataframe(df, use_container_width=True)
-
-
-# ================= TAB FEED =================
-with tabs[3]:
-
-    st.subheader(T["tab_feed"])
-    st.info("ระบบแนะนำวัตถุดิบ AI จะเพิ่มในเวอร์ชันถัดไป")
-
-
-# ================= TAB PROFILE =================
-with tabs[4]:
-
-    st.subheader(T["tab_profile"])
-    st.write("Username:", st.session_state.username)
 
 # --- 7. ADMIN PANEL ---
 def admin_page(T):
+
     st.title(T["nav_admin"])
-    t1, t2 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"]])
+
+    t1,t2 = st.tabs([T["admin_user_tab"],T["admin_feed_tab"]])
 
     with t1:
+
         st.subheader(T["admin_user_tab"])
-        st.info(T["admin_info_del"])
 
         conn = get_conn()
 
         u_df = pd.read_sql(
-            "SELECT username, fullname, email, age FROM users",
+            "SELECT username,fullname,email,age FROM users",
             conn
         )
 
         edited_u = st.data_editor(
             u_df,
             num_rows="dynamic",
-            use_container_width=True,
-            key="admin_u_edit"
+            use_container_width=True
         )
 
         if st.button(T["admin_save_user_btn"]):
@@ -1109,18 +1024,11 @@ def admin_page(T):
             old_u = u_df["username"].tolist()
             new_u = edited_u["username"].tolist()
 
-            deleted = [u for u in old_u if u not in new_u]
+            deleted=[u for u in old_u if u not in new_u]
 
-            for d_un in deleted:
-                conn.execute(
-                    "DELETE FROM users WHERE username=%s",
-                    (d_un,)
-                )
-
-                conn.execute(
-                    "DELETE FROM saved_recipes WHERE username=%s",
-                    (d_un,)
-                )
+            for d in deleted:
+                conn.execute("DELETE FROM users WHERE username=%s",(d,))
+                conn.execute("DELETE FROM saved_recipes WHERE username=%s",(d,))
 
             conn.commit()
 
@@ -1128,6 +1036,7 @@ def admin_page(T):
             st.rerun()
 
     with t2:
+
         st.subheader(T["admin_feed_tab"])
 
         conn = get_conn()
@@ -1139,50 +1048,20 @@ def admin_page(T):
 
         if not s_df.empty:
 
-            # จัดการค่าว่างและคำนวณคะแนนเฉลี่ย
-            s_df["rating"] = s_df["rating"].fillna(0).astype(int)
-            avg_rating = s_df["rating"].mean()
+            s_df["rating"]=s_df["rating"].fillna(0).astype(int)
+            avg_rating=s_df["rating"].mean()
 
-            c1, c2 = st.columns([1, 2])
+            c1,c2 = st.columns([1,2])
 
-            c1.metric(
-                "คะแนนเฉลี่ยรวม",
-                f"⭐ {avg_rating:.2f} / 5.0"
-            )
+            c1.metric("คะแนนเฉลี่ยรวม",f"⭐ {avg_rating:.2f} / 5.0")
 
             fig = px.pie(
                 s_df,
                 names="rating",
-                title="สัดส่วนคะแนนความพึงพอใจ (%)",
-                color_discrete_sequence=px.colors.sequential.YlOrBr
+                title="สัดส่วนคะแนนความพึงพอใจ (%)"
             )
 
-            c2.plotly_chart(fig, use_container_width=True)
-
-            st.divider()
-
-            for _, r in s_df.iterrows():
-
-                star_display = "⭐" * r["rating"]
-
-                with st.expander(
-                    f"{star_display} | {r['username']} | {r['timestamp']}"
-                ):
-
-                    st.write(f"**ข้อความ:** {r['message']}")
-
-                    if st.button(
-                        T["admin_del_msg"],
-                        key=f"del_msg_{r['id']}"
-                    ):
-
-                        conn.execute(
-                            "DELETE FROM suggestions WHERE id=%s",
-                            (r["id"],)
-                        )
-
-                        conn.commit()
-                        st.rerun()
+            c2.plotly_chart(fig,use_container_width=True)
 
         else:
             st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
