@@ -759,18 +759,28 @@ with c2:
             st.success(T["msg_success"])
 
 with tabs[1]:
+
     st.subheader(T["hist_header"])
+
+    conn = get_conn()
 
     h_df = pd.read_sql(
         "SELECT * FROM saved_recipes WHERE username=%s ORDER BY date DESC",
-        sqlite3.connect(DB_FILE),
+        conn,
         params=(st.session_state.username,)
     )
 
+    conn.close()
+
+    if h_df.empty:
+        st.info("No history yet")
+
     for _, row in h_df.iterrows():
+
         with st.expander(
             f"📅 {row['date']} | {row['breed_name']} | {row['cost_per_kg']} ฿/kg"
         ):
+
             st.write(row['details'])
 
             if st.button(T["btn_del"], key=f"del_h_{row['id']}"):
@@ -784,8 +794,9 @@ with tabs[1]:
                 )
 
                 conn.commit()
-                st.rerun()
+                conn.close()
 
+                st.rerun()
 
 with tabs[2]:
     st.subheader(T["stock_header"])
