@@ -406,7 +406,8 @@ ANIMAL_MASTER = {
 }
 
 # --- 3. DATABASE LOGIC ---
-def make_hashes(password): return hashlib.sha256(str.encode(password)).hexdigest()
+def make_hashes(password):
+    return hashlib.sha256(str.encode(password)).hexdigest()
 
 def init_db():
     conn = get_conn()
@@ -421,29 +422,57 @@ def init_db():
         timestamp DATETIME
     )
     """)
-        
-        # ตรวจสอบว่าคอลัมน์ rating มีหรือยัง
-        columns = [column[1] for column in c.fetchall()]
-        if 'rating' not in columns:
-            cur.execute("ALTER TABLE suggestions ADD COLUMN rating INTEGER DEFAULT 5")
 
-        cur.execute("CREATE TABLE IF NOT EXISTS ingredients (name_th TEXT, name_en TEXT, protein REAL, energy REAL, fiber REAL, calcium REAL, phosphorus REAL, lysine REAL, methionine REAL, cost REAL)")
-        cur.execute("""CREATE TABLE IF NOT EXISTS saved_recipes 
-                     (id INTEGER PRIMARY KEY , 
-                      username TEXT, 
-                      breed_name TEXT, 
-                      stage_name TEXT, 
-                      chicken_count INTEGER, 
-                      details TEXT, 
-                      cost_per_kg REAL, 
-                      date TEXT)""")
-        
-        if not cur.execute("SELECT * FROM users WHERE username='ang'").fetchone():
-            cur.execute("INSERT INTO users VALUES (%s,%s,%s,%s,%s,%s)", ('ang', 'Admin System', 'admin@test.com', make_hashes('222'), '1995-01-01', 30))
-        
-        if cur.execute("SELECT COUNT(*) FROM ingredients").fetchone()[0] == 0:
-            cur.executemany("INSERT INTO ingredients VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", STANDARD_INGREDIENTS)
-        conn.commit()
+    # ตรวจสอบว่าคอลัมน์ rating มีหรือยัง
+    cur.execute("PRAGMA table_info(suggestions)")
+    columns = [column[1] for column in cur.fetchall()]
+
+    if 'rating' not in columns:
+        cur.execute("ALTER TABLE suggestions ADD COLUMN rating INTEGER DEFAULT 5")
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS ingredients (
+        name_th TEXT,
+        name_en TEXT,
+        protein REAL,
+        energy REAL,
+        fiber REAL,
+        calcium REAL,
+        phosphorus REAL,
+        lysine REAL,
+        methionine REAL,
+        cost REAL
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS saved_recipes (
+        id INTEGER PRIMARY KEY,
+        username TEXT,
+        breed_name TEXT,
+        stage_name TEXT,
+        chicken_count INTEGER,
+        details TEXT,
+        cost_per_kg REAL,
+        date TEXT
+    )
+    """)
+
+    cur.execute("SELECT * FROM users WHERE username='ang'")
+    if not cur.fetchone():
+        cur.execute(
+            "INSERT INTO users VALUES (%s,%s,%s,%s,%s,%s)",
+            ('ang', 'Admin System', 'admin@test.com', make_hashes('222'), '1995-01-01', 30)
+        )
+
+    cur.execute("SELECT COUNT(*) FROM ingredients")
+    if cur.fetchone()[0] == 0:
+        cur.executemany(
+            "INSERT INTO ingredients VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            STANDARD_INGREDIENTS
+        )
+
+    conn.commit()
 
 init_db()
 
