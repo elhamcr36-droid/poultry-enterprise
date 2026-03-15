@@ -9,6 +9,18 @@ import plotly.express as px
 import numpy as np
 import time
 
+# ---------------- DATABASE CONNECTION ---------------- #
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+def get_conn():
+    return psycopg2.connect(
+        DATABASE_URL,
+        sslmode="require"
+    )
+
+# ---------------- CONFIG ---------------- #
+
 # ---------------- CONFIG ---------------- #
 
 st.markdown("""
