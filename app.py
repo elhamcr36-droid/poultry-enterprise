@@ -639,9 +639,8 @@ def user_page(T, L_CODE):
                     st.balloons()
                 else: st.error(T["msg_no_balance"])
 
-    with c2:
+with c2:
     if "calc" in st.session_state:
-
         r = st.session_state.calc
         st.subheader(T["res_header"])
 
