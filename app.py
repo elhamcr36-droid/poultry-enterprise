@@ -488,8 +488,9 @@ st.markdown("""
 
 # --- 5. AUTHENTICATION PAGES ---
 def auth_page(T):
-    if 'auth_mode' not in st.session_state: st.session_state.auth_mode = 'login'
-    
+    if 'auth_mode' not in st.session_state:
+        st.session_state.auth_mode = 'login'
+
     col1, col2, col3 = st.columns([1, 1.8, 1])
     with col2:
         msg_area = st.empty()
@@ -498,17 +499,29 @@ def auth_page(T):
             st.title(T["login_header"])
             u_input = st.text_input(f"{T['user_label']} / {T['em_label']}")
             p = st.text_input(T["pass_label"], type='password')
+
             if st.button(T["btn_login"], use_container_width=True, type="primary"):
                 conn = get_conn()
-                    res = conn.execute("SELECT fullname, username FROM users WHERE (username=%s OR email=%s) AND password=%s", (u_input, u_input, make_hashes(p))).fetchone()
-                    if res:
-                        st.session_state.logged_in, st.session_state.fullname, st.session_state.username = True, res[0], res[1]
-                        st.rerun()
-                    else: msg_area.error(T["msg_error"])
-            
+                cur = conn.cursor()
+
+                cur.execute(
+                    "SELECT fullname, username FROM users WHERE (username=%s OR email=%s) AND password=%s",
+                    (u_input, u_input, make_hashes(p))
+                )
+
+                res = cur.fetchone()
+
+                if res:
+                    st.session_state.logged_in = True
+                    st.session_state.fullname = res[0]
+                    st.session_state.username = res[1]
+                    st.rerun()
+                else:
+                    msg_area.error(T["msg_error"])
+
             st.button(T["btn_reg"], on_click=lambda: st.session_state.update({"auth_mode": "register"}), use_container_width=True)
             st.button(T["btn_forgot"], on_click=lambda: st.session_state.update({"auth_mode": "forgot"}), use_container_width=True)
-        
+
         elif st.session_state.auth_mode == 'register':
             st.title(T["reg_header"])
             fn = st.text_input(T["fn_label"])
@@ -516,52 +529,78 @@ def auth_page(T):
             un = st.text_input(T["user_label"])
             pw = st.text_input(T["pass_label"], type="password")
             cpw = st.text_input(T["cp_label"], type="password")
-            
+
             if st.button(T["btn_reg_submit"], type="primary", use_container_width=True):
                 if pw == cpw and un and em:
                     conn = get_conn()
-                        try:
-                            conn.execute("INSERT INTO users VALUES (%s,%s,%s,%s,%s,%s)", (un, fn, em, make_hashes(pw), "2000-01-01", 24))
-                            conn.commit()
-                            msg_area.success(T["msg_success"])
-                            st.session_state.auth_mode = 'login'
-                            time.sleep(0.8)
-                            st.rerun()
-                        except sqlite3.IntegrityError:
-                            msg_area.error("❌ ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานไปแล้ว")
-                        except Exception as e:
-                            msg_area.error(f"{T['msg_error']}: {e}")
+                    cur = conn.cursor()
+
+                    try:
+                        cur.execute(
+                            "INSERT INTO users VALUES (%s,%s,%s,%s,%s,%s)",
+                            (un, fn, em, make_hashes(pw), "2000-01-01", 24)
+                        )
+                        conn.commit()
+
+                        msg_area.success(T["msg_success"])
+                        st.session_state.auth_mode = 'login'
+                        time.sleep(0.8)
+                        st.rerun()
+
+                    except Exception as e:
+                        msg_area.error(f"{T['msg_error']}: {e}")
                 else:
                     msg_area.warning("❌ กรุณากรอกข้อมูลให้ครบและรหัสผ่านต้องตรงกัน")
+
             st.button(T["btn_back"], on_click=lambda: st.session_state.update({"auth_mode": "login"}), use_container_width=True)
 
         elif st.session_state.auth_mode == 'forgot':
             st.title(T["forgot_header"])
             f_em = st.text_input(T["em_label"], placeholder="example@email.com")
+
             if st.button(T["btn_check"], type="primary", use_container_width=True):
                 if f_em:
                     conn = get_conn()
-                        u_data = conn.execute("SELECT username FROM users WHERE email=%s", (f_em,)).fetchone()
-                        if u_data:
-                            st.session_state.reset_target = u_data[0]
-                            st.session_state.auth_mode = 'reset_confirm'
-                            st.rerun()
-                        else:
-                            msg_area.error(T["msg_email_not_found"])
+                    cur = conn.cursor()
+
+                    cur.execute(
+                        "SELECT username FROM users WHERE email=%s",
+                        (f_em,)
+                    )
+
+                    u_data = cur.fetchone()
+
+                    if u_data:
+                        st.session_state.reset_target = u_data[0]
+                        st.session_state.auth_mode = 'reset_confirm'
+                        st.rerun()
+                    else:
+                        msg_area.error(T["msg_email_not_found"])
+
             st.button(T["btn_back"], on_click=lambda: st.session_state.update({"auth_mode": "login"}), use_container_width=True)
 
         elif st.session_state.auth_mode == 'reset_confirm':
             st.title(T["reset_header"])
             st.info(f"Target: {st.session_state.reset_target}")
+
             n_pw = st.text_input(T["pass_label"], type="password")
+
             if st.button(T["btn_save"], type="primary", use_container_width=True):
                 conn = get_conn()
-                    conn.execute("UPDATE users SET password=%s WHERE username=%s", (make_hashes(n_pw), st.session_state.reset_target))
+                cur = conn.cursor()
+
+                cur.execute(
+                    "UPDATE users SET password=%s WHERE username=%s",
+                    (make_hashes(n_pw), st.session_state.reset_target)
+                )
+
+                conn.commit()
+
                 msg_area.success(T["msg_success"])
                 time.sleep(1)
+
                 st.session_state.auth_mode = 'login'
                 st.rerun()
-
 # --- 6. USER DASHBOARD ---
 def user_page(T, L_CODE):
     st.title(T["title"])
