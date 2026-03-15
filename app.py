@@ -31,7 +31,7 @@ LANG = {
         "cp_label": "ยืนยันรหัสผ่าน",
         "btn_login": "เข้าสู่ระบบ",
         "btn_reg": "สมัครสมาชิกใหม่",
-        "btn_forgot": "ลืมรหัสผ่าน?",
+        "btn_forgot": "ลืมรหัสผ่าน%s",
         "btn_reg_submit": "ตกลงสมัคร",
         "btn_back": "กลับ",
         "btn_check": "ตรวจสอบอีเมล",
@@ -103,7 +103,7 @@ LANG = {
         "cp_label": "Confirm Password",
         "btn_login": "Login",
         "btn_reg": "Register New Account",
-        "btn_forgot": "Forgot Password?",
+        "btn_forgot": "Forgot Password%s",
         "btn_reg_submit": "Submit Registration",
         "btn_back": "Back",
         "btn_check": "Check Email",
@@ -240,7 +240,7 @@ ANIMAL_MASTER = {
 def make_hashes(password): return hashlib.sha256(str.encode(password)).hexdigest()
 
 def init_db():
-    with sqlite3.connect(DB_FILE) as conn:
+    with get_conn() as conn:
         c = conn.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, fullname TEXT, email TEXT UNIQUE, password TEXT, birthdate TEXT, age INTEGER)")
         
@@ -270,10 +270,10 @@ def init_db():
                       date TEXT)""")
         
         if not c.execute("SELECT * FROM users WHERE username='ang'").fetchone():
-            c.execute("INSERT INTO users VALUES (?,?,?,?,?,?)", ('ang', 'Admin System', 'admin@test.com', make_hashes('222'), '1995-01-01', 30))
+            c.execute("INSERT INTO users VALUES (%s,%s,%s,%s,%s,%s)", ('ang', 'Admin System', 'admin@test.com', make_hashes('222'), '1995-01-01', 30))
         
         if c.execute("SELECT COUNT(*) FROM ingredients").fetchone()[0] == 0:
-            c.executemany("INSERT INTO ingredients VALUES (?,?,?,?,?,?,?,?,?,?)", STANDARD_INGREDIENTS)
+            c.executemany("INSERT INTO ingredients VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", STANDARD_INGREDIENTS)
         conn.commit()
 
 init_db()
@@ -379,8 +379,8 @@ def auth_page(T):
             u_input = st.text_input(f"{T['user_label']} / {T['em_label']}")
             p = st.text_input(T["pass_label"], type='password')
             if st.button(T["btn_login"], use_container_width=True, type="primary"):
-                with sqlite3.connect(DB_FILE) as conn:
-                    res = conn.execute("SELECT fullname, username FROM users WHERE (username=? OR email=?) AND password=?", (u_input, u_input, make_hashes(p))).fetchone()
+                with get_conn() as conn:
+                    res = conn.execute("SELECT fullname, username FROM users WHERE (username=%s OR email=%s) AND password=%s", (u_input, u_input, make_hashes(p))).fetchone()
                     if res:
                         st.session_state.logged_in, st.session_state.fullname, st.session_state.username = True, res[0], res[1]
                         st.rerun()
@@ -399,15 +399,15 @@ def auth_page(T):
             
             if st.button(T["btn_reg_submit"], type="primary", use_container_width=True):
                 if pw == cpw and un and em:
-                    with sqlite3.connect(DB_FILE) as conn:
+                    with get_conn() as conn:
                         try:
-                            conn.execute("INSERT INTO users VALUES (?,?,?,?,?,?)", (un, fn, em, make_hashes(pw), "2000-01-01", 24))
+                            conn.execute("INSERT INTO users VALUES (%s,%s,%s,%s,%s,%s)", (un, fn, em, make_hashes(pw), "2000-01-01", 24))
                             conn.commit()
                             msg_area.success(T["msg_success"])
                             st.session_state.auth_mode = 'login'
                             time.sleep(0.8)
                             st.rerun()
-                        except sqlite3.IntegrityError:
+                        except psycopg2.IntegrityError:
                             msg_area.error("❌ ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานไปแล้ว")
                         except Exception as e:
                             msg_area.error(f"{T['msg_error']}: {e}")
@@ -420,8 +420,8 @@ def auth_page(T):
             f_em = st.text_input(T["em_label"], placeholder="example@email.com")
             if st.button(T["btn_check"], type="primary", use_container_width=True):
                 if f_em:
-                    with sqlite3.connect(DB_FILE) as conn:
-                        u_data = conn.execute("SELECT username FROM users WHERE email=?", (f_em,)).fetchone()
+                    with get_conn() as conn:
+                        u_data = conn.execute("SELECT username FROM users WHERE email=%s", (f_em,)).fetchone()
                         if u_data:
                             st.session_state.reset_target = u_data[0]
                             st.session_state.auth_mode = 'reset_confirm'
@@ -435,8 +435,8 @@ def auth_page(T):
             st.info(f"Target: {st.session_state.reset_target}")
             n_pw = st.text_input(T["pass_label"], type="password")
             if st.button(T["btn_save"], type="primary", use_container_width=True):
-                with sqlite3.connect(DB_FILE) as conn:
-                    conn.execute("UPDATE users SET password=? WHERE username=?", (make_hashes(n_pw), st.session_state.reset_target))
+                with get_conn() as conn:
+                    conn.execute("UPDATE users SET password=%s WHERE username=%s", (make_hashes(n_pw), st.session_state.reset_target))
                 msg_area.success(T["msg_success"])
                 time.sleep(1)
                 st.session_state.auth_mode = 'login'
@@ -467,7 +467,7 @@ def user_page(T, L_CODE):
             target = cur_master[g_key]['stages'][s_key]['vals']
             
             if st.button(T["btn_ai"], use_container_width=True, type="primary"):
-                df = pd.read_sql("SELECT * FROM ingredients", sqlite3.connect(DB_FILE))
+                df = pd.read_sql("SELECT * FROM ingredients", get_conn())
                 costs = df["cost"].tolist()
                 A = [[-p for p in df["protein"]], [-e for e in df["energy"]], [f for f in df["fiber"]]]
                 b_ub = [-target[0], -target[1], target[2]]
@@ -512,31 +512,31 @@ def user_page(T, L_CODE):
 
                 if st.button(T["btn_save_rec"]):
                     details = ", ".join([f"{row[T['table_name']]} {row[T['table_need']]}kg" for _, row in table_disp.iterrows()])
-                    with sqlite3.connect(DB_FILE) as conn:
+                    with get_conn() as conn:
                         conn.execute("""INSERT INTO saved_recipes 
                                         (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date) 
-                                        VALUES (?,?,?,?,?,?,?)""",
+                                        VALUES (%s,%s,%s,%s,%s,%s,%s)""",
                                      (st.session_state.username, r['b'], r['s'], r['n'], details, round(r['cost'], 2), datetime.now().strftime("%Y-%m-%d %H:%M")))
                     st.success(T["msg_success"])
 
     with tabs[1]:
         st.subheader(T["hist_header"])
-        h_df = pd.read_sql("SELECT * FROM saved_recipes WHERE username=? ORDER BY date DESC", 
-                           sqlite3.connect(DB_FILE), params=(st.session_state.username,))
+        h_df = pd.read_sql("SELECT * FROM saved_recipes WHERE username=%s ORDER BY date DESC", 
+                           get_conn(), params=(st.session_state.username,))
         for _, row in h_df.iterrows():
             with st.expander(f"📅 {row['date']} | {row['breed_name']} | {row['cost_per_kg']} ฿/kg"):
                 st.write(row['details'])
                 if st.button(T["btn_del"], key=f"del_h_{row['id']}"):
-                    with sqlite3.connect(DB_FILE) as conn: 
-                        conn.execute("DELETE FROM saved_recipes WHERE id=? AND username=?", (row['id'], st.session_state.username))
+                    with get_conn() as conn: 
+                        conn.execute("DELETE FROM saved_recipes WHERE id=%s AND username=%s", (row['id'], st.session_state.username))
                     st.rerun()
 
     with tabs[2]:
         st.subheader(T["stock_header"])
-        ing_data = pd.read_sql("SELECT * FROM ingredients", sqlite3.connect(DB_FILE))
+        ing_data = pd.read_sql("SELECT * FROM ingredients", get_conn())
         edited = st.data_editor(ing_data, num_rows="dynamic", use_container_width=True)
         if st.button(T["btn_update_stock"]):
-            with sqlite3.connect(DB_FILE) as conn:
+            with get_conn() as conn:
                 conn.execute("DELETE FROM ingredients")
                 edited.to_sql("ingredients", conn, index=False)
             st.success(T["msg_success"])
@@ -548,8 +548,8 @@ def user_page(T, L_CODE):
             msg = st.text_area(T["feed_header"])
             if st.form_submit_button(T["btn_feed_send"]):
                 if msg:
-                    with sqlite3.connect(DB_FILE) as conn:
-                        conn.execute("INSERT INTO suggestions (username, message, rating, timestamp) VALUES (?,?,?,?)", 
+                    with get_conn() as conn:
+                        conn.execute("INSERT INTO suggestions (username, message, rating, timestamp) VALUES (%s,%s,%s,%s)", 
                                      (st.session_state.username, msg, int(rating), datetime.now()))
                     st.success(T["msg_success"])
                 else:
@@ -557,17 +557,17 @@ def user_page(T, L_CODE):
 
     with tabs[4]:
         st.subheader(T["tab_profile"])
-        with sqlite3.connect(DB_FILE) as conn:
-            u_info = conn.execute("SELECT email FROM users WHERE username=?", (st.session_state.username,)).fetchone()
+        with get_conn() as conn:
+            u_info = conn.execute("SELECT email FROM users WHERE username=%s", (st.session_state.username,)).fetchone()
             st.info(f"📧 {T['em_label']}: {u_info[0]}")
             
             new_un = st.text_input(T["new_un_label"], value=st.session_state.username)
             if st.button(T["btn_update_un"]):
                 if new_un != st.session_state.username and new_un != "":
                     try:
-                        conn.execute("UPDATE users SET username=? WHERE username=?", (new_un, st.session_state.username))
-                        conn.execute("UPDATE suggestions SET username=? WHERE username=?", (new_un, st.session_state.username))
-                        conn.execute("UPDATE saved_recipes SET username=? WHERE username=?", (new_un, st.session_state.username))
+                        conn.execute("UPDATE users SET username=%s WHERE username=%s", (new_un, st.session_state.username))
+                        conn.execute("UPDATE suggestions SET username=%s WHERE username=%s", (new_un, st.session_state.username))
+                        conn.execute("UPDATE saved_recipes SET username=%s WHERE username=%s", (new_un, st.session_state.username))
                         conn.commit()
                         st.session_state.username = new_un
                         st.success(T["msg_success"])
@@ -582,7 +582,7 @@ def admin_page(T):
     with t1:
         st.subheader(T["admin_user_tab"])
         st.info(T["admin_info_del"])
-        with sqlite3.connect(DB_FILE) as conn:
+        with get_conn() as conn:
             u_df = pd.read_sql("SELECT username, fullname, email, age FROM users", conn)
             edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True, key="admin_u_edit")
             if st.button(T["admin_save_user_btn"]):
@@ -590,15 +590,15 @@ def admin_page(T):
                 new_u = edited_u['username'].tolist()
                 deleted = [u for u in old_u if u not in new_u]
                 for d_un in deleted:
-                    conn.execute("DELETE FROM users WHERE username=?", (d_un,))
-                    conn.execute("DELETE FROM saved_recipes WHERE username=?", (d_un,))
+                    conn.execute("DELETE FROM users WHERE username=%s", (d_un,))
+                    conn.execute("DELETE FROM saved_recipes WHERE username=%s", (d_un,))
                 conn.commit()
                 st.success(T["msg_success"])
                 st.rerun()
     
     with t2:
         st.subheader(T["admin_feed_tab"])
-        with sqlite3.connect(DB_FILE) as conn:
+        with get_conn() as conn:
             s_df = pd.read_sql("SELECT * FROM suggestions ORDER BY timestamp DESC", conn)
             
             if not s_df.empty:
@@ -623,7 +623,7 @@ def admin_page(T):
                     with st.expander(f"{star_display} | {r['username']} | {r['timestamp']}"):
                         st.write(f"**ข้อความ:** {r['message']}")
                         if st.button(T["admin_del_msg"], key=f"del_msg_{r['id']}"):
-                            conn.execute("DELETE FROM suggestions WHERE id=?", (r['id'],))
+                            conn.execute("DELETE FROM suggestions WHERE id=%s", (r['id'],))
                             conn.commit()
                             st.rerun()
             else:
