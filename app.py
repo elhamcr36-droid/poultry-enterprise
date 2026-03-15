@@ -662,7 +662,9 @@ c1, c2 = st.columns(2)
 
 with c2:
     if "calc" in st.session_state:
+
         r = st.session_state.calc
+
         st.subheader(T["res_header"])
 
         res_df = r['df'].copy()
@@ -697,7 +699,11 @@ with c2:
         )
 
         table_disp = res_df[[name_col, "Ratio (%)"]].copy()
-        table_disp[T["table_need"]] = (res_df["Ratio (%)"] / 100 * r['batch']).round(3)
+
+        table_disp[T["table_need"]] = (
+            res_df["Ratio (%)"] / 100 * r['batch']
+        ).round(3)
+
         table_disp.columns = [
             T["table_name"],
             T["table_ratio"],
@@ -707,6 +713,7 @@ with c2:
         st.table(table_disp)
 
         st.divider()
+
         st.subheader(T["profit_sec"])
 
         daily_feed = (r['n'] * 120) / 1000
@@ -719,32 +726,37 @@ with c2:
         p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
         p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
 
-if st.button(T["btn_save_rec"]):
-    details = ", ".join(
-        [f"{row[T['table_name']]} {row[T['table_need']]}kg"
-         for _, row in table_disp.iterrows()]
-    )
+        # ---------------- SAVE RECIPE ----------------
 
-    conn = get_conn()
-    cur = conn.cursor()
+        if st.button(T["btn_save_rec"]):
 
-    cur.execute("""
-        INSERT INTO saved_recipes
-        (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date)
-        VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        st.session_state.username,
-        r['b'],
-        r['s'],
-        r['n'],
-        details,
-        round(r['cost'], 2),
-        datetime.now().strftime("%Y-%m-%d %H:%M")
-    ))
+            details = ", ".join(
+                [
+                    f"{row[T['table_name']]} {row[T['table_need']]}kg"
+                    for _, row in table_disp.iterrows()
+                ]
+            )
 
-    conn.commit()
-    st.success(T["msg_success"])
+            conn = get_conn()
+            cur = conn.cursor()
 
+            cur.execute("""
+                INSERT INTO saved_recipes
+                (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date)
+                VALUES (%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                st.session_state.username,
+                r['b'],
+                r['s'],
+                r['n'],
+                details,
+                round(r['cost'], 2),
+                datetime.now().strftime("%Y-%m-%d %H:%M")
+            ))
+
+            conn.commit()
+
+            st.success(T["msg_success"])
 
 with tabs[1]:
     st.subheader(T["hist_header"])
