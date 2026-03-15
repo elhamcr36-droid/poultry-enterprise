@@ -426,14 +426,49 @@ init_db()
 
 # --- 4. STYLE ---
 st.markdown("""
-    <style>
-    .stApp { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-    div.stButton > button:first-child { border-radius: 10px; transition: all 0.3s ease; font-weight: bold; }
-    button[kind="primary"] { background-color: #2e59d9 !important; color: white !important; width: 100%; }
-    .stTable, div[data-testid="stExpander"] { background-color: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
 
+.stApp {
+    background: linear-gradient(135deg,#eef2f7 0%,#d7e1ec 100%);
+}
+
+/* ทำให้ข้อความเข้ม */
+h1, h2, h3, h4, h5, h6 {
+    color:#1f2937 !important;
+    font-weight:700;
+}
+
+p, label, span, div {
+    color:#1f2937 !important;
+}
+
+/* กล่อง input */
+input {
+    background-color:white !important;
+    color:black !important;
+}
+
+/* ปุ่ม */
+div.stButton > button:first-child {
+    border-radius:10px;
+    font-weight:bold;
+}
+
+/* ปุ่มหลัก */
+button[kind="primary"] {
+    background-color:#2e59d9 !important;
+    color:white !important;
+}
+
+/* กล่อง UI */
+.stTable, div[data-testid="stExpander"] {
+    background-color:white;
+    border-radius:15px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+
+</style>
+""", unsafe_allow_html=True)
 # --- 5. AUTHENTICATION PAGES ---
 def auth_page(T):
 
