@@ -410,16 +410,17 @@ def make_hashes(password): return hashlib.sha256(str.encode(password)).hexdigest
 
 def init_db():
     conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, fullname TEXT, email TEXT UNIQUE, password TEXT, birthdate TEXT, age INTEGER)")
-        
-        # สร้างตาราง suggestions และทำ Migration ถ้าจำเป็น
-        cur.execute("""CREATE TABLE IF NOT EXISTS suggestions 
-                     (id INTEGER PRIMARY KEY , 
-                      username TEXT, 
-                      message TEXT, 
-                      rating INTEGER, 
-                      timestamp DATETIME)""")
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS suggestions (
+        id INTEGER PRIMARY KEY,
+        username TEXT,
+        message TEXT,
+        rating INTEGER,
+        timestamp DATETIME
+    )
+    """)
         
         # ตรวจสอบว่าคอลัมน์ rating มีหรือยัง
         columns = [column[1] for column in c.fetchall()]
