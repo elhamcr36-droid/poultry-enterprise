@@ -3,6 +3,3 @@ pandas
 numpy
 scipy
 plotly
-gunicorn
-flask
-psycopg2-binary
