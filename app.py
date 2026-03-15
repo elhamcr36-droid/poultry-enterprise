@@ -736,11 +736,56 @@ if st.button(T["btn_ai"], use_container_width=True, type="primary"):
                 res = linprog(costs if T["mode_price"] in opt_mode else [c*1.2 for c in costs], 
                               A_ub=A, b_ub=b_ub, A_eq=[[1.0]*len(df)], b_eq=[1.0], method="highs")
                 
-                if res.success:
-                    st.session_state.calc = {"x": res.x, "df": df, "cost": res.fun, "b": b_key, "s": s_key, "n": num, "batch": batch, "target": target, "egg_p": egg_p, "lay_r": lay_r}
-                    st.balloons()
-                else: st.error(T["msg_no_balance"])
+if st.button(T["btn_ai"], use_container_width=True, type="primary"):
 
+    conn = get_conn()
+    df = pd.read_sql("SELECT * FROM ingredients", conn)
+    conn.close()
+
+    costs = df["cost"].tolist()
+
+    A = [
+        [-p for p in df["protein"]],
+        [-e for e in df["energy"]],
+        [f for f in df["fiber"]]
+    ]
+
+    b_ub = [
+        -target[0],
+        -target[1],
+        target[2]
+    ]
+
+    if T["mode_price"] in opt_mode:
+        c_vals = costs
+    else:
+        c_vals = [c * 1.2 for c in costs]
+
+    res = linprog(
+        c_vals,
+        A_ub=A,
+        b_ub=b_ub,
+        A_eq=[[1.0] * len(df)],
+        b_eq=[1.0],
+        method="highs"
+    )
+
+    if res.success:
+        st.session_state.calc = {
+            "x": res.x,
+            "df": df,
+            "cost": res.fun,
+            "b": b_key,
+            "s": s_key,
+            "n": num,
+            "batch": batch,
+            "target": target,
+            "egg_p": egg_p,
+            "lay_r": lay_r
+        }
+        st.balloons()
+    else:
+        st.error(T["msg_no_balance"])
 c1, c2 = st.columns(2)
 
 with c2:
