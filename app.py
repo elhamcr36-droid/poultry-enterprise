@@ -9,12 +9,21 @@ import plotly.express as px
 import numpy as np
 import time
 
-# --- 1. CONFIGURATION & FULL TRANSLATION DICTIONARY ---
+# --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Layer Smart AI System v4.2", layout="wide")
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# -------------------------
+# PostgreSQL CONNECTION
+# -------------------------
 def get_conn():
-    return psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(
+        DATABASE_URL,
+        sslmode="require"
+    )
+    return conn
+
 
 LANG = {
     "TH": {
