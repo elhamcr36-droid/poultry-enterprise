@@ -865,56 +865,107 @@ with tabs[4]:
 def admin_page(T):
     st.title(T["nav_admin"])
     t1, t2 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"]])
-    
+
     with t1:
         st.subheader(T["admin_user_tab"])
         st.info(T["admin_info_del"])
+
         conn = get_conn()
-            u_df = pd.read_sql("SELECT username, fullname, email, age FROM users", conn)
-            edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True, key="admin_u_edit")
-            if st.button(T["admin_save_user_btn"]):
-                old_u = u_df['username'].tolist()
-                new_u = edited_u['username'].tolist()
-                deleted = [u for u in old_u if u not in new_u]
-                for d_un in deleted:
-                conn.execute("DELETE FROM users WHERE username=%s", (d_un,))
-                conn.execute("DELETE FROM saved_recipes WHERE username=%s", (d_un,))
-                conn.commit()
-                st.success(T["msg_success"])
-                st.rerun()
-    
+
+        u_df = pd.read_sql(
+            "SELECT username, fullname, email, age FROM users",
+            conn
+        )
+
+        edited_u = st.data_editor(
+            u_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            key="admin_u_edit"
+        )
+
+        if st.button(T["admin_save_user_btn"]):
+
+            old_u = u_df["username"].tolist()
+            new_u = edited_u["username"].tolist()
+
+            deleted = [u for u in old_u if u not in new_u]
+
+            for d_un in deleted:
+                conn.execute(
+                    "DELETE FROM users WHERE username=%s",
+                    (d_un,)
+                )
+
+                conn.execute(
+                    "DELETE FROM saved_recipes WHERE username=%s",
+                    (d_un,)
+                )
+
+            conn.commit()
+
+            st.success(T["msg_success"])
+            st.rerun()
+
     with t2:
         st.subheader(T["admin_feed_tab"])
-        conn = get_conn()
-            s_df = pd.read_sql("SELECT * FROM suggestions ORDER BY timestamp DESC", conn)
-            
-            if not s_df.empty:
-                # จัดการค่าว่างและคำนวณคะแนนเฉลี่ย
-                s_df['rating'] = s_df['rating'].fillna(0).astype(int)
-                avg_rating = s_df['rating'].mean()
-                
-                c1, c2 = st.columns([1, 2])
-                c1.metric("คะแนนเฉลี่ยรวม", f"⭐️ {avg_rating:.2f} / 5.0")
-                
-                # แสดงกราฟวงกลมสรุปคะแนน (แก้จุดสีที่ Error)
-                fig = px.pie(s_df, 
-                             names='rating', 
-                             title="สัดส่วนคะแนนความพึงพอใจ (%)", 
-                             color_discrete_sequence=px.colors.sequential.YlOrBr)
-                c2.plotly_chart(fig, use_container_width=True)
 
-                st.divider()
-                
-                for _, r in s_df.iterrows():
-                    star_display = "⭐️" * r['rating']
-                    with st.expander(f"{star_display} | {r['username']} | {r['timestamp']}"):
-                        st.write(f"**ข้อความ:** {r['message']}")
-                        if st.button(T["admin_del_msg"], key=f"del_msg_{r['id']}"):
-                            conn.execute("DELETE FROM suggestions WHERE id=%s", (r['id'],))
-                            conn.commit()
-                            st.rerun()
-            else:
-                st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
+        conn = get_conn()
+
+        s_df = pd.read_sql(
+            "SELECT * FROM suggestions ORDER BY timestamp DESC",
+            conn
+        )
+
+        if not s_df.empty:
+
+            # จัดการค่าว่างและคำนวณคะแนนเฉลี่ย
+            s_df["rating"] = s_df["rating"].fillna(0).astype(int)
+            avg_rating = s_df["rating"].mean()
+
+            c1, c2 = st.columns([1, 2])
+
+            c1.metric(
+                "คะแนนเฉลี่ยรวม",
+                f"⭐ {avg_rating:.2f} / 5.0"
+            )
+
+            fig = px.pie(
+                s_df,
+                names="rating",
+                title="สัดส่วนคะแนนความพึงพอใจ (%)",
+                color_discrete_sequence=px.colors.sequential.YlOrBr
+            )
+
+            c2.plotly_chart(fig, use_container_width=True)
+
+            st.divider()
+
+            for _, r in s_df.iterrows():
+
+                star_display = "⭐" * r["rating"]
+
+                with st.expander(
+                    f"{star_display} | {r['username']} | {r['timestamp']}"
+                ):
+
+                    st.write(f"**ข้อความ:** {r['message']}")
+
+                    if st.button(
+                        T["admin_del_msg"],
+                        key=f"del_msg_{r['id']}"
+                    ):
+
+                        conn.execute(
+                            "DELETE FROM suggestions WHERE id=%s",
+                            (r["id"],)
+                        )
+
+                        conn.commit()
+                        st.rerun()
+
+        else:
+            st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
 
 # --- 8. MAIN NAVIGATION ---
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
