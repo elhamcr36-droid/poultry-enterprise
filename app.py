@@ -409,27 +409,35 @@ ANIMAL_MASTER = {
 def make_hashes(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
+
 def init_db():
     conn = get_conn()
     cur = conn.cursor()
 
+    # ตาราง suggestions
     cur.execute("""
     CREATE TABLE IF NOT EXISTS suggestions (
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         username TEXT,
         message TEXT,
         rating INTEGER,
-        timestamp DATETIME
+        timestamp TIMESTAMP
     )
     """)
 
     # ตรวจสอบว่าคอลัมน์ rating มีหรือยัง
-    cur.execute("PRAGMA table_info(suggestions)")
-    columns = [column[1] for column in cur.fetchall()]
+    cur.execute("""
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name='suggestions'
+    """)
+
+    columns = [column[0] for column in cur.fetchall()]
 
     if 'rating' not in columns:
         cur.execute("ALTER TABLE suggestions ADD COLUMN rating INTEGER DEFAULT 5")
 
+    # ตาราง ingredients
     cur.execute("""
     CREATE TABLE IF NOT EXISTS ingredients (
         name_th TEXT,
@@ -445,9 +453,10 @@ def init_db():
     )
     """)
 
+    # ตาราง saved_recipes
     cur.execute("""
     CREATE TABLE IF NOT EXISTS saved_recipes (
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         username TEXT,
         breed_name TEXT,
         stage_name TEXT,
@@ -458,13 +467,22 @@ def init_db():
     )
     """)
 
+    # ตรวจสอบ admin
     cur.execute("SELECT * FROM users WHERE username='ang'")
     if not cur.fetchone():
         cur.execute(
             "INSERT INTO users VALUES (%s,%s,%s,%s,%s,%s)",
-            ('ang', 'Admin System', 'admin@test.com', make_hashes('222'), '1995-01-01', 30)
+            (
+                'ang',
+                'Admin System',
+                'admin@test.com',
+                make_hashes('222'),
+                '1995-01-01',
+                30
+            )
         )
 
+    # ตรวจสอบ ingredients
     cur.execute("SELECT COUNT(*) FROM ingredients")
     if cur.fetchone()[0] == 0:
         cur.executemany(
@@ -473,6 +491,7 @@ def init_db():
         )
 
     conn.commit()
+
 
 init_db()
 
