@@ -855,8 +855,8 @@ def admin_page(T):
                 new_u = edited_u['username'].tolist()
                 deleted = [u for u in old_u if u not in new_u]
                 for d_un in deleted:
-                    conn.execute("DELETE FROM users WHERE username=%s", (d_un,))
-                    conn.execute("DELETE FROM saved_recipes WHERE username=%s", (d_un,))
+                conn.execute("DELETE FROM users WHERE username=%s", (d_un,))
+                conn.execute("DELETE FROM saved_recipes WHERE username=%s", (d_un,))
                 conn.commit()
                 st.success(T["msg_success"])
                 st.rerun()
