@@ -14,51 +14,27 @@ import time
 st.markdown("""
 <style>
 
-/* Sidebar background */
-section[data-testid="stSidebar"] { 
-    background-color: #0f172a !important;
-}
-
-/* บังคับทุกข้อความใน sidebar เป็นสีขาว */
-section[data-testid="stSidebar"] * {
-    color: #ffffff !important;
-}
-
-/* selectbox text */
-section[data-testid="stSidebar"] .stSelectbox div {
-    color: #ffffff !important;
-}
-
-/* radio text */
-section[data-testid="stSidebar"] .stRadio label {
-    color: #ffffff !important;
-}
-
-/* ปุ่มออกจากระบบ */
-section[data-testid="stSidebar"] button[kind="secondary"] {
+/* ปุ่มทั้งหมดใน sidebar */
+section[data-testid="stSidebar"] button {
     background-color: #ef4444 !important;
     color: white !important;
     border-radius: 8px !important;
     border: none !important;
+    width: 100%;
 }
 
-/* hover ปุ่ม */
-section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+/* hover */
+section[data-testid="stSidebar"] button:hover {
     background-color: #dc2626 !important;
+}
+
+/* เอาพื้นหลังขาวของ container ออก */
+section[data-testid="stSidebar"] div[data-testid="stButton"] {
+    background-color: transparent !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-
-def get_conn():
-    return psycopg2.connect(
-        DATABASE_URL,
-        sslmode="require"
-    )
-
 
 # ---------------- DATABASE ---------------- #
 
