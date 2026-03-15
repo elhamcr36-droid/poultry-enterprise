@@ -691,91 +691,142 @@ def auth_page(T):
                     st.rerun()
 # --- 6. USER DASHBOARD ---
 def user_page(T, L_CODE):
+
     st.title(T["title"])
-    tabs = st.tabs([T["tab_calc"], T["tab_hist"], T["tab_stock"], T["tab_feed"], T["tab_profile"]])
+
+    tabs = st.tabs([
+        T["tab_calc"],
+        T["tab_hist"],
+        T["tab_stock"],
+        T["tab_feed"],
+        T["tab_profile"]
+    ])
 
     with tabs[0]:
+
         c1, c2 = st.columns([1, 2])
+
+        # ---------------- LEFT PANEL ----------------
         with c1:
+
             st.subheader(T["config_sec"])
+
             cur_master = ANIMAL_MASTER[L_CODE]
-            g_key = st.selectbox(T["group_label"], list(cur_master.keys()))
-            b_key = st.selectbox(T["breed_label"], cur_master[g_key]['breeds'])
-            s_key = st.selectbox(T["stage_label"], list(cur_master[g_key]['stages'].keys()))
-            num = st.number_input(T["count_label"], 1, 1000000, 100)
-            batch = st.number_input(T["batch_label"], 1, 5000, 100)
-            opt_mode = st.radio(T["opt_label"], [T["mode_price"], T["mode_nutri"]])
-            
+
+            g_key = st.selectbox(
+                T["group_label"],
+                list(cur_master.keys())
+            )
+
+            b_key = st.selectbox(
+                T["breed_label"],
+                cur_master[g_key]["breeds"]
+            )
+
+            s_key = st.selectbox(
+                T["stage_label"],
+                list(cur_master[g_key]["stages"].keys())
+            )
+
+            num = st.number_input(
+                T["count_label"],
+                1,
+                1000000,
+                100
+            )
+
+            batch = st.number_input(
+                T["batch_label"],
+                1,
+                5000,
+                100
+            )
+
+            opt_mode = st.radio(
+                T["opt_label"],
+                [T["mode_price"], T["mode_nutri"]]
+            )
+
             st.divider()
+
             st.subheader(T["income_sec"])
-            egg_p = st.number_input(T["egg_price_label"], 1.0, 10.0, 4.3)
-            lay_r = st.slider(T["lay_rate_label"], 50, 100, 85)
-            
-            target = cur_master[g_key]['stages'][s_key]['vals']
-            
-if st.button(T["btn_ai"], use_container_width=True, type="primary"):
 
-    conn = get_conn()
-    df = pd.read_sql("SELECT * FROM ingredients", conn)
-    conn.close()
+            egg_p = st.number_input(
+                T["egg_price_label"],
+                1.0,
+                10.0,
+                4.3
+            )
 
-    costs = df["cost"].tolist()
+            lay_r = st.slider(
+                T["lay_rate_label"],
+                50,
+                100,
+                85
+            )
 
-    A = [
-        [-p for p in df["protein"]],
-        [-e for e in df["energy"]],
-        [f for f in df["fiber"]]
-    ]
+            target = cur_master[g_key]["stages"][s_key]["vals"]
 
-    b_ub = [
-        -target[0],
-        -target[1],
-        target[2]
-    ]
-                
-                res = linprog(costs if T["mode_price"] in opt_mode else [c*1.2 for c in costs], 
-                              A_ub=A, b_ub=b_ub, A_eq=[[1.0]*len(df)], b_eq=[1.0], method="highs")
-                
-if st.button(T["btn_ai"], use_container_width=True, type="primary"):
-    conn = get_conn()
-    df = pd.read_sql("SELECT * FROM ingredients", conn)
-    conn.close()
+            # -------- AI BUTTON --------
 
-    costs = df["cost"].tolist()
+            if st.button(T["btn_ai"], use_container_width=True, type="primary"):
 
-    A = [
-        [-p for p in df["protein"]],
-        [-e for e in df["energy"]],
-        [f for f in df["fiber"]]
-    ]
+                conn = get_conn()
 
-    b_ub = [-target[0], -target[1], target[2]]
+                df = pd.read_sql(
+                    "SELECT * FROM ingredients",
+                    conn
+                )
 
-    res = linprog(
-        costs if T["mode_price"] in opt_mode else [c * 1.2 for c in costs],
-        A_ub=A,
-        b_ub=b_ub,
-        A_eq=[[1.0] * len(df)],
-        b_eq=[1.0],
-        method="highs"
-    )
+                conn.close()
 
-    if res.success:
-        st.session_state.calc = {
-            "x": res.x,
-            "df": df,
-            "cost": res.fun,
-            "b": b_key,
-            "s": s_key,
-            "n": num,
-            "batch": batch,
-            "target": target,
-            "egg_p": egg_p,
-            "lay_r": lay_r
-        }
-        st.balloons()
-    else:
-        st.error(T["msg_no_balance"])
+                costs = df["cost"].tolist()
+
+                A = [
+                    [-p for p in df["protein"]],
+                    [-e for e in df["energy"]],
+                    [f for f in df["fiber"]]
+                ]
+
+                b_ub = [
+                    -target[0],
+                    -target[1],
+                    target[2]
+                ]
+
+                res = linprog(
+                    costs if opt_mode == T["mode_price"]
+                    else [c * 1.2 for c in costs],
+
+                    A_ub=A,
+                    b_ub=b_ub,
+
+                    A_eq=[[1.0] * len(df)],
+                    b_eq=[1.0],
+
+                    method="highs"
+                )
+
+                if res.success:
+
+                    st.session_state.calc = {
+                        "x": res.x,
+                        "df": df,
+                        "cost": res.fun,
+                        "b": b_key,
+                        "s": s_key,
+                        "n": num,
+                        "batch": batch,
+                        "target": target,
+                        "egg_p": egg_p,
+                        "lay_r": lay_r
+                    }
+
+                    st.balloons()
+
+                else:
+
+                    st.error(T["msg_no_balance"])
 c1, c2 = st.columns(2)
 
 with c2:
