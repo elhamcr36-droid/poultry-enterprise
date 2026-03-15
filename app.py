@@ -737,7 +737,6 @@ if st.button(T["btn_ai"], use_container_width=True, type="primary"):
                               A_ub=A, b_ub=b_ub, A_eq=[[1.0]*len(df)], b_eq=[1.0], method="highs")
                 
 if st.button(T["btn_ai"], use_container_width=True, type="primary"):
-
     conn = get_conn()
     df = pd.read_sql("SELECT * FROM ingredients", conn)
     conn.close()
@@ -750,19 +749,10 @@ if st.button(T["btn_ai"], use_container_width=True, type="primary"):
         [f for f in df["fiber"]]
     ]
 
-    b_ub = [
-        -target[0],
-        -target[1],
-        target[2]
-    ]
-
-    if T["mode_price"] in opt_mode:
-        c_vals = costs
-    else:
-        c_vals = [c * 1.2 for c in costs]
+    b_ub = [-target[0], -target[1], target[2]]
 
     res = linprog(
-        c_vals,
+        costs if T["mode_price"] in opt_mode else [c * 1.2 for c in costs],
         A_ub=A,
         b_ub=b_ub,
         A_eq=[[1.0] * len(df)],
