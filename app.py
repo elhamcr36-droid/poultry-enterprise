@@ -758,8 +758,6 @@ with c2:
 
             st.success(T["msg_success"])
 
-ฮ
-
 # --- 7. ADMIN PANEL ---
 def admin_page(T):
     st.title(T["nav_admin"])
