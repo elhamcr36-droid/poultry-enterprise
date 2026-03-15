@@ -698,8 +698,11 @@ with c2:
         p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
         p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
 
-                if st.button(T["btn_save_rec"]):
-    details = ", ".join([f"{row[T['table_name']]} {row[T['table_need']]}kg" for _, row in table_disp.iterrows()])
+if st.button(T["btn_save_rec"]):
+    details = ", ".join(
+        [f"{row[T['table_name']]} {row[T['table_need']]}kg"
+         for _, row in table_disp.iterrows()]
+    )
 
     conn = get_conn()
     cur = conn.cursor()
@@ -732,8 +735,9 @@ with tabs[1]:
     )
 
     for _, row in h_df.iterrows():
-        with st.expander(f"📅 {row['date']} | {row['breed_name']} | {row['cost_per_kg']} ฿/kg"):
-
+        with st.expander(
+            f"📅 {row['date']} | {row['breed_name']} | {row['cost_per_kg']} ฿/kg"
+        ):
             st.write(row['details'])
 
             if st.button(T["btn_del"], key=f"del_h_{row['id']}"):
