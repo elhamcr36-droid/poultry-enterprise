@@ -15,7 +15,7 @@ st.markdown("""
 <style>
 
 /* Sidebar background */
-section[data-testid="stSidebar"] {
+section[data-testid="stSidebar"] { 
     background-color: #0f172a !important;
 }
 
@@ -34,9 +34,17 @@ section[data-testid="stSidebar"] .stRadio label {
     color: #ffffff !important;
 }
 
-/* button text */
-section[data-testid="stSidebar"] button {
-    color: #ffffff !important;
+/* ปุ่มออกจากระบบ */
+section[data-testid="stSidebar"] button[kind="secondary"] {
+    background-color: #ef4444 !important;
+    color: white !important;
+    border-radius: 8px !important;
+    border: none !important;
+}
+
+/* hover ปุ่ม */
+section[data-testid="stSidebar"] button[kind="secondary"]:hover {
+    background-color: #dc2626 !important;
 }
 
 </style>
