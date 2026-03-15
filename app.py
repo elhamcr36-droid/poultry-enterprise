@@ -703,6 +703,7 @@ def user_page(T, L_CODE):
     ])
 
     with tabs[0]:
+        
 
         c1, c2 = st.columns([1, 2])
 
@@ -1034,6 +1035,51 @@ def user_page(T, L_CODE):
             conn.commit()
 
             st.success(T["msg_success"])
+            # ================= TAB HISTORY =================
+with tabs[1]:
+
+    st.subheader(T["tab_hist"])
+
+    conn = get_conn()
+    df = pd.read_sql(
+        "SELECT * FROM saved_recipes ORDER BY date DESC",
+        conn
+    )
+    conn.close()
+
+    if df.empty:
+        st.info("ยังไม่มีสูตรที่บันทึก")
+    else:
+        st.dataframe(df, use_container_width=True)
+
+
+# ================= TAB STOCK =================
+with tabs[2]:
+
+    st.subheader(T["tab_stock"])
+
+    conn = get_conn()
+    df = pd.read_sql(
+        "SELECT name_th, protein, energy, fiber, cost FROM ingredients",
+        conn
+    )
+    conn.close()
+
+    st.dataframe(df, use_container_width=True)
+
+
+# ================= TAB FEED =================
+with tabs[3]:
+
+    st.subheader(T["tab_feed"])
+    st.info("ระบบแนะนำวัตถุดิบ AI จะเพิ่มในเวอร์ชันถัดไป")
+
+
+# ================= TAB PROFILE =================
+with tabs[4]:
+
+    st.subheader(T["tab_profile"])
+    st.write("Username:", st.session_state.username)
 
 # --- 7. ADMIN PANEL ---
 def admin_page(T):
