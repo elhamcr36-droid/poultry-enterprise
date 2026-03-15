@@ -13,6 +13,23 @@ import time
 
 st.set_page_config(page_title="Layer Smart AI System v4.2", layout="wide")
 
+# FIX SIDEBAR TEXT COLOR
+st.markdown("""
+<style>
+
+/* Sidebar background */
+section[data-testid="stSidebar"] {
+    background-color: #111827;
+}
+
+/* Sidebar text */
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
