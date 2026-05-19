@@ -367,12 +367,23 @@ ANIMAL_MASTER = {
 def make_hashes(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
-
 def init_db():
     conn = get_conn()
     cur = conn.cursor()
 
-    # ตาราง suggestions
+    # 1. สร้างตาราง users ก่อนเป็นอันดับแรกสุด!
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        fullname TEXT,
+        email TEXT,
+        password TEXT,
+        birthdate TEXT,
+        age INTEGER
+    )
+    """)
+
+    # 2. สร้างตาราง suggestions
     cur.execute("""
     CREATE TABLE IF NOT EXISTS suggestions (
         id SERIAL PRIMARY KEY,
@@ -383,19 +394,17 @@ def init_db():
     )
     """)
 
-    # ตรวจสอบว่าคอลัมน์ rating มีหรือยัง
+    # ตรวจสอบโครงสร้างตาราง suggestions เผื่อสำหรับคอลัมน์ rating
     cur.execute("""
     SELECT column_name
     FROM information_schema.columns
     WHERE table_name='suggestions'
     """)
-
     columns = [column[0] for column in cur.fetchall()]
-
     if 'rating' not in columns:
         cur.execute("ALTER TABLE suggestions ADD COLUMN rating INTEGER DEFAULT 5")
 
-    # ตาราง ingredients
+    # 3. สร้างตาราง ingredients
     cur.execute("""
     CREATE TABLE IF NOT EXISTS ingredients (
         name_th TEXT,
@@ -411,7 +420,7 @@ def init_db():
     )
     """)
 
-    # ตาราง saved_recipes
+    # 4. สร้างตาราง saved_recipes
     cur.execute("""
     CREATE TABLE IF NOT EXISTS saved_recipes (
         id SERIAL PRIMARY KEY,
@@ -425,7 +434,7 @@ def init_db():
     )
     """)
 
-    # ตรวจสอบ admin
+    # ตรวจสอบและเพิ่มบัญชีแอดมินเริ่มต้น (ทำงานได้แล้วเพราะตาราง users ถูกสร้างด้านบนแล้ว)
     cur.execute("SELECT * FROM users WHERE username='ang'")
     if not cur.fetchone():
         cur.execute(
@@ -440,7 +449,7 @@ def init_db():
             )
         )
 
-    # ตรวจสอบ ingredients
+    # ตรวจสอบและเพิ่มข้อมูลวัตถุดิบมาตรฐานเริ่มต้น
     cur.execute("SELECT COUNT(*) FROM ingredients")
     if cur.fetchone()[0] == 0:
         cur.executemany(
@@ -449,8 +458,10 @@ def init_db():
         )
 
     conn.commit()
+    cur.close()
+    conn.close()
 
-
+# เรียกใช้งานฟังก์ชันสร้างฐานข้อมูล
 init_db()
 
 # --- 4. STYLE ---
