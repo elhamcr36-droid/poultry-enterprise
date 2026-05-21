@@ -728,9 +728,9 @@ def auth_page(T):
 
                     st.session_state.auth_mode = "login"
                     st.rerun()
-# --- 6. USER DASHBOARD ---
+6. USER DASHBOARD
+# ==========================================
 def user_page(T, L_CODE):
-
     st.title(T["title"])
 
     tabs = st.tabs([
@@ -741,16 +741,13 @@ def user_page(T, L_CODE):
         T["tab_profile"]
     ])
 
-    # ================= TAB 0: CALCULATOR (ระบบคำนวณ) =================
+    # ------------------ TAB 0: CALCULATOR (ระบบคำนวณ) ------------------
     with tabs[0]:
-
         c1, c2 = st.columns([1, 2])
 
         # -------- LEFT PANEL (แผงตั้งค่าด้านซ้าย) --------
         with c1:
-
             st.subheader(T["config_sec"])
-
             cur_master = ANIMAL_MASTER[L_CODE]
 
             g_key = st.selectbox(T["group_label"], list(cur_master.keys()))
@@ -759,11 +756,9 @@ def user_page(T, L_CODE):
 
             num = st.number_input(T["count_label"], 1, 1000000, 100)
             batch = st.number_input(T["batch_label"], 1, 5000, 100)
-
             opt_mode = st.radio(T["opt_label"], [T["mode_price"], T["mode_nutri"]])
 
             st.divider()
-
             st.subheader(T["income_sec"])
 
             egg_p = st.number_input(T["egg_price_label"], 1.0, 10.0, 4.3)
@@ -772,19 +767,16 @@ def user_page(T, L_CODE):
             target = cur_master[g_key]["stages"][s_key]["vals"]
 
             if st.button(T["btn_ai"], use_container_width=True, type="primary"):
-
                 conn = get_conn()
                 df = pd.read_sql("SELECT * FROM ingredients", conn)
                 conn.close()
 
                 costs = df["cost"].tolist()
-
                 A = [
                     [-p for p in df["protein"]],
                     [-e for e in df["energy"]],
                     [f for f in df["fiber"]]
                 ]
-
                 b_ub = [-target[0], -target[1], target[2]]
 
                 res = linprog(
@@ -797,7 +789,6 @@ def user_page(T, L_CODE):
                 )
 
                 if res.success:
-
                     st.session_state.calc = {
                         "x": res.x,
                         "df": df,
@@ -810,124 +801,24 @@ def user_page(T, L_CODE):
                         "egg_p": egg_p,
                         "lay_r": lay_r
                     }
-
                     st.balloons()
-
                 else:
                     st.error(T["msg_no_balance"])
 
         # -------- RIGHT PANEL (แผงแสดงผลด้านขวา) --------
         with c2:
-            st.subheader("📊 ผลลัพธ์การคำนวณสูตรอาหาร")
-            
-            # ตรวจสอบโครงสร้างว่าเซสชันมีข้อมูลการคำนวณอยู่หรือไม่
             if "calc" in st.session_state and st.session_state.calc is not None:
-                cc = st.session_state.calc
-                
-                st.info(f"สายพันธุ์: {cc['b']} | ช่วงอายุ: {cc['s']}")
-                
-                # ดึงสัดส่วนวัตถุดิบที่คำนวณได้มาจัดลงตาราง
-                res_data = []
-                for idx, val in enumerate(cc["x"]):
-                    if val > 0.001:  # แสดงเฉพาะวัตถุดิบที่มีสัดส่วนมากกว่า 0.1%
-                        ing_name = cc["df"].iloc[idx]["name"]
-                        weight_per_batch = val * cc["batch"]
-                        res_data.append({
-                            "วัตถุดิบ": ing_name,
-                            "สัดส่วน (%)": round(val * 100, 2),
-                            "น้ำหนักที่ต้องใช้ (กก.)": round(weight_per_batch, 2)
-                        })
-                
-                st.dataframe(pd.DataFrame(res_data), use_container_width=True)
-                st.metric("ต้นทุนอาหารเฉลี่ย", f"{round(cc['cost'], 2)} บาท/กก.")
-                
-            else:
-                st.write("👉 กรุณากรอกข้อมูลและกดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
-
-    # ================= TAB 1: HIST (ประวัติการคำนวณ) =================
-    with tabs[1]:
-        st.header(T["tab_hist"])
-        st.write("ฟังก์ชันสำหรับเรียกดูประวัติสูตรอาหารที่คุณเคยคำนวณและบันทึกไว้")
-
-    # ================= TAB 2: STOCK (คลังวัตถุดิบ) =================
-    with tabs[2]:
-        st.header(T["tab_stock"])
-        st.write("ฟังก์ชันสำหรับจัดการรายการวัตถุดิบและราคาในคลังของคุณ")
-
-    # ================= TAB 3: FEEDBACK (แนะนำติชม) =================
-    with tabs[3]:
-        st.header(T["tab_feed"])
-        st.write("พื้นที่สำหรับส่งข้อเสนอแนะหรือแจ้งปัญหาการใช้งานระบบ")
-
-    # ================= TAB 4: PROFILE (โปรไฟล์) =================
-    with tabs[4]:
-        st.header(T["tab_profile"])
-        st.write("ข้อมูลผู้ใช้งานและการตั้งค่าความเป็นส่วนตัวของบัญชี")
-
-        # -------- RIGHT PANEL --------
-        with c2:
-            st.subheader("📊 ผลลัพธ์การคำนวณสูตรอาหาร")
-            
-            # ตรวจสอบว่ามีการกดคำนวณแล้วหรือยัง
-            if "calc" in st.session_state and st.session_state.calc is not None:
-                cc = st.session_state.calc
-                
-                # แสดงรายละเอียดเบื้องต้น
-                st.info(f"สายพันธุ์: {cc['b']} | ช่วงอายุ: {cc['s']}")
-                
-                # แสดงสัดส่วนวัตถุดิบที่คำนวณได้
-                res_data = []
-                for idx, val in enumerate(cc["x"]):
-                    if val > 0.001:  # แสดงเฉพาะวัตถุดิบที่มีสัดส่วนมากกว่า 0.1%
-                        ing_name = cc["df"].iloc[idx]["name"]
-                        weight_per_batch = val * cc["batch"]
-                        res_data.append({
-                            "วัตถุดิบ": ing_name,
-                            "สัดส่วน (%)": round(val * 100, 2),
-                            "น้ำหนักที่ต้องใช้ (กก.)": round(weight_per_batch, 2)
-                        })
-                
-                st.dataframe(pd.DataFrame(res_data), use_container_width=True)
-                st.metric("ต้นทุนอาหารเฉลี่ย", f"{round(cc['cost'], 2)} บาท/กก.")
-                
-            else:
-                st.write("👉 กรุณากดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
-
-    # ================= TAB 1: HIST (ประวัติการคำนวณ) =================
-    with tabs[1]:
-        st.header(T["tab_hist"])
-        st.write("ฟังก์ชันสำหรับเรียกดูประวัติสูตรอาหารที่เคยบันทึกไว้")
-
-    # ================= TAB 2: STOCK (คลังวัตถุดิบ) =================
-    with tabs[2]:
-        st.header(T["tab_stock"])
-        st.write("ฟังก์ชันสำหรับจัดการวัตถุดิบในคลังของคุณ")
-
-    # ================= TAB 3: FEEDBACK (แนะนำติชม) =================
-    with tabs[3]:
-        st.header(T["tab_feed"])
-        st.write("กล่องข้อความสำหรับส่งคำแนะนำหรือติชมระบบ")
-
-    # ================= TAB 4: PROFILE (โปรไฟล์) =================
-    with tabs[4]:
-        st.header(T["tab_profile"])
-        st.write("ข้อมูลผู้ใช้งานและการตั้งค่าบัญชี")
-
-        # -------- RESULT PANEL --------
-        with c2:
-
-            if "calc" in st.session_state:
-
                 r = st.session_state.calc
-
                 st.subheader(T["res_header"])
+                st.info(f"สายพันธุ์: {r['b']} | ช่วงอายุ: {r['s']}")
 
+                # เตรียมข้อมูลแสดงผลวัตถุดิบ
                 res_df = r["df"].copy()
-                res_df["Ratio (%)"] = (r["x"]*100).round(2)
-                res_df = res_df[res_df["Ratio (%)"]>0]
+                res_df["Ratio (%)"] = (r["x"] * 100).round(2)
+                res_df = res_df[res_df["Ratio (%)"] > 0]
+                name_col = "name_th" if L_CODE == "TH" else "name_en"
 
-                name_col = "name_th" if L_CODE=="TH" else "name_en"
-
+                # แสดงแผนภูมิวงกลมสัดส่วนวัตถุดิบ
                 st.plotly_chart(
                     px.pie(
                         res_df,
@@ -939,92 +830,43 @@ def user_page(T, L_CODE):
                     use_container_width=True
                 )
 
-                m1,m2 = st.columns(2)
-
+                # สรุปค่าสารอาหารเปรียบเทียบกับเป้าหมาย
+                m1, m2 = st.columns(2)
                 m1.metric(
                     T["protein_actual"],
                     f"{(r['df']['protein']*r['x']).sum():.2f}%",
                     f"Target {r['target'][0]}%"
                 )
-
                 m2.metric(
                     T["energy_actual"],
-                    f"{(r['df']['energy']*r['x']).sum():.0f}",
+                    f"{(r['df']['energy']*r['x']).sum():.0f} kcal",
                     f"Target {r['target'][1]}"
                 )
 
-                table_disp = res_df[[name_col,"Ratio (%)"]].copy()
-
-                table_disp[T["table_need"]] = (
-                    res_df["Ratio (%)"]/100*r["batch"]
-                ).round(3)
-
-                table_disp.columns=[
-                    T["table_name"],
-                    T["table_ratio"],
-                    T["table_need"]
-                ]
-
+                # ตารางสรุปวัตถุดิบ น้ำหนัก และสัดส่วน
+                table_disp = res_df[[name_col, "Ratio (%)"]].copy()
+                table_disp[T["table_need"]] = (res_df["Ratio (%)"] / 100 * r["batch"]).round(3)
+                table_disp.columns = [T["table_name"], T["table_ratio"], T["table_need"]]
                 st.table(table_disp)
 
                 st.divider()
-
                 st.subheader(T["profit_sec"])
 
-                daily_feed = (r["n"]*120)/1000
-                d_cost = daily_feed*r["cost"]
-                d_rev = (r["n"]*r["lay_r"]/100)*r["egg_p"]
+                # คำนวณต้นทุน-รายได้-กำไรเชิงเศรษฐศาสตร์
+                daily_feed = (r["n"] * 120) / 1000
+                d_cost = daily_feed * r["cost"]
+                d_rev = (r["n"] * r["lay_r"] / 100) * r["egg_p"]
 
-                p1,p2,p3 = st.columns(3)
-
-                p1.metric(T["cost_day"],f"{d_cost:,.2f} ฿")
-                p2.metric(T["rev_day"],f"{d_rev:,.2f} ฿")
-                p3.metric(T["profit_month"],f"{(d_rev-d_cost)*30:,.2f} ฿")
-
-def main():
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-    if "lang" not in st.session_state:
-        st.session_state.lang = "TH"
-
-    with st.sidebar:
-        st.session_state.lang = st.selectbox("🌐 Language / ภาษา", ["TH", "EN"])
-        T = LANG[st.session_state.lang] # ประกาศ T ให้ Sidebar รู้จัก
-        
-        st.divider()
-        if st.session_state.logged_in:
-            st.write(f"👤 สวัสดีคุณ: {st.session_state.fullname}")
-            
-            if st.session_state.username == "ang":
-                page_mode = st.radio("Navigation", ["User Mode", "Admin Panel"])
-                if page_mode == "Admin Panel":
-                    st.session_state.current_page = "admin"
-                else:
-                    st.session_state.current_page = "user"
+                p1, p2, p3 = st.columns(3)
+                p1.metric(T["cost_day"], f"{d_cost:,.2f} ฿")
+                p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
+                p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
             else:
-                st.session_state.current_page = "user"
+                st.write("👉 กรุณากรอกข้อมูลและกดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
 
-            if st.button(T["nav_logout"]):
-                st.session_state.clear()
-                st.rerun()
-
-    T = LANG[st.session_state.lang] # ประกาศ T ให้หน้าหลักทั้งหมดรู้จัก
-
-    if not st.session_state.logged_in:
-        auth_page(T)
-    else:
-        if st.session_state.get("current_page") == "admin":
-            admin_page(T)
-        else:
-            user_page(T, st.session_state.lang)
-
-if __name__ == "__main__":
-    main()
-
-    # ================= TAB 1: HISTORY (ประวัติการดู) =================
+    # ------------------ TAB 1: HIST (ประวัติการคำนวณ) ------------------
     with tabs[1]:
         st.subheader(T["tab_hist"])
-
         conn = get_conn()
         df = pd.read_sql("SELECT * FROM saved_recipes ORDER BY date DESC", conn)
         conn.close()
@@ -1034,58 +876,44 @@ if __name__ == "__main__":
         else:
             st.dataframe(df, use_container_width=True)
 
-    # ================= TAB 2: STOCK (คลังวัตถุดิบ) =================
+    # ------------------ TAB 2: STOCK (คลังวัตถุดิบ) ------------------
     with tabs[2]:
         st.subheader(T["tab_stock"])
-
         conn = get_conn()
-        df = pd.read_sql(
-            "SELECT name_th, protein, energy, fiber, cost FROM ingredients",
-            conn
-        )
+        df = pd.read_sql("SELECT name_th, protein, energy, fiber, cost FROM ingredients", conn)
         conn.close()
-
         st.dataframe(df, use_container_width=True)
 
-    # ================= TAB 3: FEEDBACK (แนะนำติชม) =================
+    # ------------------ TAB 3: FEEDBACK (แนะนำติชม) ------------------
     with tabs[3]:
         st.subheader(T["tab_feed"])
         st.info("ระบบแนะนำวัตถุดิบ AI จะเพิ่มในเวอร์ชันถัดไป")
 
-    # ================= TAB 4: PROFILE (โปรไฟล์ส่วนตัว) =================
+    # ------------------ TAB 4: PROFILE (โปรไฟล์ส่วนตัว) ------------------
     with tabs[4]:
         st.subheader(T["tab_profile"])
         st.write("Username:", st.session_state.username)
 
 
-# --- 7. ADMIN PANEL ---
+# ==========================================
+# 7. ADMIN PANEL
+# ==========================================
 def admin_page(T):
     st.title(T["nav_admin"])
-
     t1, t2 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"]])
 
     with t1:
         st.subheader(T["admin_user_tab"])
-
         conn = get_conn()
-        u_df = pd.read_sql(
-            "SELECT username, fullname, email, age FROM users",
-            conn
-        )
+        u_df = pd.read_sql("SELECT username, fullname, email, age FROM users", conn)
 
-        edited_u = st.data_editor(
-            u_df,
-            num_rows="dynamic",
-            use_container_width=True
-        )
+        edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True)
 
         if st.button(T["admin_save_user_btn"]):
             old_u = u_df["username"].tolist()
             new_u = edited_u["username"].tolist()
-
             deleted = [u for u in old_u if u not in new_u]
 
-            # แก้ไขจุดเสี่ยงบอร์ดพัง: ใช้ cursor ในการ Execute คำสั่งลบอย่างปลอดภัย
             curr = conn.cursor()
             for d in deleted:
                 curr.execute("DELETE FROM users WHERE username = %s", (d,))
@@ -1093,18 +921,13 @@ def admin_page(T):
             
             conn.commit()
             conn.close()
-
             st.success(T["msg_success"])
             st.rerun()
 
     with t2:
         st.subheader(T["admin_feed_tab"])
-
         conn = get_conn()
-        s_df = pd.read_sql(
-            "SELECT * FROM suggestions ORDER BY timestamp DESC",
-            conn
-        )
+        s_df = pd.read_sql("SELECT * FROM suggestions ORDER BY timestamp DESC", conn)
         conn.close()
 
         if not s_df.empty:
@@ -1114,41 +937,46 @@ def admin_page(T):
             c1, c2 = st.columns([1, 2])
             c1.metric("คะแนนเฉลี่ยรวม", f"⭐ {avg_rating:.2f} / 5.0")
 
-            import plotly.express as px  # ตรวจสอบการ import เผื่อไว้
-            fig = px.pie(
-                s_df,
-                names="rating",
-                title="สัดส่วนคะแนนความพึงพอใจ (%)"
-            )
+            fig = px.pie(s_df, names="rating", title="สัดส่วนคะแนนความพึงพอใจ (%)")
             c2.plotly_chart(fig, use_container_width=True)
         else:
             st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
 
 
-# --- 8. MAIN NAVIGATION ---
-if 'logged_in' not in st.session_state: 
-    st.session_state.logged_in = False
-
-st.sidebar.markdown("### 🌐 Language / ภาษา")
-lang_choice = st.sidebar.selectbox("Language", ["ไทย", "English"], label_visibility="collapsed")
-L_CODE = "TH" if lang_choice == "ไทย" else "EN"
-T = LANG[L_CODE]
-
-if not st.session_state.logged_in:
-    auth_page(T)
-else:
-    st.sidebar.title(f"👤 {st.session_state.fullname}")
-    nav_opts = [T["nav_home"]]
-    if st.session_state.username == 'ang': 
-        nav_opts.append(T["nav_admin"])
-    
-    choice = st.sidebar.radio("MENU", nav_opts, label_visibility="collapsed")
-    
-    if st.sidebar.button(T["nav_logout"], use_container_width=True):
+# ==========================================
+# 8. MAIN NAVIGATION
+# ==========================================
+def main():
+    if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
-        st.rerun()
-    
-    if choice == T["nav_home"]: 
-        user_page(T, L_CODE)
-    elif choice == T["nav_admin"]: 
-        admin_page(T)
+
+    # ระบบสลับภาษาใน Sidebar
+    st.sidebar.markdown("### 🌐 Language / ภาษา")
+    lang_choice = st.sidebar.selectbox("Language", ["ไทย", "English"], label_visibility="collapsed")
+    L_CODE = "TH" if lang_choice == "ไทย" else "EN"
+    T = LANG[L_CODE]
+
+    if not st.session_state.logged_in:
+        auth_page(T)
+    else:
+        st.sidebar.title(f"👤 {st.session_state.fullname}")
+        nav_opts = [T["nav_home"]]
+        
+        # แสดงเมนูผู้ดูแลระบบเฉพาะคนชื่อ 'ang' เท่านั้น
+        if st.session_state.username == 'ang':
+            nav_opts.append(T["nav_admin"])
+        
+        choice = st.sidebar.radio("MENU", nav_opts, label_visibility="collapsed")
+        
+        if st.sidebar.button(T["nav_logout"], use_container_width=True):
+            st.session_state.clear()
+            st.rerun()
+        
+        # ควบคุมทิศทางการเปิดหน้าเพจหลัก
+        if choice == T["nav_home"]:
+            user_page(T, L_CODE)
+        elif choice == T["nav_admin"]:
+            admin_page(T)
+
+if __name__ == "__main__":
+    main()
