@@ -864,43 +864,47 @@ def user_page(T, L_CODE):
                 p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
                 p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
 
-                st.divider()
-                # -------- ส่วนที่เพิ่ม: ปุ่มสำหรับบันทึกสูตรลงฐานข้อมูล --------
-                if st.button("💾 บันทึกสูตรอาหารนี้ลงประวัติ", use_container_width=True, type="secondary"):
+                st.write("") # เว้นวรรคช่องว่างเล็กน้อย
+                
+                # -------- ปุ่มบันทึกสูตรอาหาร (วางในช่องผลลัพธ์เพื่อบังคับให้แอปจำตำแหน่งได้แม่นยำ) --------
+                if st.button("💾 บันทึกสูตรอาหารนี้ลงประวัติการคำนวณ", use_container_width=True, type="secondary"):
                     try:
-                        # สร้างข้อความสรุปรายละเอียดวัตถุดิบเพื่อบันทึกลงฟิลด์ในเบส
+                        # สร้างข้อความสรุปรายการวัตถุดิบ
                         items_summary = ", ".join([f"{row[T['table_name']]} ({row[T['table_ratio']]}%)" for _, row in table_disp.iterrows()])
                         
                         conn = get_conn()
                         curr = conn.cursor()
-                        # ตรวจสอบโครงสร้างตารางและทำการ Insert ข้อมูลประวัติการคำนวณ
                         curr.execute(
                             """
                             INSERT INTO saved_recipes (username, breed, stage, total_cost, details, date)
                             VALUES (%s, %s, %s, %s, %s, NOW())
                             """,
-                            (st.session_state.username, r["b"], r["s"], float(r["cost"]), items_summary)
+                            (st.session_state.username, str(r["b"]), str(r["s"]), float(r["cost"]), str(items_summary))
                         )
                         conn.commit()
                         curr.close()
                         conn.close()
-                        st.success("🎉 บันทึกสูตรอาหารเข้าสู่แท็บประวัติเรียบร้อยแล้ว!")
+                        st.success("🎉 บันทึกสูตรอาหารเข้าสู่แท็บประวัติ (History) สำเร็จแล้ว!")
                     except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาดในการบันทึก: {e}")
+                        st.error(f"ไม่สามารถเชื่อมต่อฐานข้อมูลเพื่อบันทึกได้: {e}")
             else:
                 st.write("👉 กรุณากรอกข้อมูลและกดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
 
     # ------------------ TAB 1: HIST (ประวัติการคำนวณ) ------------------
     with tabs[1]:
         st.subheader(T["tab_hist"])
-        conn = get_conn()
-        df = pd.read_sql("SELECT breed AS สายพันธุ์, stage AS ช่วงอายุ, total_cost AS ต้นทุนรวม, details AS รายละเอียดสูตร, date AS วันที่บันทึก FROM saved_recipes WHERE username = %s ORDER BY date DESC", conn, params=(st.session_state.username,))
-        conn.close()
+        try:
+            conn = get_conn()
+            # ดึงเฉพาะประวัติของ User คนที่ล็อกอินอยู่ปัจจุบันมาแสดงผล
+            df = pd.read_sql("SELECT breed AS สายพันธุ์, stage AS ช่วงอายุ, total_cost AS ต้นทุนรวม, details AS รายละเอียดสูตร, date AS วันที่บันทึก FROM saved_recipes WHERE username = %s ORDER BY date DESC", conn, params=(st.session_state.username,))
+            conn.close()
 
-        if df.empty:
-            st.info("ยังไม่มีสูตรที่บันทึกไว้สำหรับบัญชีนี้")
-        else:
-            st.dataframe(df, use_container_width=True)
+            if df.empty:
+                st.info("ยังไม่มีสูตรที่บันทึกไว้สำหรับบัญชีของคุณ")
+            else:
+                st.dataframe(df, use_container_width=True)
+        except Exception as e:
+            st.error(f"ไม่สามารถดึงข้อมูลประวัติได้: {e}")
 
     # ------------------ TAB 2: STOCK (คลังวัตถุดิบ) ------------------
     with tabs[2]:
