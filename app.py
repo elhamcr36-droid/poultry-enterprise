@@ -963,35 +963,28 @@ def user_page(T, L_CODE):
                 p2.metric(T["rev_day"],f"{d_rev:,.2f} ฿")
                 p3.metric(T["profit_month"],f"{(d_rev-d_cost)*30:,.2f} ฿")
 
-                if st.button(T["btn_save_rec"]):
-
-                    details = ", ".join([
-                        f"{row[T['table_name']]} {row[T['table_need']]}kg"
-                        for _,row in table_disp.iterrows()
-                    ])
-
-                    conn = get_conn()
-
-                    conn.execute(
-                        """
-                        INSERT INTO saved_recipes
-                        (username,breed_name,stage_name,chicken_count,details,cost_per_kg,date)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s)
-                        """,
-                        (
-                            st.session_state.username,
-                            r['b'],
-                            r['s'],
-                            r['n'],
-                            details,
-                            round(r['cost'],2),
-                            datetime.now().strftime("%Y-%m-%d %H:%M")
-                        )
-                    )
-
-                    conn.commit()
-
-                    st.success(T["msg_success"])
+if st.button(T["btn_save_rec"]):
+    details = ", ".join([f"{row[T['table_name']]} {row[T['table_need']]}kg" for _, row in table_disp.iterrows()])
+    
+    conn = get_conn()
+    # 1. สร้าง cursor ขึ้นมาก่อน
+    cur = conn.cursor() 
+    
+    # 2. เปลี่ยนมาเรียกใช้ผ่าน cur.execute
+    cur.execute(
+        """
+        INSERT INTO saved_recipes 
+        (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date)
+        VALUES (%s,%s,%s,%s,%s,%s,%s)
+        """,
+        (st.session_state.username, r['b'], r['s'], r['n'], details, round(r['cost'], 2), datetime.now().strftime("%Y-%m-%d %H:%M"))
+    )
+    conn.commit()
+    
+    # 3. สั่งปิดช่องสัญญาณ cursor และการเชื่อมต่อ
+    cur.close() 
+    conn.close()
+    st.success(T["msg_success"])
 
     # ================= TAB HISTORY =================
     with tabs[1]:
