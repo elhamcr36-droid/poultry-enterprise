@@ -1021,9 +1021,8 @@ def main():
 if __name__ == "__main__":
     main()
 
-    # ================= TAB HISTORY =================
+    # ================= TAB 1: HISTORY (ประวัติการดู) =================
     with tabs[1]:
-
         st.subheader(T["tab_hist"])
 
         conn = get_conn()
@@ -1033,50 +1032,44 @@ if __name__ == "__main__":
         if df.empty:
             st.info("ยังไม่มีสูตรที่บันทึก")
         else:
-            st.dataframe(df,use_container_width=True)
+            st.dataframe(df, use_container_width=True)
 
-    # ================= TAB STOCK =================
+    # ================= TAB 2: STOCK (คลังวัตถุดิบ) =================
     with tabs[2]:
-
         st.subheader(T["tab_stock"])
 
         conn = get_conn()
         df = pd.read_sql(
-            "SELECT name_th,protein,energy,fiber,cost FROM ingredients",
+            "SELECT name_th, protein, energy, fiber, cost FROM ingredients",
             conn
         )
         conn.close()
 
-        st.dataframe(df,use_container_width=True)
+        st.dataframe(df, use_container_width=True)
 
-    # ================= TAB FEED =================
+    # ================= TAB 3: FEEDBACK (แนะนำติชม) =================
     with tabs[3]:
-
         st.subheader(T["tab_feed"])
         st.info("ระบบแนะนำวัตถุดิบ AI จะเพิ่มในเวอร์ชันถัดไป")
 
-    # ================= TAB PROFILE =================
+    # ================= TAB 4: PROFILE (โปรไฟล์ส่วนตัว) =================
     with tabs[4]:
-
         st.subheader(T["tab_profile"])
-        st.write("Username:",st.session_state.username)
+        st.write("Username:", st.session_state.username)
 
 
 # --- 7. ADMIN PANEL ---
 def admin_page(T):
-
     st.title(T["nav_admin"])
 
-    t1,t2 = st.tabs([T["admin_user_tab"],T["admin_feed_tab"]])
+    t1, t2 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"]])
 
     with t1:
-
         st.subheader(T["admin_user_tab"])
 
         conn = get_conn()
-
         u_df = pd.read_sql(
-            "SELECT username,fullname,email,age FROM users",
+            "SELECT username, fullname, email, age FROM users",
             conn
         )
 
@@ -1087,54 +1080,54 @@ def admin_page(T):
         )
 
         if st.button(T["admin_save_user_btn"]):
-
             old_u = u_df["username"].tolist()
             new_u = edited_u["username"].tolist()
 
-            deleted=[u for u in old_u if u not in new_u]
+            deleted = [u for u in old_u if u not in new_u]
 
+            # แก้ไขจุดเสี่ยงบอร์ดพัง: ใช้ cursor ในการ Execute คำสั่งลบอย่างปลอดภัย
+            curr = conn.cursor()
             for d in deleted:
-                conn.execute("DELETE FROM users WHERE username=%s",(d,))
-                conn.execute("DELETE FROM saved_recipes WHERE username=%s",(d,))
-
+                curr.execute("DELETE FROM users WHERE username = %s", (d,))
+                curr.execute("DELETE FROM saved_recipes WHERE username = %s", (d,))
+            
             conn.commit()
+            conn.close()
 
             st.success(T["msg_success"])
             st.rerun()
 
     with t2:
-
         st.subheader(T["admin_feed_tab"])
 
         conn = get_conn()
-
         s_df = pd.read_sql(
             "SELECT * FROM suggestions ORDER BY timestamp DESC",
             conn
         )
+        conn.close()
 
         if not s_df.empty:
+            s_df["rating"] = s_df["rating"].fillna(0).astype(int)
+            avg_rating = s_df["rating"].mean()
 
-            s_df["rating"]=s_df["rating"].fillna(0).astype(int)
-            avg_rating=s_df["rating"].mean()
+            c1, c2 = st.columns([1, 2])
+            c1.metric("คะแนนเฉลี่ยรวม", f"⭐ {avg_rating:.2f} / 5.0")
 
-            c1,c2 = st.columns([1,2])
-
-            c1.metric("คะแนนเฉลี่ยรวม",f"⭐ {avg_rating:.2f} / 5.0")
-
+            import plotly.express as px  # ตรวจสอบการ import เผื่อไว้
             fig = px.pie(
                 s_df,
                 names="rating",
                 title="สัดส่วนคะแนนความพึงพอใจ (%)"
             )
-
-            c2.plotly_chart(fig,use_container_width=True)
-
+            c2.plotly_chart(fig, use_container_width=True)
         else:
             st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
 
+
 # --- 8. MAIN NAVIGATION ---
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+if 'logged_in' not in st.session_state: 
+    st.session_state.logged_in = False
 
 st.sidebar.markdown("### 🌐 Language / ภาษา")
 lang_choice = st.sidebar.selectbox("Language", ["ไทย", "English"], label_visibility="collapsed")
@@ -1146,7 +1139,8 @@ if not st.session_state.logged_in:
 else:
     st.sidebar.title(f"👤 {st.session_state.fullname}")
     nav_opts = [T["nav_home"]]
-    if st.session_state.username == 'ang': nav_opts.append(T["nav_admin"])
+    if st.session_state.username == 'ang': 
+        nav_opts.append(T["nav_admin"])
     
     choice = st.sidebar.radio("MENU", nav_opts, label_visibility="collapsed")
     
@@ -1154,6 +1148,7 @@ else:
         st.session_state.logged_in = False
         st.rerun()
     
-    if choice == T["nav_home"]: user_page(T, L_CODE)
-    elif choice == T["nav_admin"]: admin_page(T)
-
+    if choice == T["nav_home"]: 
+        user_page(T, L_CODE)
+    elif choice == T["nav_admin"]: 
+        admin_page(T)
