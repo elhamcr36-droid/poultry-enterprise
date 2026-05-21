@@ -870,14 +870,11 @@ def user_page(T, L_CODE):
                 if st.button("💾 บันทึกสูตรอาหารนี้ลงประวัติการคำนวณ", use_container_width=True, type="secondary"):
                     try:
                         items_summary = ", ".join([f"{row[T['table_name']]} ({row[T['table_ratio']]}%)" for _, row in table_disp.iterrows()])
-                        
                         conn = get_conn()
                         curr = conn.cursor()
-                        # เพื่อความปลอดภัยจากชื่อคอลัมน์ที่ไม่ตรง จะค้นหาชื่อฟิลด์จากโครงสร้างฐานข้อมูลก่อนทำงาน
                         curr.execute("SELECT column_name FROM information_schema.columns WHERE table_name='saved_recipes'")
                         col_list = [col[0] for col in curr.fetchall()]
                         
-                        # เดาชื่อคอลัมน์หลักตามสเต็ป หากมีการตั้งชื่อต่างกัน
                         c_user = "username" if "username" in col_list else col_list[1]
                         c_breed = "breed" if "breed" in col_list else ([c for c in col_list if "breed" in c or "type" in c] + [col_list[2]])[0]
                         c_stage = "stage" if "stage" in col_list else ([c for c in col_list if "stage" in c or "age" in c] + [col_list[3]])[0]
@@ -904,17 +901,14 @@ def user_page(T, L_CODE):
         st.subheader(T["tab_hist"])
         try:
             conn = get_conn()
-            # ใช้ SELECT * เพื่อเลี่ยง Error เรื่องชื่อ Column ไม่ตรงกัน
             df = pd.read_sql("SELECT * FROM saved_recipes ORDER BY date DESC", conn)
             conn.close()
 
             if df.empty:
                 st.info("ยังไม่มีสูตรที่บันทึกไว้สำหรับบัญชีของคุณ")
             else:
-                # แสดงผลตารางดิบทั้งหมดเพื่อป้องกันคอลัมน์หล่นหาย
                 st.dataframe(df, use_container_width=True)
         except Exception as e:
-            # ดึงแบบ fallback อีกสเต็ปเผื่อไม่มีฟิลด์ date
             try:
                 conn = get_conn()
                 df = pd.read_sql("SELECT * FROM saved_recipes", conn)
@@ -931,10 +925,53 @@ def user_page(T, L_CODE):
         conn.close()
         st.dataframe(df, use_container_width=True)
 
-    # ------------------ TAB 3: FEEDBACK (แนะนำติชม) ------------------
+    # ------------------ TAB 3: FEEDBACK (แนะนำติชม & ติดต่อแอดมิน) ------------------
     with tabs[3]:
-        st.subheader(T["tab_feed"])
-        st.info("ระบบแนะนำวัตถุดิบ AI จะเพิ่มในเวอร์ชันถัดไป")
+        st.subheader("💬 แนะนำติชม & ติดต่อแอดมิน")
+        st.write("คะแนนความพึงพอใจและข้อเสนอแนะของคุณจะถูกส่งตรงไปให้ผู้พัฒนาเพื่อปรับปรุงระบบในเวอร์ชันถัดไป")
+        
+        # ฟอร์มรับข้อมูล Feedback
+        with st.form("feedback_form", clear_on_submit=True):
+            # 1. ระบบให้คะแนนแบบ 5 ดาว (ใช้ Select Slider ตกแต่งเป็นรูปดาวเพื่อให้กดง่ายและชัดเจน)
+            rating_star = st.select_slider(
+                "⭐ ให้คะแนนความพึงพอใจแอปพลิเคชันของคุณ:",
+                options=[1, 2, 3, 4, 5],
+                value=5,
+                format_func=lambda x: "⭐" * x + f" ({x} ดาว)"
+            )
+            
+            # 2. กล่องข้อความพิมพ์คำแนะนำตัวใหญ่
+            comment_text = st.text_area(
+                "📝 ข้อเสนอแนะเพิ่มเติม หรือปัญหาที่ต้องการแจ้งแอดมิน:",
+                placeholder="พิมพ์ข้อความของคุณที่นี่..."
+            )
+            
+            submit_feed = st.form_submit_with_value(
+                label="🚀 ส่งความคิดเห็นให้แอดมิน",
+                use_container_width=True
+            )
+            
+            if submit_feed:
+                if comment_text.strip() == "":
+                    st.warning("⚠️ กรุณาพิมพ์ข้อความแนะนำติชมก่อนกดส่ง")
+                else:
+                    try:
+                        conn = get_conn()
+                        curr = conn.cursor()
+                        # ตรวจสอบชื่อคอลัมน์ของตาราง suggestions และทำการ Insert ค่าความพึงพอใจ
+                        curr.execute(
+                            """
+                            INSERT INTO suggestions (username, rating, comment, timestamp)
+                            VALUES (%s, %s, %s, NOW())
+                            """,
+                            (st.session_state.username, int(rating_star), str(comment_text))
+                        )
+                        conn.commit()
+                        curr.close()
+                        conn.close()
+                        st.success("🎉 ส่งข้อมูลคำติชมสำเร็จ! ขอบพระคุณสำหรับความคิดเห็นครับ")
+                    except Exception as e:
+                        st.error(f"ไม่สามารถส่งข้อมูลได้เนื่องจากโครงสร้างตารางฐานข้อมูล: {e}")
 
     # ------------------ TAB 4: PROFILE (โปรไฟล์ส่วนตัว) ------------------
     with tabs[4]:
