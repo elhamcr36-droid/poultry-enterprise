@@ -728,8 +728,9 @@ def auth_page(T):
 
                     st.session_state.auth_mode = "login"
                     st.rerun()
-6. USER DASHBOARD
-# ==========================================
+                    
+         #6. USER DASHBOARD
+
 def user_page(T, L_CODE):
     st.title(T["title"])
 
