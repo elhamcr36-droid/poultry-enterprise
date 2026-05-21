@@ -1009,6 +1009,7 @@ def admin_page(T):
         st.subheader(T["admin_user_tab"])
         conn = get_conn()
         u_df = pd.read_sql("SELECT username, fullname, email, age FROM users", conn)
+        conn.close() # ปิด Connection ให้เรียบร้อย หลังใช้งานเสร็จ
 
         edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True)
 
@@ -1017,33 +1018,73 @@ def admin_page(T):
             new_u = edited_u["username"].tolist()
             deleted = [u for u in old_u if u not in new_u]
 
+            conn = get_conn()
             curr = conn.cursor()
             for d in deleted:
                 curr.execute("DELETE FROM users WHERE username = %s", (d,))
                 curr.execute("DELETE FROM saved_recipes WHERE username = %s", (d,))
             
             conn.commit()
+            curr.close()
             conn.close()
             st.success(T["msg_success"])
             st.rerun()
 
     with t2:
         st.subheader(T["admin_feed_tab"])
-        conn = get_conn()
-        s_df = pd.read_sql("SELECT * FROM suggestions ORDER BY timestamp DESC", conn)
-        conn.close()
+        try:
+            conn = get_conn()
+            s_df = pd.read_sql("SELECT * FROM suggestions ORDER BY timestamp DESC", conn)
+            
+            # ดึงรายชื่อคอลัมน์จริงเพื่อเอามาแมปปิ้งตารางแสดงผลให้แอดมินอ่าน
+            curr = conn.cursor()
+            curr.execute("SELECT column_name FROM information_schema.columns WHERE table_name='suggestions'")
+            sug_cols = [col[0] for col in curr.fetchall()]
+            curr.close()
+            conn.close()
 
-        if not s_df.empty:
-            s_df["rating"] = s_df["rating"].fillna(0).astype(int)
-            avg_rating = s_df["rating"].mean()
+            if not s_df.empty:
+                # 1. ค้นหาคอลัมน์ Rating เพื่อคำนวณคะแนนเฉลี่ย
+                f_rate = "rating" if "rating" in s_df.columns else s_df.columns[2]
+                s_df[f_rate] = s_df[f_rate].fillna(0).astype(int)
+                avg_rating = s_df[f_rate].mean()
 
-            c1, c2 = st.columns([1, 2])
-            c1.metric("คะแนนเฉลี่ยรวม", f"⭐ {avg_rating:.2f} / 5.0")
+                # 2. ค้นหาคอลัมน์ข้อความ (Comment) ที่ดึงมาจากฐานข้อมูลอัตโนมัติ
+                f_text = "comment"
+                for alternate in ["comment", "details", "detail", "msg", "message", "text", "feedback"]:
+                    if alternate in s_df.columns:
+                        f_text = alternate
+                        break
 
-            fig = px.pie(s_df, names="rating", title="สัดส่วนคะแนนความพึงพอใจ (%)")
-            c2.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
+                # สรุปผลยอดคะแนนด้านบนด้วย Metric และ Pie Chart เหมือนในภาพตัวอย่างของคุณ
+                c1, c2 = st.columns([1, 2])
+                c1.metric("คะแนนเฉลี่ยรวม", f"⭐ {avg_rating:.2f} / 5.0")
+
+                fig = px.pie(s_df, names=f_rate, title="สัดส่วนคะแนนความพึงพอใจ (%)")
+                c2.plotly_chart(fig, use_container_width=True)
+
+                st.divider()
+                st.subheader("📥 กล่องข้อความจากผู้ใช้งานล่าสุด")
+
+                # 3. จัดระเบียบชื่อคอลัมน์ที่จะแสดงบนหน้าต่างตารางแอดมินให้เป็นระเบียบอ่านง่าย
+                disp_df = s_df.copy()
+                
+                # เปลี่ยนชื่อหัวคอลัมน์ใน DataFrame สำหรับแสดงผล
+                rename_dict = {}
+                if "username" in disp_df.columns: rename_dict["username"] = "ผู้ส่งข้อความ"
+                if f_rate in disp_df.columns: rename_dict[f_rate] = "คะแนนที่ให้"
+                if f_text in disp_df.columns: rename_dict[f_text] = "ข้อความแนะนำติชม/แจ้งปัญหา"
+                if "timestamp" in disp_df.columns: rename_dict["timestamp"] = "เวลาที่ส่ง"
+                
+                disp_df = disp_df.rename(columns=rename_dict)
+                
+                # แสดงผลตารางข้อความทั้งหมดให้แอดมินเลื่อนอ่าน
+                st.dataframe(disp_df, use_container_width=True)
+            else:
+                st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
+                
+        except Exception as e:
+            st.error(f"ไม่สามารถดึงข้อมูลกล่องข้อความมาแสดงผลให้แอดมินได้: {e}")
 
 
 # ==========================================
