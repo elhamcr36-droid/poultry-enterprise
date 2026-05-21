@@ -741,89 +741,10 @@ def user_page(T, L_CODE):
         T["tab_profile"]
     ])
 
-    with tabs[0]:
-        
-
-        c1, c2 = st.columns([1, 2])
-
-        # ---------------- LEFT PANEL ----------------
-        with c1:
-
-            st.subheader(T["config_sec"])
-
-            cur_master = ANIMAL_MASTER[L_CODE]
-
-            g_key = st.selectbox(
-                T["group_label"],
-                list(cur_master.keys())
-            )
-
-            b_key = st.selectbox(
-                T["breed_label"],
-                cur_master[g_key]["breeds"]
-            )
-
-            s_key = st.selectbox(
-                T["stage_label"],
-                list(cur_master[g_key]["stages"].keys())
-            )
-
-            num = st.number_input(
-                T["count_label"],
-                1,
-                1000000,
-                100
-            )
-
-            batch = st.number_input(
-                T["batch_label"],
-                1,
-                5000,
-                100
-            )
-
-            opt_mode = st.radio(
-                T["opt_label"],
-                [T["mode_price"], T["mode_nutri"]]
-            )
-
-            st.divider()
-
-            st.subheader(T["income_sec"])
-
-            egg_p = st.number_input(
-                T["egg_price_label"],
-                1.0,
-                10.0,
-                4.3
-            )
-
-            lay_r = st.slider(
-                T["lay_rate_label"],
-                50,
-                100,
-                85
-            )
-
-            target = cur_master[g_key]["stages"][s_key]["vals"]
-
-                  # --- 6. USER DASHBOARD ---
-def user_page(T, L_CODE):
-
-    st.title(T["title"])
-
-    tabs = st.tabs([
-        T["tab_calc"],
-        T["tab_hist"],
-        T["tab_stock"],
-        T["tab_feed"],
-        T["tab_profile"]
-    ])
-
     # ================= TAB CALCULATOR =================
     with tabs[0]:
 
-        c1, c2 = st.columns([1,2])
+        c1, c2 = st.columns([1, 2])
 
         # -------- LEFT PANEL --------
         with c1:
@@ -836,17 +757,17 @@ def user_page(T, L_CODE):
             b_key = st.selectbox(T["breed_label"], cur_master[g_key]["breeds"])
             s_key = st.selectbox(T["stage_label"], list(cur_master[g_key]["stages"].keys()))
 
-            num = st.number_input(T["count_label"],1,1000000,100)
-            batch = st.number_input(T["batch_label"],1,5000,100)
+            num = st.number_input(T["count_label"], 1, 1000000, 100)
+            batch = st.number_input(T["batch_label"], 1, 5000, 100)
 
-            opt_mode = st.radio(T["opt_label"],[T["mode_price"],T["mode_nutri"]])
+            opt_mode = st.radio(T["opt_label"], [T["mode_price"], T["mode_nutri"]])
 
             st.divider()
 
             st.subheader(T["income_sec"])
 
-            egg_p = st.number_input(T["egg_price_label"],1.0,10.0,4.3)
-            lay_r = st.slider(T["lay_rate_label"],50,100,85)
+            egg_p = st.number_input(T["egg_price_label"], 1.0, 10.0, 4.3)
+            lay_r = st.slider(T["lay_rate_label"], 50, 100, 85)
 
             target = cur_master[g_key]["stages"][s_key]["vals"]
 
@@ -894,6 +815,55 @@ def user_page(T, L_CODE):
 
                 else:
                     st.error(T["msg_no_balance"])
+
+        # -------- RIGHT PANEL --------
+        with c2:
+            st.subheader("📊 ผลลัพธ์การคำนวณสูตรอาหาร")
+            
+            # ตรวจสอบว่ามีการกดคำนวณแล้วหรือยัง
+            if "calc" in st.session_state and st.session_state.calc is not None:
+                cc = st.session_state.calc
+                
+                # แสดงรายละเอียดเบื้องต้น
+                st.info(f"สายพันธุ์: {cc['b']} | ช่วงอายุ: {cc['s']}")
+                
+                # แสดงสัดส่วนวัตถุดิบที่คำนวณได้
+                res_data = []
+                for idx, val in enumerate(cc["x"]):
+                    if val > 0.001:  # แสดงเฉพาะวัตถุดิบที่มีสัดส่วนมากกว่า 0.1%
+                        ing_name = cc["df"].iloc[idx]["name"]
+                        weight_per_batch = val * cc["batch"]
+                        res_data.append({
+                            "วัตถุดิบ": ing_name,
+                            "สัดส่วน (%)": round(val * 100, 2),
+                            "น้ำหนักที่ต้องใช้ (กก.)": round(weight_per_batch, 2)
+                        })
+                
+                st.dataframe(pd.DataFrame(res_data), use_container_width=True)
+                st.metric("ต้นทุนอาหารเฉลี่ย", f"{round(cc['cost'], 2)} บาท/กก.")
+                
+            else:
+                st.write("👉 กรุณากดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
+
+    # ================= TAB 1: HIST (ประวัติการคำนวณ) =================
+    with tabs[1]:
+        st.header(T["tab_hist"])
+        st.write("ฟังก์ชันสำหรับเรียกดูประวัติสูตรอาหารที่เคยบันทึกไว้")
+
+    # ================= TAB 2: STOCK (คลังวัตถุดิบ) =================
+    with tabs[2]:
+        st.header(T["tab_stock"])
+        st.write("ฟังก์ชันสำหรับจัดการวัตถุดิบในคลังของคุณ")
+
+    # ================= TAB 3: FEEDBACK (แนะนำติชม) =================
+    with tabs[3]:
+        st.header(T["tab_feed"])
+        st.write("กล่องข้อความสำหรับส่งคำแนะนำหรือติชมระบบ")
+
+    # ================= TAB 4: PROFILE (โปรไฟล์) =================
+    with tabs[4]:
+        st.header(T["tab_profile"])
+        st.write("ข้อมูลผู้ใช้งานและการตั้งค่าบัญชี")
 
         # -------- RESULT PANEL --------
         with c2:
