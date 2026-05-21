@@ -963,28 +963,45 @@ def user_page(T, L_CODE):
                 p2.metric(T["rev_day"],f"{d_rev:,.2f} ฿")
                 p3.metric(T["profit_month"],f"{(d_rev-d_cost)*30:,.2f} ฿")
 
-if st.button(T["btn_save_rec"]):
-    details = ", ".join([f"{row[T['table_name']]} {row[T['table_need']]}kg" for _, row in table_disp.iterrows()])
-    
-    conn = get_conn()
-    # 1. สร้าง cursor ขึ้นมาก่อน
-    cur = conn.cursor() 
-    
-    # 2. เปลี่ยนมาเรียกใช้ผ่าน cur.execute
-    cur.execute(
-        """
-        INSERT INTO saved_recipes 
-        (username, breed_name, stage_name, chicken_count, details, cost_per_kg, date)
-        VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """,
-        (st.session_state.username, r['b'], r['s'], r['n'], details, round(r['cost'], 2), datetime.now().strftime("%Y-%m-%d %H:%M"))
-    )
-    conn.commit()
-    
-    # 3. สั่งปิดช่องสัญญาณ cursor และการเชื่อมต่อ
-    cur.close() 
-    conn.close()
-    st.success(T["msg_success"])
+def main():
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    if "lang" not in st.session_state:
+        st.session_state.lang = "TH"
+
+    with st.sidebar:
+        st.session_state.lang = st.selectbox("🌐 Language / ภาษา", ["TH", "EN"])
+        T = LANG[st.session_state.lang] # ประกาศ T ให้ Sidebar รู้จัก
+        
+        st.divider()
+        if st.session_state.logged_in:
+            st.write(f"👤 สวัสดีคุณ: {st.session_state.fullname}")
+            
+            if st.session_state.username == "ang":
+                page_mode = st.radio("Navigation", ["User Mode", "Admin Panel"])
+                if page_mode == "Admin Panel":
+                    st.session_state.current_page = "admin"
+                else:
+                    st.session_state.current_page = "user"
+            else:
+                st.session_state.current_page = "user"
+
+            if st.button(T["nav_logout"]):
+                st.session_state.clear()
+                st.rerun()
+
+    T = LANG[st.session_state.lang] # ประกาศ T ให้หน้าหลักทั้งหมดรู้จัก
+
+    if not st.session_state.logged_in:
+        auth_page(T)
+    else:
+        if st.session_state.get("current_page") == "admin":
+            admin_page(T)
+        else:
+            user_page(T, st.session_state.lang)
+
+if __name__ == "__main__":
+    main()
 
     # ================= TAB HISTORY =================
     with tabs[1]:
@@ -1121,3 +1138,4 @@ else:
     
     if choice == T["nav_home"]: user_page(T, L_CODE)
     elif choice == T["nav_admin"]: admin_page(T)
+
