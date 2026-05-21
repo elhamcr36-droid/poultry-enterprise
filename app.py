@@ -741,12 +741,12 @@ def user_page(T, L_CODE):
         T["tab_profile"]
     ])
 
-    # ================= TAB CALCULATOR =================
+    # ================= TAB 0: CALCULATOR (ระบบคำนวณ) =================
     with tabs[0]:
 
         c1, c2 = st.columns([1, 2])
 
-        # -------- LEFT PANEL --------
+        # -------- LEFT PANEL (แผงตั้งค่าด้านซ้าย) --------
         with c1:
 
             st.subheader(T["config_sec"])
@@ -815,6 +815,54 @@ def user_page(T, L_CODE):
 
                 else:
                     st.error(T["msg_no_balance"])
+
+        # -------- RIGHT PANEL (แผงแสดงผลด้านขวา) --------
+        with c2:
+            st.subheader("📊 ผลลัพธ์การคำนวณสูตรอาหาร")
+            
+            # ตรวจสอบโครงสร้างว่าเซสชันมีข้อมูลการคำนวณอยู่หรือไม่
+            if "calc" in st.session_state and st.session_state.calc is not None:
+                cc = st.session_state.calc
+                
+                st.info(f"สายพันธุ์: {cc['b']} | ช่วงอายุ: {cc['s']}")
+                
+                # ดึงสัดส่วนวัตถุดิบที่คำนวณได้มาจัดลงตาราง
+                res_data = []
+                for idx, val in enumerate(cc["x"]):
+                    if val > 0.001:  # แสดงเฉพาะวัตถุดิบที่มีสัดส่วนมากกว่า 0.1%
+                        ing_name = cc["df"].iloc[idx]["name"]
+                        weight_per_batch = val * cc["batch"]
+                        res_data.append({
+                            "วัตถุดิบ": ing_name,
+                            "สัดส่วน (%)": round(val * 100, 2),
+                            "น้ำหนักที่ต้องใช้ (กก.)": round(weight_per_batch, 2)
+                        })
+                
+                st.dataframe(pd.DataFrame(res_data), use_container_width=True)
+                st.metric("ต้นทุนอาหารเฉลี่ย", f"{round(cc['cost'], 2)} บาท/กก.")
+                
+            else:
+                st.write("👉 กรุณากรอกข้อมูลและกดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
+
+    # ================= TAB 1: HIST (ประวัติการคำนวณ) =================
+    with tabs[1]:
+        st.header(T["tab_hist"])
+        st.write("ฟังก์ชันสำหรับเรียกดูประวัติสูตรอาหารที่คุณเคยคำนวณและบันทึกไว้")
+
+    # ================= TAB 2: STOCK (คลังวัตถุดิบ) =================
+    with tabs[2]:
+        st.header(T["tab_stock"])
+        st.write("ฟังก์ชันสำหรับจัดการรายการวัตถุดิบและราคาในคลังของคุณ")
+
+    # ================= TAB 3: FEEDBACK (แนะนำติชม) =================
+    with tabs[3]:
+        st.header(T["tab_feed"])
+        st.write("พื้นที่สำหรับส่งข้อเสนอแนะหรือแจ้งปัญหาการใช้งานระบบ")
+
+    # ================= TAB 4: PROFILE (โปรไฟล์) =================
+    with tabs[4]:
+        st.header(T["tab_profile"])
+        st.write("ข้อมูลผู้ใช้งานและการตั้งค่าความเป็นส่วนตัวของบัญชี")
 
         # -------- RIGHT PANEL --------
         with c2:
