@@ -930,9 +930,7 @@ def user_page(T, L_CODE):
         st.subheader("💬 แนะนำติชม & ติดต่อแอดมิน")
         st.write("คะแนนความพึงพอใจและข้อเสนอแนะของคุณจะถูกส่งตรงไปให้ผู้พัฒนาเพื่อปรับปรุงระบบในเวอร์ชันถัดไป")
         
-        # ฟอร์มรับข้อมูล Feedback
         with st.form("feedback_form", clear_on_submit=True):
-            # 1. ระบบให้คะแนนแบบดาว
             rating_star = st.select_slider(
                 "⭐ ให้คะแนนความพึงพอใจแอปพลิเคชันของคุณ:",
                 options=[1, 2, 3, 4, 5],
@@ -940,13 +938,11 @@ def user_page(T, L_CODE):
                 format_func=lambda x: "⭐" * x + f" ({x} ดาว)"
             )
             
-            # 2. กล่องข้อความ
             comment_text = st.text_area(
                 "📝 ข้อเสนอแนะเพิ่มเติม หรือปัญหาที่ต้องการแจ้งแอดมิน:",
                 placeholder="พิมพ์ข้อความของคุณที่นี่..."
             )
             
-            # แก้ไขจุดนี้: เปลี่ยนมาใช้สัญลักษณ์ปุ่มส่งฟอร์มมาตรฐานของ Streamlit
             submit_feed = st.form_submit_button(
                 label="🚀 ส่งความคิดเห็นให้แอดมิน",
                 use_container_width=True,
@@ -960,13 +956,34 @@ def user_page(T, L_CODE):
                     try:
                         conn = get_conn()
                         curr = conn.cursor()
-                        curr.execute(
-                            """
-                            INSERT INTO suggestions (username, rating, comment, timestamp)
+                        
+                        # --- ตรวจสอบชื่อคอลัมน์ของตาราง suggestions บนระบบจริงเพื่อความปลอดภัย ---
+                        curr.execute("SELECT column_name FROM information_schema.columns WHERE table_name='suggestions'")
+                        sug_cols = [col[0] for col in curr.fetchall()]
+                        
+                        # ไล่จับคู่ตัวแปรตามระบบจริงหลังบ้าน
+                        f_user = "username" if "username" in sug_cols else sug_cols[1]
+                        f_rate = "rating" if "rating" in sug_cols else sug_cols[2]
+                        
+                        # ค้นหาคอลัมน์ที่จะเก็บ Text (ป้องกันกรณีไม่ได้ชื่อ comment)
+                        f_text = "comment"
+                        if "comment" not in sug_cols:
+                            for alternate in ["details", "detail", "msg", "message", "text", "feedback"]:
+                                if alternate in sug_cols:
+                                    f_text = alternate
+                                    break
+                            if f_text == "comment": # ถ้ายังไม่เจอกลุ่มชื่อทั่วไป ให้หยิบคอลัมน์ที่เหลือมาแทน
+                                f_text = sug_cols[3] if len(sug_cols) > 3 else sug_cols[-1]
+
+                        f_time = "timestamp" if "timestamp" in sug_cols else sug_cols[-1]
+
+                        # สร้างคิวรี่ด้วยชื่อฟิลด์จริงที่ถูกต้องบนระบบ
+                        query_sug = f"""
+                            INSERT INTO suggestions ({f_user}, {f_rate}, {f_text}, {f_time})
                             VALUES (%s, %s, %s, NOW())
-                            """,
-                            (st.session_state.username, int(rating_star), str(comment_text))
-                        )
+                        """
+                        
+                        curr.execute(query_sug, (st.session_state.username, int(rating_star), str(comment_text)))
                         conn.commit()
                         curr.close()
                         conn.close()
