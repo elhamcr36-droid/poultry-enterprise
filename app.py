@@ -1043,7 +1043,7 @@ def admin_page(T):
             conn.close()
 
             if not s_df.empty:
-                # 1. ค้นหาคอลัมน์ Rating
+                # 1. ค้นหาคอลัมน์ Rating เพื่อแสดงผลทางสถิติ
                 f_rate = "rating" if "rating" in s_df.columns else s_df.columns[2]
                 s_df[f_rate] = s_df[f_rate].fillna(0).astype(int)
                 avg_rating = s_df[f_rate].mean()
@@ -1055,7 +1055,7 @@ def admin_page(T):
                         f_text = alternate
                         break
 
-                # แสดงผลสรุปคะแนนเฉลี่ยและกราฟวงกลม
+                # แผงแสดงสถิติด้านบนแบบเดิม
                 c1, c2 = st.columns([1, 2])
                 c1.metric("คะแนนเฉลี่ยรวม", f"⭐ {avg_rating:.2f} / 5.0")
 
@@ -1063,78 +1063,80 @@ def admin_page(T):
                 c2.plotly_chart(fig, use_container_width=True)
 
                 st.divider()
-                st.subheader("📥 กล่องข้อความจากผู้ใช้งานล่าสุด")
+                st.subheader("📥 รายการข้อความติชมทั้งหมด")
+                st.write("💡 แอดมินสามารถเลือกติ๊กเครื่องหมายถูกหน้าข้อความที่ต้องการ แล้วกดปุ่มลบด้านล่างสุดได้พร้อมกัน")
 
-                # จัดการเปลี่ยนชื่อหัวคอลัมน์ให้แอดมินอ่านง่าย
-                disp_df = s_df.copy()
-                rename_dict = {}
-                if "username" in disp_df.columns: rename_dict["username"] = "ผู้ส่งข้อความ"
-                if f_rate in disp_df.columns: rename_dict[f_rate] = "คะแนนที่ให้"
-                if f_text in disp_df.columns: rename_dict[f_text] = "ข้อความแนะนำติชม/แจ้งปัญหา"
-                if "timestamp" in disp_df.columns: rename_dict["timestamp"] = "เวลาที่ส่ง"
-                
-                disp_df = disp_df.rename(columns=rename_dict)
-                st.dataframe(disp_df, use_container_width=True)
+                # -------- ส่วนเพิ่มระบบติ๊กเลือกสำหรับลบข้อความ --------
+                list_to_delete = []  # ลิสต์สำหรับเก็บไอเทมที่แอดมินต้องการลบ
 
-                # -------- ส่วนที่เพิ่มใหม่: เครื่องมือสำหรับลบข้อความ --------
-                st.divider()
-                st.subheader("🗑️ เครื่องมือจัดการและลบข้อความ")
-                
-                # สร้างตัวเลือกรายการข้อความเพื่อกดลบรายบุคคล
-                delete_options = ["--- เลือกข้อความที่ต้องการลบ ---", "⚠️ ลบข้อความทั้งหมด (Clear All)"]
+                # วนลูปสร้างการ์ดกล่องข้อความและปุ่มติ๊กเลือกแบบเรียงบรรทัดลงมา
                 for idx, row in s_df.iterrows():
                     time_str = str(row["timestamp"])[:19] if "timestamp" in s_df.columns else f"ID: {idx}"
-                    delete_options.append(f"ผู้ส่ง: {row['username']} | เวลา: {time_str} | ข้อความ: {str(row[f_text])[:20]}...")
-                
-                selected_delete = st.selectbox("เลือกรายการที่ต้องการลบออก", delete_options, index=0)
-                
-                if st.button("❌ ยืนยันการลบข้อความ", type="primary", use_container_width=True):
-                    if selected_delete == "--- เลือกข้อความที่ต้องการลบ ---":
-                        st.warning("โปรดเลือกรายการข้อความที่ต้องการลบก่อนครับ")
                     
-                    elif selected_delete == "⚠️ ลบข้อความทั้งหมด (Clear All)":
+                    # ปรับแต่งรูปแบบข้อความเพื่อแสดงเป็นหัวข้อของช่อง Checkbox
+                    label_title = f"👤 ผู้ส่ง: {row['username']} | ⭐ คะแนน: {row[f_rate]} ดาว | 🕒 เวลา: {time_str}"
+                    
+                    with st.container(border=True):
+                        # สร้างช่องติ๊กเลือก หน้าข้อความนั้นๆ
+                        is_checked = st.checkbox(label_title, key=f"del_{idx}_{row['username']}")
+                        
+                        # แสดงผลเนื้อหาข้อความแบบย่อหน้าให้อ่านง่าย
+                        st.info(f"💬 {row[f_text]}")
+                        
+                        # หากถูกติ๊กเลือก จะเก็บข้อมูลแถวนั้นเข้าไปรอลบ
+                        if is_checked:
+                            list_to_delete.append(row)
+
+                st.write("")
+                # แสดงข้อมูลปุ่มการจัดการการลบ
+                col_btn1, col_btn2 = st.columns([2, 1])
+                
+                with col_btn1:
+                    # ปุ่มยันยันการลบแบบหลายรายการพร้อมกัน
+                    if st.button(f"❌ ลบข้อความที่เลือกไว้ ({len(list_to_delete)} รายการ)", type="primary", use_container_width=True):
+                        if not list_to_delete:
+                            st.warning("⚠️ โปรดเลือกติ๊กหน้าข้อความที่ต้องการลบอย่างน้อย 1 รายการก่อนครับ")
+                        else:
+                            conn = get_conn()
+                            curr = conn.cursor()
+                            
+                            # วนลูปสั่งลบเฉพาะรายการที่เลือกในลิสต์
+                            for target_row in list_to_delete:
+                                if "timestamp" in s_df.columns:
+                                    curr.execute(
+                                        "DELETE FROM suggestions WHERE username = %s AND timestamp = %s",
+                                        (str(target_row['username']), target_row['timestamp'])
+                                    )
+                                else:
+                                    curr.execute(
+                                        f"DELETE FROM suggestions WHERE username = %s AND {f_text} = %s",
+                                        (str(target_row['username']), str(target_row[f_text]))
+                                    )
+                            
+                            conn.commit()
+                            curr.close()
+                            conn.close()
+                            st.success(f"🗑️ ลบข้อความที่เลือกจำนวน {len(list_to_delete)} รายการ ออกสำเร็จแล้ว!")
+                            st.rerun()
+
+                with col_btn2:
+                    # ปุ่มด่วนสำหรับล้างตารางทั้งหมดทิ้ง (Clear All)
+                    if st.button("⚠️ ลบข้อความทั้งหมด", use_container_width=True):
                         conn = get_conn()
                         curr = conn.cursor()
                         curr.execute("DELETE FROM suggestions")
                         conn.commit()
                         curr.close()
                         conn.close()
-                        st.success("💥 ลบข้อความทั้งหมดในกล่องข้อความเรียบร้อยแล้ว!")
+                        st.success("💥 ล้างกล่องข้อความทั้งหมดเรียบร้อยแล้ว!")
                         st.rerun()
-                    
-                    else:
-                        # แกะค่า username และข้อความที่เลือกเพื่อระบุตัวที่จะลบในฐานข้อมูล
-                        # ค้นหาข้อความที่ตรงกันจาก list ตัวแปรที่เลือก
-                        opt_idx = delete_options.index(selected_delete) - 2 # ปรับ Index ให้ตรงกับ s_df
-                        target_row = s_df.iloc[opt_idx]
-                        
-                        conn = get_conn()
-                        curr = conn.cursor()
-                        
-                        # ใช้เงื่อนไขระบุตัวลบผ่าน username และข้อความ/หรือเวลา
-                        if "timestamp" in s_df.columns:
-                            curr.execute(
-                                f"DELETE FROM suggestions WHERE username = %s AND timestamp = %s", 
-                                (str(target_row['username']), target_row['timestamp'])
-                            )
-                        else:
-                            curr.execute(
-                                f"DELETE FROM suggestions WHERE username = %s AND {f_text} = %s", 
-                                (str(target_row['username']), str(target_row[f_text]))
-                            )
-                            
-                        conn.commit()
-                        curr.close()
-                        conn.close()
-                        st.success(f"🗑️ ลบข้อความของ {target_row['username']} สำเร็จแล้ว!")
-                        st.rerun()
+
             else:
                 st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
                 
         except Exception as e:
             st.error(f"ไม่สามารถดึงข้อมูลกล่องข้อความมาแสดงผลให้แอดมินได้: {e}")
-
-
+            
 # ==========================================
 # 8. MAIN NAVIGATION
 # ==========================================
