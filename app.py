@@ -932,7 +932,7 @@ def user_page(T, L_CODE):
         
         # ฟอร์มรับข้อมูล Feedback
         with st.form("feedback_form", clear_on_submit=True):
-            # 1. ระบบให้คะแนนแบบ 5 ดาว (ใช้ Select Slider ตกแต่งเป็นรูปดาวเพื่อให้กดง่ายและชัดเจน)
+            # 1. ระบบให้คะแนนแบบดาว
             rating_star = st.select_slider(
                 "⭐ ให้คะแนนความพึงพอใจแอปพลิเคชันของคุณ:",
                 options=[1, 2, 3, 4, 5],
@@ -940,15 +940,17 @@ def user_page(T, L_CODE):
                 format_func=lambda x: "⭐" * x + f" ({x} ดาว)"
             )
             
-            # 2. กล่องข้อความพิมพ์คำแนะนำตัวใหญ่
+            # 2. กล่องข้อความ
             comment_text = st.text_area(
                 "📝 ข้อเสนอแนะเพิ่มเติม หรือปัญหาที่ต้องการแจ้งแอดมิน:",
                 placeholder="พิมพ์ข้อความของคุณที่นี่..."
             )
             
-            submit_feed = st.form_submit_with_value(
+            # แก้ไขจุดนี้: เปลี่ยนมาใช้สัญลักษณ์ปุ่มส่งฟอร์มมาตรฐานของ Streamlit
+            submit_feed = st.form_submit_button(
                 label="🚀 ส่งความคิดเห็นให้แอดมิน",
-                use_container_width=True
+                use_container_width=True,
+                type="primary"
             )
             
             if submit_feed:
@@ -958,7 +960,6 @@ def user_page(T, L_CODE):
                     try:
                         conn = get_conn()
                         curr = conn.cursor()
-                        # ตรวจสอบชื่อคอลัมน์ของตาราง suggestions และทำการ Insert ค่าความพึงพอใจ
                         curr.execute(
                             """
                             INSERT INTO suggestions (username, rating, comment, timestamp)
@@ -970,6 +971,7 @@ def user_page(T, L_CODE):
                         curr.close()
                         conn.close()
                         st.success("🎉 ส่งข้อมูลคำติชมสำเร็จ! ขอบพระคุณสำหรับความคิดเห็นครับ")
+                        st.rerun()
                     except Exception as e:
                         st.error(f"ไม่สามารถส่งข้อมูลได้เนื่องจากโครงสร้างตารางฐานข้อมูล: {e}")
 
