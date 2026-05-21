@@ -896,26 +896,32 @@ def user_page(T, L_CODE):
             else:
                 st.write("👉 กรุณากรอกข้อมูลและกดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
 
-    # ------------------ TAB 1: HIST (ประวัติการคำนวณ) ------------------
+# ------------------ TAB 1: HIST (ประวัติการคำนวณ) ------------------
     with tabs[1]:
         st.subheader(T["tab_hist"])
         try:
             conn = get_conn()
-            df = pd.read_sql("SELECT * FROM saved_recipes ORDER BY date DESC", conn)
+            
+            # 💡 ใช้คำสั่ง SQL แบบดึงเฉพาะข้อมูลของ user ที่ล็อกอินอยู่ (st.session_state.username)
+            query = """
+                SELECT id, breed_name, stage_name, chicken_count, details, cost_per_kg, date 
+                FROM saved_recipes 
+                WHERE username = %s 
+                ORDER BY date DESC
+            """
+            
+            # ส่ง params เข้าไปเพื่อป้องกัน SQL Injection และกรองข้อมูลอย่างถูกต้อง
+            df = pd.read_sql(query, conn, params=(st.session_state.username,))
             conn.close()
 
             if df.empty:
-                st.info("ยังไม่มีสูตรที่บันทึกไว้สำหรับบัญชีของคุณ")
+                st.info("💡 ยังไม่มีสูตรที่บันทึกไว้สำหรับบัญชีของคุณ")
             else:
-                st.dataframe(df, use_container_width=True)
+                # แสดงผลตารางเฉพาะของตัวเอง
+                st.dataframe(df, use_container_width=True, hide_index=True)
+                
         except Exception as e:
-            try:
-                conn = get_conn()
-                df = pd.read_sql("SELECT * FROM saved_recipes", conn)
-                conn.close()
-                st.dataframe(df, use_container_width=True)
-            except Exception as e2:
-                st.error(f"ไม่สามารถดึงข้อมูลประวัติได้เนื่องจากโครงสร้างตารางหลังบ้าน: {e2}")
+            st.error(f"❌ ไม่สามารถดึงข้อมูลประวัติได้เนื่องจากโครงสร้างตารางหลังบ้าน: {e}")
 
     # ------------------ TAB 2: STOCK (คลังวัตถุดิบ) ------------------
     with tabs[2]:
