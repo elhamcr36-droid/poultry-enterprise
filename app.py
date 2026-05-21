@@ -1009,7 +1009,7 @@ def admin_page(T):
         st.subheader(T["admin_user_tab"])
         conn = get_conn()
         u_df = pd.read_sql("SELECT username, fullname, email, age FROM users", conn)
-        conn.close() # ปิด Connection ให้เรียบร้อย หลังใช้งานเสร็จ
+        conn.close()
 
         edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True)
 
@@ -1036,7 +1036,6 @@ def admin_page(T):
             conn = get_conn()
             s_df = pd.read_sql("SELECT * FROM suggestions ORDER BY timestamp DESC", conn)
             
-            # ดึงรายชื่อคอลัมน์จริงเพื่อเอามาแมปปิ้งตารางแสดงผลให้แอดมินอ่าน
             curr = conn.cursor()
             curr.execute("SELECT column_name FROM information_schema.columns WHERE table_name='suggestions'")
             sug_cols = [col[0] for col in curr.fetchall()]
@@ -1044,19 +1043,19 @@ def admin_page(T):
             conn.close()
 
             if not s_df.empty:
-                # 1. ค้นหาคอลัมน์ Rating เพื่อคำนวณคะแนนเฉลี่ย
+                # 1. ค้นหาคอลัมน์ Rating
                 f_rate = "rating" if "rating" in s_df.columns else s_df.columns[2]
                 s_df[f_rate] = s_df[f_rate].fillna(0).astype(int)
                 avg_rating = s_df[f_rate].mean()
 
-                # 2. ค้นหาคอลัมน์ข้อความ (Comment) ที่ดึงมาจากฐานข้อมูลอัตโนมัติ
+                # 2. ค้นหาคอลัมน์ข้อความ (Comment)
                 f_text = "comment"
                 for alternate in ["comment", "details", "detail", "msg", "message", "text", "feedback"]:
                     if alternate in s_df.columns:
                         f_text = alternate
                         break
 
-                # สรุปผลยอดคะแนนด้านบนด้วย Metric และ Pie Chart เหมือนในภาพตัวอย่างของคุณ
+                # แสดงผลสรุปคะแนนเฉลี่ยและกราฟวงกลม
                 c1, c2 = st.columns([1, 2])
                 c1.metric("คะแนนเฉลี่ยรวม", f"⭐ {avg_rating:.2f} / 5.0")
 
@@ -1066,10 +1065,8 @@ def admin_page(T):
                 st.divider()
                 st.subheader("📥 กล่องข้อความจากผู้ใช้งานล่าสุด")
 
-                # 3. จัดระเบียบชื่อคอลัมน์ที่จะแสดงบนหน้าต่างตารางแอดมินให้เป็นระเบียบอ่านง่าย
+                # จัดการเปลี่ยนชื่อหัวคอลัมน์ให้แอดมินอ่านง่าย
                 disp_df = s_df.copy()
-                
-                # เปลี่ยนชื่อหัวคอลัมน์ใน DataFrame สำหรับแสดงผล
                 rename_dict = {}
                 if "username" in disp_df.columns: rename_dict["username"] = "ผู้ส่งข้อความ"
                 if f_rate in disp_df.columns: rename_dict[f_rate] = "คะแนนที่ให้"
@@ -1077,9 +1074,60 @@ def admin_page(T):
                 if "timestamp" in disp_df.columns: rename_dict["timestamp"] = "เวลาที่ส่ง"
                 
                 disp_df = disp_df.rename(columns=rename_dict)
-                
-                # แสดงผลตารางข้อความทั้งหมดให้แอดมินเลื่อนอ่าน
                 st.dataframe(disp_df, use_container_width=True)
+
+                # -------- ส่วนที่เพิ่มใหม่: เครื่องมือสำหรับลบข้อความ --------
+                st.divider()
+                st.subheader("🗑️ เครื่องมือจัดการและลบข้อความ")
+                
+                # สร้างตัวเลือกรายการข้อความเพื่อกดลบรายบุคคล
+                delete_options = ["--- เลือกข้อความที่ต้องการลบ ---", "⚠️ ลบข้อความทั้งหมด (Clear All)"]
+                for idx, row in s_df.iterrows():
+                    time_str = str(row["timestamp"])[:19] if "timestamp" in s_df.columns else f"ID: {idx}"
+                    delete_options.append(f"ผู้ส่ง: {row['username']} | เวลา: {time_str} | ข้อความ: {str(row[f_text])[:20]}...")
+                
+                selected_delete = st.selectbox("เลือกรายการที่ต้องการลบออก", delete_options, index=0)
+                
+                if st.button("❌ ยืนยันการลบข้อความ", type="primary", use_container_width=True):
+                    if selected_delete == "--- เลือกข้อความที่ต้องการลบ ---":
+                        st.warning("โปรดเลือกรายการข้อความที่ต้องการลบก่อนครับ")
+                    
+                    elif selected_delete == "⚠️ ลบข้อความทั้งหมด (Clear All)":
+                        conn = get_conn()
+                        curr = conn.cursor()
+                        curr.execute("DELETE FROM suggestions")
+                        conn.commit()
+                        curr.close()
+                        conn.close()
+                        st.success("💥 ลบข้อความทั้งหมดในกล่องข้อความเรียบร้อยแล้ว!")
+                        st.rerun()
+                    
+                    else:
+                        # แกะค่า username และข้อความที่เลือกเพื่อระบุตัวที่จะลบในฐานข้อมูล
+                        # ค้นหาข้อความที่ตรงกันจาก list ตัวแปรที่เลือก
+                        opt_idx = delete_options.index(selected_delete) - 2 # ปรับ Index ให้ตรงกับ s_df
+                        target_row = s_df.iloc[opt_idx]
+                        
+                        conn = get_conn()
+                        curr = conn.cursor()
+                        
+                        # ใช้เงื่อนไขระบุตัวลบผ่าน username และข้อความ/หรือเวลา
+                        if "timestamp" in s_df.columns:
+                            curr.execute(
+                                f"DELETE FROM suggestions WHERE username = %s AND timestamp = %s", 
+                                (str(target_row['username']), target_row['timestamp'])
+                            )
+                        else:
+                            curr.execute(
+                                f"DELETE FROM suggestions WHERE username = %s AND {f_text} = %s", 
+                                (str(target_row['username']), str(target_row[f_text]))
+                            )
+                            
+                        conn.commit()
+                        curr.close()
+                        conn.close()
+                        st.success(f"🗑️ ลบข้อความของ {target_row['username']} สำเร็จแล้ว!")
+                        st.rerun()
             else:
                 st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
                 
