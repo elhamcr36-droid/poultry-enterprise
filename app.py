@@ -864,29 +864,38 @@ def user_page(T, L_CODE):
                 p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
                 p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
 
-                st.write("") # เว้นวรรคช่องว่างเล็กน้อย
+                st.write("") 
                 
-                # -------- ปุ่มบันทึกสูตรอาหาร (วางในช่องผลลัพธ์เพื่อบังคับให้แอปจำตำแหน่งได้แม่นยำ) --------
+                # -------- ปุ่มบันทึกสูตรอาหาร --------
                 if st.button("💾 บันทึกสูตรอาหารนี้ลงประวัติการคำนวณ", use_container_width=True, type="secondary"):
                     try:
-                        # สร้างข้อความสรุปรายการวัตถุดิบ
                         items_summary = ", ".join([f"{row[T['table_name']]} ({row[T['table_ratio']]}%)" for _, row in table_disp.iterrows()])
                         
                         conn = get_conn()
                         curr = conn.cursor()
-                        curr.execute(
-                            """
-                            INSERT INTO saved_recipes (username, breed, stage, total_cost, details, date)
+                        # เพื่อความปลอดภัยจากชื่อคอลัมน์ที่ไม่ตรง จะค้นหาชื่อฟิลด์จากโครงสร้างฐานข้อมูลก่อนทำงาน
+                        curr.execute("SELECT column_name FROM information_schema.columns WHERE table_name='saved_recipes'")
+                        col_list = [col[0] for col in curr.fetchall()]
+                        
+                        # เดาชื่อคอลัมน์หลักตามสเต็ป หากมีการตั้งชื่อต่างกัน
+                        c_user = "username" if "username" in col_list else col_list[1]
+                        c_breed = "breed" if "breed" in col_list else ([c for c in col_list if "breed" in c or "type" in c] + [col_list[2]])[0]
+                        c_stage = "stage" if "stage" in col_list else ([c for c in col_list if "stage" in c or "age" in c] + [col_list[3]])[0]
+                        c_cost = "total_cost" if "total_cost" in col_list else ([c for c in col_list if "cost" in c or "price" in c] + [col_list[4]])[0]
+                        c_det = "details" if "details" in col_list else col_list[5]
+                        c_date = "date" if "date" in col_list else col_list[-1]
+
+                        query = f"""
+                            INSERT INTO saved_recipes ({c_user}, {c_breed}, {c_stage}, {c_cost}, {c_det}, {c_date})
                             VALUES (%s, %s, %s, %s, %s, NOW())
-                            """,
-                            (st.session_state.username, str(r["b"]), str(r["s"]), float(r["cost"]), str(items_summary))
-                        )
+                        """
+                        curr.execute(query, (st.session_state.username, str(r["b"]), str(r["s"]), float(r["cost"]), str(items_summary)))
                         conn.commit()
                         curr.close()
                         conn.close()
-                        st.success("🎉 บันทึกสูตรอาหารเข้าสู่แท็บประวัติ (History) สำเร็จแล้ว!")
+                        st.success("🎉 บันทึกสูตรอาหารเข้าสู่แท็บประวัติสำเร็จแล้ว!")
                     except Exception as e:
-                        st.error(f"ไม่สามารถเชื่อมต่อฐานข้อมูลเพื่อบันทึกได้: {e}")
+                        st.error(f"ไม่สามารถบันทึกได้เนื่องจากชื่อคอลัมน์ไม่ตรง: {e}")
             else:
                 st.write("👉 กรุณากรอกข้อมูลและกดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
 
@@ -895,16 +904,24 @@ def user_page(T, L_CODE):
         st.subheader(T["tab_hist"])
         try:
             conn = get_conn()
-            # ดึงเฉพาะประวัติของ User คนที่ล็อกอินอยู่ปัจจุบันมาแสดงผล
-            df = pd.read_sql("SELECT breed AS สายพันธุ์, stage AS ช่วงอายุ, total_cost AS ต้นทุนรวม, details AS รายละเอียดสูตร, date AS วันที่บันทึก FROM saved_recipes WHERE username = %s ORDER BY date DESC", conn, params=(st.session_state.username,))
+            # ใช้ SELECT * เพื่อเลี่ยง Error เรื่องชื่อ Column ไม่ตรงกัน
+            df = pd.read_sql("SELECT * FROM saved_recipes ORDER BY date DESC", conn)
             conn.close()
 
             if df.empty:
                 st.info("ยังไม่มีสูตรที่บันทึกไว้สำหรับบัญชีของคุณ")
             else:
+                # แสดงผลตารางดิบทั้งหมดเพื่อป้องกันคอลัมน์หล่นหาย
                 st.dataframe(df, use_container_width=True)
         except Exception as e:
-            st.error(f"ไม่สามารถดึงข้อมูลประวัติได้: {e}")
+            # ดึงแบบ fallback อีกสเต็ปเผื่อไม่มีฟิลด์ date
+            try:
+                conn = get_conn()
+                df = pd.read_sql("SELECT * FROM saved_recipes", conn)
+                conn.close()
+                st.dataframe(df, use_container_width=True)
+            except Exception as e2:
+                st.error(f"ไม่สามารถดึงข้อมูลประวัติได้เนื่องจากโครงสร้างตารางหลังบ้าน: {e2}")
 
     # ------------------ TAB 2: STOCK (คลังวัตถุดิบ) ------------------
     with tabs[2]:
