@@ -145,7 +145,7 @@ def optimize_feed(costs, protein, min_protein):
 
 LANG = {
     "TH": {
-        "title": "🥚 ระบบ Smart Layer AI Professional v4.2",
+        "title": "🥚 คํานวนสูตรอาหารไก่ไข่อัจฉริยะ",
         "login_header": "🔐 เข้าสู่ระบบ",
         "reg_header": "📝 สมัครสมาชิก",
         "forgot_header": "❓ กู้คืนรหัสผ่าน",
@@ -217,7 +217,7 @@ LANG = {
         "btn_update_un": "อัปเดตชื่อผู้ใช้"
     },
     "EN": {
-        "title": "🥚 Smart Layer AI Professional v4.2",
+        "title": "🥚 Smart Layer AI Professional",
         "login_header": "🔐 Login",
         "reg_header": "📝 Registration",
         "forgot_header": "❓ Forgot Password",
