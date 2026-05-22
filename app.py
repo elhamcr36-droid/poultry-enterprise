@@ -1005,12 +1005,15 @@ def user_page(T, L_CODE):
 
 
 # ==========================================
-# 7. ADMIN PANEL
+# 7. ADMIN PANEL (อัปเดตเวอร์ชันจัดการคลังวัตถุดิบ)
 # ==========================================
 def admin_page(T):
     st.title(T["nav_admin"])
-    t1, t2 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"]])
+    
+    # ⭐ จุดแก้ไข 1: เพิ่มแท็บที่ 3 สำหรับจัดการคลังวัตถุดิบเข้ามาใน st.tabs
+    t1, t2, t3 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"], "🌾 จัดการคลังวัตถุดิบ"])
 
+    # --- แท็บที่ 1: จัดการผู้ใช้ (โค้ดเดิมของคุณ) ---
     with t1:
         st.subheader(T["admin_user_tab"])
         conn = get_conn()
@@ -1036,6 +1039,7 @@ def admin_page(T):
             st.success(T["msg_success"])
             st.rerun()
 
+    # --- แท็บที่ 2: จัดการข้อความติชม (โค้ดเดิมของคุณ) ---
     with t2:
         st.subheader(T["admin_feed_tab"])
         try:
@@ -1049,19 +1053,16 @@ def admin_page(T):
             conn.close()
 
             if not s_df.empty:
-                # 1. ค้นหาคอลัมน์ Rating เพื่อแสดงผลทางสถิติ
                 f_rate = "rating" if "rating" in s_df.columns else s_df.columns[2]
                 s_df[f_rate] = s_df[f_rate].fillna(0).astype(int)
                 avg_rating = s_df[f_rate].mean()
 
-                # 2. ค้นหาคอลัมน์ข้อความ (Comment)
                 f_text = "comment"
                 for alternate in ["comment", "details", "detail", "msg", "message", "text", "feedback"]:
                     if alternate in s_df.columns:
                         f_text = alternate
                         break
 
-                # แผงแสดงสถิติด้านบนแบบเดิม
                 c1, c2 = st.columns([1, 2])
                 c1.metric("คะแนนเฉลี่ยรวม", f"⭐ {avg_rating:.2f} / 5.0")
 
@@ -1072,41 +1073,28 @@ def admin_page(T):
                 st.subheader("📥 รายการข้อความติชมทั้งหมด")
                 st.write("💡 แอดมินสามารถเลือกติ๊กเครื่องหมายถูกหน้าข้อความที่ต้องการ แล้วกดปุ่มลบด้านล่างสุดได้พร้อมกัน")
 
-                # -------- ส่วนเพิ่มระบบติ๊กเลือกสำหรับลบข้อความ --------
-                list_to_delete = []  # ลิสต์สำหรับเก็บไอเทมที่แอดมินต้องการลบ
+                list_to_delete = []
 
-                # วนลูปสร้างการ์ดกล่องข้อความและปุ่มติ๊กเลือกแบบเรียงบรรทัดลงมา
                 for idx, row in s_df.iterrows():
                     time_str = str(row["timestamp"])[:19] if "timestamp" in s_df.columns else f"ID: {idx}"
-                    
-                    # ปรับแต่งรูปแบบข้อความเพื่อแสดงเป็นหัวข้อของช่อง Checkbox
                     label_title = f"👤 ผู้ส่ง: {row['username']} | ⭐ คะแนน: {row[f_rate]} ดาว | 🕒 เวลา: {time_str}"
                     
                     with st.container(border=True):
-                        # สร้างช่องติ๊กเลือก หน้าข้อความนั้นๆ
                         is_checked = st.checkbox(label_title, key=f"del_{idx}_{row['username']}")
-                        
-                        # แสดงผลเนื้อหาข้อความแบบย่อหน้าให้อ่านง่าย
                         st.info(f"💬 {row[f_text]}")
-                        
-                        # หากถูกติ๊กเลือก จะเก็บข้อมูลแถวนั้นเข้าไปรอลบ
                         if is_checked:
                             list_to_delete.append(row)
 
                 st.write("")
-                # แสดงข้อมูลปุ่มการจัดการการลบ
                 col_btn1, col_btn2 = st.columns([2, 1])
                 
                 with col_btn1:
-                    # ปุ่มยันยันการลบแบบหลายรายการพร้อมกัน
                     if st.button(f"❌ ลบข้อความที่เลือกไว้ ({len(list_to_delete)} รายการ)", type="primary", use_container_width=True):
                         if not list_to_delete:
                             st.warning("⚠️ โปรดเลือกติ๊กหน้าข้อความที่ต้องการลบอย่างน้อย 1 รายการก่อนครับ")
                         else:
                             conn = get_conn()
                             curr = conn.cursor()
-                            
-                            # วนลูปสั่งลบเฉพาะรายการที่เลือกในลิสต์
                             for target_row in list_to_delete:
                                 if "timestamp" in s_df.columns:
                                     curr.execute(
@@ -1118,7 +1106,6 @@ def admin_page(T):
                                         f"DELETE FROM suggestions WHERE username = %s AND {f_text} = %s",
                                         (str(target_row['username']), str(target_row[f_text]))
                                     )
-                            
                             conn.commit()
                             curr.close()
                             conn.close()
@@ -1126,7 +1113,6 @@ def admin_page(T):
                             st.rerun()
 
                 with col_btn2:
-                    # ปุ่มด่วนสำหรับล้างตารางทั้งหมดทิ้ง (Clear All)
                     if st.button("⚠️ ลบข้อความทั้งหมด", use_container_width=True):
                         conn = get_conn()
                         curr = conn.cursor()
@@ -1136,13 +1122,57 @@ def admin_page(T):
                         conn.close()
                         st.success("💥 ล้างกล่องข้อความทั้งหมดเรียบร้อยแล้ว!")
                         st.rerun()
-
             else:
                 st.info("ยังไม่มีข้อมูลการติชมเข้ามา")
-                
         except Exception as e:
             st.error(f"ไม่สามารถดึงข้อมูลกล่องข้อความมาแสดงผลให้แอดมินได้: {e}")
-            
+
+    # --- ⭐ จุดแก้ไข 2: เพิ่มแท็บย่อยที่ 3 (จัดการคลังวัตถุดิบ) ---
+    with t3:
+        st.subheader("🌾 จัดการคลังวัตถุดิบ")
+        st.write("💡 แอดมินสามารถ ดับเบิ้ลคลิกแก้ไขตัวเลข/ชื่อ, เพิ่มวัตถุดิบใหม่ (+ ด้านล่างตาราง), หรือกดเลือกแล้วลบแถวออกได้โดยตรง")
+        
+        try:
+            # 1. ดึงข้อมูลคลังวัตถุดิบปัจจุบันจากฐานข้อมูลมาแสดงผล
+            conn = get_conn()
+            # สมมติตารางฐานข้อมูลของคุณชื่อ 'ingredients' (หากชื่ออื่น เช่น 'raw_materials' ให้เปลี่ยนตรงนี้ได้เลยครับ)
+            ing_df = pd.read_sql("SELECT name_th, protein, energy, fiber, cost FROM ingredients", conn)
+            conn.close()
+
+            # 2. ใช้ st.data_editor แบบ dynamic เพื่อเปิดความสามารถในการ แก้ไข / เพิ่ม (+) / ลบ แถวข้อมูล
+            edited_ing = st.data_editor(ing_df, num_rows="dynamic", use_container_width=True, key="ing_editor")
+
+            # 3. ปุ่มกดสำหรับบันทึกข้อมูลที่เปลี่ยนไปทั้งหมดทับลงฐานข้อมูล
+            if st.button("💾 บันทึกการเปลี่ยนแปลงคลังวัตถุดิบ", type="primary"):
+                conn = get_conn()
+                curr = conn.cursor()
+                
+                # วิธีลบและเขียนทับแบบปลอดภัย: ล้างข้อมูลในตารางเก่าออกก่อน แล้วนำตารางที่แก้ไขมาบันทึกใหม่
+                curr.execute("DELETE FROM ingredients")
+                
+                # วนลูปนำข้อมูลจากตารางที่แอดมินแก้ไข (edited_ing) INSERT ลงไปในฐานข้อมูลใหม่ทีละแถว
+                for idx, row in edited_ing.iterrows():
+                    # ตรวจสอบค่าว่าง (เพื่อป้องกันกรณีเพิ่มแถวแล้วพิมพ์ไม่ครบ)
+                    name = str(row['name_th']).strip() if pd.notnull(row['name_th']) else ""
+                    if name:  # จะบันทึกเฉพาะแถวที่มีชื่อวัตถุดิบเท่านั้น
+                        protein = float(row['protein']) if pd.notnull(row['protein']) else 0.0
+                        energy = float(row['energy']) if pd.notnull(row['energy']) else 0.0
+                        fiber = float(row['fiber']) if pd.notnull(row['fiber']) else 0.0
+                        cost = float(row['cost']) if pd.notnull(row['cost']) else 0.0
+                        
+                        curr.execute(
+                            "INSERT INTO ingredients (name_th, protein, energy, fiber, cost) VALUES (%s, %s, %s, %s, %s)",
+                            (name, protein, energy, fiber, cost)
+                        )
+                
+                conn.commit()
+                curr.close()
+                conn.close()
+                st.success("🎉 อัปเดตคลังวัตถุดิบลงฐานข้อมูลเรียบร้อยแล้ว!")
+                st.rerun()
+                
+        except Exception as e:
+            st.error(f"ไม่สามารถโหลดหรืออัปเดตข้อมูลคลังวัตถุดิบได้: {e}")
 # ==========================================
 # 8. MAIN NAVIGATION
 # ==========================================
