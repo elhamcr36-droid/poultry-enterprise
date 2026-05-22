@@ -1186,7 +1186,7 @@ def admin_page(T):
             st.error(f"ไม่สามารถโหลดหรืออัปเดตข้อมูลคลังวัตถุดิบได้: {e}")
 
 # ==========================================
-# 8. MAIN NAVIGATION
+# 8. MAIN NAVIGATION (เวอร์ชันแอดมินเห็นเฉพาะเมนูแอดมิน)
 # ==========================================
 def main():
     if "logged_in" not in st.session_state:
@@ -1202,11 +1202,12 @@ def main():
         auth_page(T)
     else:
         st.sidebar.title(f"👤 {st.session_state.fullname}")
-        nav_opts = [T["nav_home"]]
         
-        # แสดงเมนูผู้ดูแลระบบเฉพาะคนชื่อ 'ang' เท่านั้น
+        # ⭐ แยกเมนูอย่างเด็ดขาด: ถ้าเป็น 'ang' ให้เห็นแค่เมนูแอดมิน ถ้าเป็นคนอื่นให้เห็นแค่หน้าหลัก
         if st.session_state.username == 'ang':
-            nav_opts.append(T["nav_admin"])
+            nav_opts = [T["nav_admin"]]
+        else:
+            nav_opts = [T["nav_home"]]
         
         choice = st.sidebar.radio("MENU", nav_opts, label_visibility="collapsed")
         
@@ -1214,7 +1215,7 @@ def main():
             st.session_state.clear()
             st.rerun()
         
-        # ควบคุมทิศทางการเปิดหน้าเพจหลัก
+        # ควบคุมทิศทางการเปิดหน้าเพจหลักตามเมนูที่เลือก
         if choice == T["nav_home"]:
             user_page(T, L_CODE)
         elif choice == T["nav_admin"]:
