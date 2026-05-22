@@ -1005,15 +1005,15 @@ def user_page(T, L_CODE):
 
 
 # ==========================================
-# 7. ADMIN PANEL (อัปเดตเวอร์ชันจัดการคลังวัตถุดิบ)
+# 7. ADMIN PANEL (อัปเดตเวอร์ชันจัดการคลังวัตถุดิบแบบสมบูรณ์)
 # ==========================================
 def admin_page(T):
     st.title(T["nav_admin"])
     
-    # ⭐ จุดแก้ไข 1: เพิ่มแท็บที่ 3 สำหรับจัดการคลังวัตถุดิบเข้ามาใน st.tabs
+    # แท็บจัดการระบบสำหรับแอดมิน
     t1, t2, t3 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"], "🌾 จัดการคลังวัตถุดิบ"])
 
-    # --- แท็บที่ 1: จัดการผู้ใช้ (โค้ดเดิมของคุณ) ---
+    # --- แท็บที่ 1: จัดการผู้ใช้ ---
     with t1:
         st.subheader(T["admin_user_tab"])
         conn = get_conn()
@@ -1039,7 +1039,7 @@ def admin_page(T):
             st.success(T["msg_success"])
             st.rerun()
 
-    # --- แท็บที่ 2: จัดการข้อความติชม (โค้ดเดิมของคุณ) ---
+    # --- แท็บที่ 2: จัดการข้อความติชม ---
     with t2:
         st.subheader(T["admin_feed_tab"])
         try:
@@ -1127,52 +1127,64 @@ def admin_page(T):
         except Exception as e:
             st.error(f"ไม่สามารถดึงข้อมูลกล่องข้อความมาแสดงผลให้แอดมินได้: {e}")
 
-    # --- ⭐ จุดแก้ไข 2: เพิ่มแท็บย่อยที่ 3 (จัดการคลังวัตถุดิบ) ---
+    # --- แท็บที่ 3: จัดการคลังวัตถุดิบ (แก้ไขให้รองรับครบทุกคอลัมน์ของ Master Data) ---
     with t3:
-        st.subheader("🌾 จัดการคลังวัตถุดิบ")
-        st.write("💡 แอดมินสามารถ ดับเบิ้ลคลิกแก้ไขตัวเลข/ชื่อ, เพิ่มวัตถุดิบใหม่ (+ ด้านล่างตาราง), หรือกดเลือกแล้วลบแถวออกได้โดยตรง")
+        st.subheader("🌾 จัดการคลังวัตถุดิบส่วนกลาง")
+        st.write("💡 แอดมินสามารถ ดับเบิ้ลคลิกเพื่อแก้ไข, เพิ่มวัตถุดิบใหม่ (+ ด้านล่างตาราง), หรือกดเลือกแถวแล้วลบออกได้โดยตรง")
         
         try:
-            # 1. ดึงข้อมูลคลังวัตถุดิบปัจจุบันจากฐานข้อมูลมาแสดงผล
+            # 1. ดึงข้อมูลครบทุกคอลัมน์ตามโครงสร้างจริงของฐานข้อมูล (10 คอลัมน์)
             conn = get_conn()
-            # สมมติตารางฐานข้อมูลของคุณชื่อ 'ingredients' (หากชื่ออื่น เช่น 'raw_materials' ให้เปลี่ยนตรงนี้ได้เลยครับ)
-            ing_df = pd.read_sql("SELECT name_th, protein, energy, fiber, cost FROM ingredients", conn)
+            ing_df = pd.read_sql("""
+                SELECT name_th, name_en, protein, energy, fiber, 
+                       calcium, phosphorus, lysine, methionine, cost 
+                FROM ingredients
+            """, conn)
             conn.close()
 
-            # 2. ใช้ st.data_editor แบบ dynamic เพื่อเปิดความสามารถในการ แก้ไข / เพิ่ม (+) / ลบ แถวข้อมูล
-            edited_ing = st.data_editor(ing_df, num_rows="dynamic", use_container_width=True, key="ing_editor")
+            # 2. แสดง Data Editor เปิดสิทธิ์ครบทุกฟังก์ชันแบบ Dynamic
+            edited_ing = st.data_editor(ing_df, num_rows="dynamic", use_container_width=True, key="ing_master_editor")
 
-            # 3. ปุ่มกดสำหรับบันทึกข้อมูลที่เปลี่ยนไปทั้งหมดทับลงฐานข้อมูล
+            # 3. ปุ่มกดสำหรับอัปเดตข้อมูลทับแบบปลอดภัยและคงค่าเดิมไว้ครบถ้วน
             if st.button("💾 บันทึกการเปลี่ยนแปลงคลังวัตถุดิบ", type="primary"):
                 conn = get_conn()
                 curr = conn.cursor()
                 
-                # วิธีลบและเขียนทับแบบปลอดภัย: ล้างข้อมูลในตารางเก่าออกก่อน แล้วนำตารางที่แก้ไขมาบันทึกใหม่
+                # ล้างข้อมูลเดิมออกก่อนเขียนเซ็ตใหม่
                 curr.execute("DELETE FROM ingredients")
                 
-                # วนลูปนำข้อมูลจากตารางที่แอดมินแก้ไข (edited_ing) INSERT ลงไปในฐานข้อมูลใหม่ทีละแถว
+                # วนลูปบันทึกข้อมูลแบบครบคอลุมน์เพื่อไม่ให้ระบบคำนวณ AI พัง
                 for idx, row in edited_ing.iterrows():
-                    # ตรวจสอบค่าว่าง (เพื่อป้องกันกรณีเพิ่มแถวแล้วพิมพ์ไม่ครบ)
-                    name = str(row['name_th']).strip() if pd.notnull(row['name_th']) else ""
-                    if name:  # จะบันทึกเฉพาะแถวที่มีชื่อวัตถุดิบเท่านั้น
+                    name_th = str(row['name_th']).strip() if pd.notnull(row['name_th']) else ""
+                    if name_th:  # จะบันทึกเฉพาะแถวที่มีชื่อภาษาไทยกำกับไว้เท่านั้น
+                        name_en = str(row['name_en']).strip() if pd.notnull(row['name_en']) else ""
                         protein = float(row['protein']) if pd.notnull(row['protein']) else 0.0
                         energy = float(row['energy']) if pd.notnull(row['energy']) else 0.0
                         fiber = float(row['fiber']) if pd.notnull(row['fiber']) else 0.0
+                        calcium = float(row['calcium']) if pd.notnull(row['calcium']) else 0.0
+                        phosphorus = float(row['phosphorus']) if pd.notnull(row['phosphorus']) else 0.0
+                        lysine = float(row['lysine']) if pd.notnull(row['lysine']) else 0.0
+                        methionine = float(row['methionine']) if pd.notnull(row['methionine']) else 0.0
                         cost = float(row['cost']) if pd.notnull(row['cost']) else 0.0
                         
                         curr.execute(
-                            "INSERT INTO ingredients (name_th, protein, energy, fiber, cost) VALUES (%s, %s, %s, %s, %s)",
-                            (name, protein, energy, fiber, cost)
+                            """
+                            INSERT INTO ingredients (name_th, name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost) 
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            (name_th, name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost)
                         )
                 
                 conn.commit()
                 curr.close()
                 conn.close()
-                st.success("🎉 อัปเดตคลังวัตถุดิบลงฐานข้อมูลเรียบร้อยแล้ว!")
+                st.success("🎉 อัปเดตคลังวัตถุดิบและค่าสารอาหารหลักลงฐานข้อมูลเรียบร้อยแล้ว!")
+                time.sleep(0.5)
                 st.rerun()
                 
         except Exception as e:
             st.error(f"ไม่สามารถโหลดหรืออัปเดตข้อมูลคลังวัตถุดิบได้: {e}")
+
 # ==========================================
 # 8. MAIN NAVIGATION
 # ==========================================
