@@ -593,14 +593,23 @@ def auth_page(T):
 
             fn = st.text_input(T["fn_label"])
             em = st.text_input(T["em_label"])
+            
+            # ➕ 1. เพิ่มช่องเลือกวันเดือนปีเกิด (ดึงคำแปลจาก T["bd_label"])
+            bd = st.date_input(
+                T["bd_label"], 
+                value=datetime.strptime("2000-01-01", "%Y-%m-%d").date(),
+                min_value=datetime.strptime("1940-01-01", "%Y-%m-%d").date(),
+                max_value=datetime.now().date()
+            )
+            
             un = st.text_input(T["user_label"])
-
             pw = st.text_input(T["pass_label"], type="password")
             cpw = st.text_input(T["cp_label"], type="password")
 
             if st.button(T["btn_reg_submit"], type="primary", use_container_width=True):
 
-                if not fn or not em or not un or not pw:
+                # 🔧 2. เพิ่มการตรวจสอบตัวแปร bd ร่วมด้วยว่ากรอกครบไหม
+                if not fn or not em or not un or not pw or not bd:
 
                     msg_area.warning("กรุณากรอกข้อมูลให้ครบ")
 
@@ -614,14 +623,19 @@ def auth_page(T):
                     cur = conn.cursor()
 
                     try:
+                        # ➕ 3. คำนวณอายุจริง (ปีปัจจุบัน - ปีเกิด) และแปลง format วันที่ส่งให้ database
+                        today = datetime.now().date()
+                        calculated_age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+                        bd_str = bd.strftime("%Y-%m-%d")
 
+                        # 🔧 4. เปลี่ยนคู่อาร์กิวเมนต์ด้านล่างสุด จากค่า Hardcode เดิม ให้ใช้ตัวแปร (bd_str, calculated_age)
                         cur.execute(
                             """
                             INSERT INTO users
                             (username, fullname, email, password, birthdate, age)
                             VALUES (%s,%s,%s,%s,%s,%s)
                             """,
-                            (un, fn, em, make_hashes(pw), "2000-01-01", 24)
+                            (un, fn, em, make_hashes(pw), bd_str, calculated_age)
                         )
 
                         conn.commit()
@@ -644,8 +658,6 @@ def auth_page(T):
                 on_click=lambda: st.session_state.update({"auth_mode":"login"}),
                 use_container_width=True
             )
-
-
         # ---------------- FORGOT PASSWORD ----------------
         elif st.session_state.auth_mode == "forgot":
 
