@@ -1017,7 +1017,7 @@ def user_page(T, L_CODE):
 
 
 # ==========================================
-# 7. ADMIN PANEL (อัปเดตเวอร์ชันจัดการคลังวัตถุดิบแบบสมบูรณ์)
+# 7. ADMIN PANEL (อัปเดตเวอร์ชันจัดการคลังวัตถุดิบแบบสมบูรณ์ + คอลัมน์วันเกิด)
 # ==========================================
 def admin_page(T):
     st.title(T["nav_admin"])
@@ -1025,13 +1025,15 @@ def admin_page(T):
     # แท็บจัดการระบบสำหรับแอดมิน
     t1, t2, t3 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"], "🌾 จัดการคลังวัตถุดิบ"])
 
-    # --- แท็บที่ 1: จัดการผู้ใช้ ---
+    # --- แท็บที่ 1: จัดการผู้ใช้ (เพิ่มคอลัมน์ birthdate) ---
     with t1:
         st.subheader(T["admin_user_tab"])
         conn = get_conn()
-        u_df = pd.read_sql("SELECT username, fullname, email, age FROM users", conn)
+        # 🛠️ [แก้ไข] ดึงคอลัมน์ birthdate ออกมาจากตาราง users เพิ่มเติม
+        u_df = pd.read_sql("SELECT username, fullname, email, birthdate, age FROM users", conn)
         conn.close()
 
+        # แสดงข้อมูลบน Data Editor (แอดมินสามารถดับเบิ้ลคลิกแก้ไขวันเกิดในนี้ได้ด้วย)
         edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True)
 
         if st.button(T["admin_save_user_btn"]):
@@ -1139,7 +1141,7 @@ def admin_page(T):
         except Exception as e:
             st.error(f"ไม่สามารถดึงข้อมูลกล่องข้อความมาแสดงผลให้แอดมินได้: {e}")
 
-    # --- แท็บที่ 3: จัดการคลังวัตถุดิบ (แก้ไขให้รองรับครบทุกคอลัมน์ของ Master Data) ---
+    # --- แท็บที่ 3: จัดการคลังวัตถุดิบ ---
     with t3:
         st.subheader("🌾 จัดการคลังวัตถุดิบส่วนกลาง")
         st.write("💡 แอดมินสามารถ ดับเบิ้ลคลิกเพื่อแก้ไข, เพิ่มวัตถุดิบใหม่ (+ ด้านล่างตาราง), หรือกดเลือกแถวแล้วลบออกได้โดยตรง")
@@ -1183,7 +1185,7 @@ def admin_page(T):
                             """
                             INSERT INTO ingredients (name_th, name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost) 
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            """,
+                            """, 
                             (name_th, name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost)
                         )
                 
