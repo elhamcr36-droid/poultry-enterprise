@@ -99,13 +99,17 @@ def init_db():
             )
         )
 
-    # ตรวจสอบและเพิ่มข้อมูลวัตถุดิบมาตรฐานเริ่มต้น (แก้ไข % ป้องกันบั๊ก SQL)
+    # ตรวจสอบและเพิ่มข้อมูลวัตถุดิบมาตรฐานเริ่มต้น
     cur.execute("SELECT COUNT(*) FROM ingredients")
     if cur.fetchone()[0] == 0:
         cur.executemany(
             "INSERT INTO ingredients VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             STANDARD_INGREDIENTS
         )
+        
+    # 💡 อัปเดตล้างข้อมูลเก่าในระบบที่อาจจะมี %% ซ้อนกัน ให้กลับมาเหลือ % ตัวเดียวปกติ
+    cur.execute("UPDATE ingredients SET name_th = REPLACE(name_th, '%%', '%') WHERE name_th LIKE '%%%%';")
+    cur.execute("UPDATE ingredients SET name_en = REPLACE(name_en, '%%', '%') WHERE name_en LIKE '%%%%';")
 
     conn.commit()
     cur.close()
@@ -201,15 +205,15 @@ LANG = {
         "mode_nutri": "✨ สารอาหารแม่นยำที่สุด (Best Nutrition)",
         "income_sec": "💰 พยากรณ์รายได้",
         "egg_price_label": "ราคาไข่คาดการณ์ (บาท/ฟอง)",
-        "lay_rate_label": "อัตราการให้ไข่ (%%)",
+        "lay_rate_label": "อัตราการให้ไข่ (%)",
         "btn_ai": "🚀 ประมวลผลสูตร AI",
         "res_header": "📊 ผลลัพธ์สัดส่วนวัตถุดิบ",
-        "chart_title": "สัดส่วนการผสมวัตถุดิบ (%%)",
-        "protein_actual": "โปรตีนที่ได้จริง (%%)",
+        "chart_title": "สัดส่วนการผสมวัตถุดิบ (%)",
+        "protein_actual": "โปรตีนที่ได้จริง (%)",
         "energy_actual": "พลังงานที่ได้จริง (kcal)",
         "target_label": "เป้าหมาย",
         "table_name": "ชื่อวัตถุดิบ",
-        "table_ratio": "สัดส่วน (%%)",
+        "table_ratio": "สัดส่วน (%)",
         "table_need": "ต้องใช้ (กก.)",
         "profit_sec": "📈 พยากรณ์กำไรรายวัน",
         "cost_day": "ต้นทุนอาหาร/วัน",
@@ -273,15 +277,15 @@ LANG = {
         "mode_nutri": "✨ Best Nutrition",
         "income_sec": "💰 Revenue Forecast",
         "egg_price_label": "Exp. Price (THB/Egg)",
-        "lay_rate_label": "Lay Rate (%%)",
+        "lay_rate_label": "Lay Rate (%)",
         "btn_ai": "🚀 Run AI Optimization",
         "res_header": "📊 Ingredient Results",
-        "chart_title": "Mixing Ratio (%%)",
-        "protein_actual": "Actual Protein (%%)",
+        "chart_title": "Mixing Ratio (%)",
+        "protein_actual": "Actual Protein (%)",
         "energy_actual": "Actual Energy (kcal)",
         "target_label": "Target",
         "table_name": "Ingredient",
-        "table_ratio": "Ratio (%%)",
+        "table_ratio": "Ratio (%)",
         "table_need": "Required (kg)",
         "profit_sec": "📈 Daily Profit Forecast",
         "cost_day": "Feed Cost/Day",
@@ -323,7 +327,7 @@ STANDARD_INGREDIENTS = [
     ("พรีมิกซ์ไก่ไข่", "Layer Premix", 2.0, 500, 0.0, 12.0, 4.0, 1.0, 0.5, 150.0),
     ("ใบกระถินป่น", "Leucaena Meal", 22.0, 1200, 12.0, 1.5, 0.2, 0.0, 0.0, 7.0),
     ("เกลือ", "Salt", 0.0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0),
-    ("ดีแอล-เมทไธโอนีน", "DL-Methionine", 99.0, 0, 0.0, 0.0, 0.0, 0.0, 99.0, 180.0),
+    ("ดีแแอล-เมทไธโอนีน", "DL-Methionine", 99.0, 0, 0.0, 0.0, 0.0, 0.0, 99.0, 180.0),
     ("แอล-ไลซีน", "L-Lysine", 78.0, 0, 0.0, 0.0, 0.0, 78.0, 0.0, 95.0)
 ]
 
@@ -644,8 +648,8 @@ def user_page(T, L_CODE):
 
             if st.button(T["btn_ai"], use_container_width=True, type="primary"):
                 conn = get_conn()
-                # 🎯 ใช้ REPLACE ซ่อมสัญลักษณ์ % ก่อนดึงมาคำนวณเพื่อป้องกันสูตรพัง
-                df = pd.read_sql("SELECT REPLACE(name_th, '%', '%%') as name_th, REPLACE(name_en, '%', '%%') as name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost FROM ingredients", conn)
+                # 🛠️ แก้ไขดึงข้อมูลดิบปกติ ไม่ต้องใช้ REPLACE ซ้อน %% ป้องกันสัญลักษณ์เบิ้ล
+                df = pd.read_sql("SELECT name_th, name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost FROM ingredients", conn)
                 conn.close()
 
                 costs = df["cost"].tolist()
@@ -783,8 +787,8 @@ def user_page(T, L_CODE):
         st.subheader(T["tab_stock"])
         try:
             conn = get_conn()
-            # 🎯 ใช้ REPLACE ล้าง % หน้าสัญญลักษณ์วัตถุดิบของฝั่งผู้ใช้ทั่วไปด้วย
-            df_stock = pd.read_sql("SELECT REPLACE(name_th, '%', '%%') as name_th, REPLACE(name_en, '%', '%%') as name_en, protein, energy, fiber, cost FROM ingredients", conn)
+            # 🛠️ แก้ไขนำ REPLACE ใน SQL ออก เพื่อให้แสดงสัญลักษณ์ % ตัวเดียวปกติไม่เบิ้ล
+            df_stock = pd.read_sql("SELECT name_th, name_en, protein, energy, fiber, cost FROM ingredients", conn)
             conn.close()
             st.dataframe(df_stock, use_container_width=True, hide_index=True)
         except Exception as e:
@@ -828,171 +832,15 @@ def user_page(T, L_CODE):
                 try:
                     conn = get_conn()
                     cur = conn.cursor()
+                    # 🛠️ รวมและเขียนโค้ดส่วนแก้ไขชื่อผู้ใช้ที่ขาดหายไปให้สมบูรณ์
                     cur.execute("UPDATE users SET username=%s WHERE username=%s", (new_un, st.session_state.username))
                     conn.commit()
                     cur.close()
                     conn.close()
+                    
                     st.session_state.username = new_un
                     st.success(T["msg_success"])
+                    time.sleep(0.5)
                     st.rerun()
                 except Exception as e:
-                    st.error(f"ไม่สามารถเปลี่ยนชื่อผู้ใช้ได้: {e}")
-
-
-# ==========================================
-# 7. ADMIN PANEL (อัปเดตเวอร์ชันสมบูรณ์)
-# ==========================================
-def admin_page(T):
-    st.title(T["nav_admin"])
-    
-    t1, t2, t3 = st.tabs([T["admin_user_tab"], T["admin_feed_tab"], "🌾 จัดการคลังวัตถุดิบ"])
-
-    # --- แท็บที่ 1: จัดการผู้ใช้ (เปลี่ยนอายุ -> วันเดือนปีเกิด) ---
-    with t1:
-        st.subheader(T["admin_user_tab"])
-        conn = get_conn()
-        # 🎯 ดึงคอลัมน์ birthdate มาแสดงแทนอายุ
-        u_df = pd.read_sql("SELECT username, fullname, email, birthdate FROM users", conn)
-        conn.close()
-
-        edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True, hide_index=True)
-
-        if st.button(T["admin_save_user_btn"]):
-            old_u = u_df["username"].tolist()
-            new_u = edited_u["username"].tolist()
-            deleted = [u for u in old_u if u not in new_u]
-
-            conn = get_conn()
-            curr = conn.cursor()
-            
-            # ลบผู้ใช้
-            for d in deleted:
-                curr.execute("DELETE FROM users WHERE username = %s", (d,))
-                curr.execute("DELETE FROM saved_recipes WHERE username = %s", (d,))
-            
-            # บันทึก/อัปเดต และคำนวณอายุอัตโนมัติ
-            for _, row in edited_u.iterrows():
-                if not row['username']:
-                    continue
-                
-                try:
-                    bd_date = datetime.strptime(str(row['birthdate']).strip(), "%Y-%m-%d").date()
-                    today = datetime.now().date()
-                    calc_age = today.year - bd_date.year - ((today.month, today.day) < (bd_date.month, bd_date.day))
-                except:
-                    calc_age = 30
-                
-                curr.execute(
-                    """
-                    INSERT INTO users (username, fullname, email, password, birthdate, age)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (username) DO UPDATE 
-                    SET fullname = EXCLUDED.fullname,
-                        email = EXCLUDED.email,
-                        birthdate = EXCLUDED.birthdate,
-                        age = EXCLUDED.age
-                    """,
-                    (row['username'], row['fullname'], row['email'], hash_password('1234'), str(row['birthdate']), calc_age)
-                )
-            
-            conn.commit()
-            curr.close()
-            conn.close()
-            st.success(T["msg_success"])
-            st.rerun()
-
-    # --- แท็บที่ 2: ข้อความติชม ---
-    with t2:
-        st.subheader(T["admin_feed_tab"])
-        try:
-            conn = get_conn()
-            df_feed = pd.read_sql("SELECT id, username, message, rating, timestamp FROM suggestions ORDER BY timestamp DESC", conn)
-            conn.close()
-            
-            if df_feed.empty:
-                st.info("ยังไม่มีข้อความติชมในขณะนี้")
-            else:
-                for _, row in df_feed.iterrows():
-                    with st.expander(f"✉️ จากคุณ {row['username']} | คะแนน: {'⭐' * row['rating']}"):
-                        st.write(row['message'])
-                        st.caption(f"เวลา: {row['timestamp']}")
-                        if st.button(f"{T['admin_del_msg']} #{row['id']}", key=f"del_{row['id']}"):
-                            conn = get_conn()
-                            cur = conn.cursor()
-                            cur.execute("DELETE FROM suggestions WHERE id = %s", (int(row['id']),))
-                            conn.commit()
-                            cur.close()
-                            conn.close()
-                            st.success(T["msg_success"])
-                            st.rerun()
-        except Exception as e:
-            st.error(f"เกิดข้อผิดพลาดดึงข้อความติชม: {e}")
-
-    # --- แท็บที่ 3: จัดการคลังวัตถุดิบ (ใส่ REPLACE ป้องกันบั๊กเครื่องหมาย %) ---
-    with t3:
-        st.subheader("🌾 จัดการคลังวัตถุดิบ")
-        try:
-            conn = get_conn()
-            # 🎯 ดึงข้อมูลและใช้ REPLACE แปลงสัญลักษณ์ % ให้สามารถแก้ไขและบันทึกได้อย่างปลอดภัย
-            df_ing = pd.read_sql("SELECT REPLACE(name_th, '%', '%%') as name_th, REPLACE(name_en, '%', '%%') as name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost FROM ingredients", conn)
-            conn.close()
-
-            edited_ing = st.data_editor(df_ing, num_rows="dynamic", use_container_width=True, hide_index=True)
-
-            if st.button("💾 บันทึกข้อมูลคลังวัตถุดิบทั้งหมด"):
-                conn = get_conn()
-                cur = conn.cursor()
-                cur.execute("TRUNCATE TABLE ingredients") # ล้างข้อมูลเก่าเพื่อบันทึกก้อนใหม่
-                
-                for _, row in edited_ing.iterrows():
-                    cur.execute(
-                        """
-                        INSERT INTO ingredients (name_th, name_en, protein, energy, fiber, calcium, phosphorus, lysine, methionine, cost)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (row['name_th'], row['name_en'], float(row['protein']), float(row['energy']), float(row['fiber']), float(row['calcium']), float(row['phosphorus']), float(row['lysine']), float(row['methionine']), float(row['cost']))
-                    )
-                conn.commit()
-                cur.close()
-                conn.close()
-                st.success(T["msg_success"])
-                st.rerun()
-        except Exception as e:
-            st.error(f"เกิดข้อผิดพลาดในการบันทึกข้อมูลคลัง: {e}")
-
-
-# ==========================================
-# 8. MAIN NAVIGATION
-# ==========================================
-def main():
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-
-    st.sidebar.markdown("### 🌐 Language / ภาษา")
-    lang_choice = st.sidebar.selectbox("Language", ["ไทย", "English"], label_visibility="collapsed")
-    L_CODE = "TH" if lang_choice == "ไทย" else "EN"
-    T = LANG[L_CODE]
-
-    if not st.session_state.logged_in:
-        auth_page(T)
-    else:
-        st.sidebar.title(f"👤 {st.session_state.fullname}")
-        
-        if st.session_state.username == 'ang':
-            nav_opts = [T["nav_admin"]]
-        else:
-            nav_opts = [T["nav_home"]]
-        
-        choice = st.sidebar.radio("MENU", nav_opts, label_visibility="collapsed")
-        
-        if st.sidebar.button(T["nav_logout"], use_container_width=True):
-            st.session_state.clear()
-            st.rerun()
-        
-        if choice == T["nav_home"]:
-            user_page(T, L_CODE)
-        elif choice == T["nav_admin"]:
-            admin_page(T)
-
-if __name__ == "__main__":
-    main()
+                    st.error(f"เกิดข้อผิดพลาดในการเปลี่ยนชื่อผู้ใช้: {e}")
