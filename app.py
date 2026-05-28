@@ -1029,21 +1029,64 @@ def admin_page(T):
     with t1:
         st.subheader(T["admin_user_tab"])
         conn = get_conn()
-        u_df = pd.read_sql("SELECT username, fullname, email, age FROM users", conn)
+        
+        # 🎯 จุดที่ 1: เปลี่ยนจาก 'age' เป็น 'birthdate' ในคำสั่ง SQL
+        u_df = pd.read_sql("SELECT username, fullname, email, birthdate FROM users", conn)
         conn.close()
 
-        edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True)
+        # แสดงตารางให้แก้ไขแบบ Dynamic (เพิ่ม/ลบ แถวได้)
+        edited_u = st.data_editor(u_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
         if st.button(T["admin_save_user_btn"]):
             old_u = u_df["username"].tolist()
             new_u = edited_u["username"].tolist()
+            
+            # ตรวจสอบหาแถวที่ถูกลบออกไปจากตารางหน้าเว็บ
             deleted = [u for u in old_u if u not in new_u]
 
             conn = get_conn()
             curr = conn.cursor()
+            
+            # 1. จัดการลบผู้ใช้ที่ถูกลบออกจากตาราง
             for d in deleted:
                 curr.execute("DELETE FROM users WHERE username = %s", (d,))
                 curr.execute("DELETE FROM saved_recipes WHERE username = %s", (d,))
+            
+            # 2. จัดการอัปเดตข้อมูลเก่า หรือเพิ่มผู้ใช้รายใหม่ (Upsert)
+            for _, row in edited_u.iterrows():
+                if not row['username']: # ข้ามแถวว่าง
+                    continue
+                
+                # 🎯 จุดที่ 2: คำนวณอายุจริง (Age) อัตโนมัติจากวันเดือนปีเกิดที่ระบุในตาราง
+                try:
+                    # แปลงข้อความวันที่ให้อยู่ในรูปของ Date Object (รองรับ Format YYYY-MM-DD)
+                    bd_date = datetime.strptime(str(row['birthdate']).strip(), "%Y-%m-%d").date()
+                    today = datetime.now().date()
+                    calc_age = today.year - bd_date.year - ((today.month, today.day) < (bd_date.month, bd_date.day))
+                except:
+                    # หากฟอร์แมตวันที่ไม่ถูกต้อง หรือยังไม่ได้กรอก ให้ใช้ค่า Default ป้องกันระบบพัง
+                    calc_age = 24 
+                
+                # ทำการบันทึกลงฐานข้อมูล (ถ้ามีชื่อผู้ใช้อยู่แล้วจะอัปเดตข้อมูลใหม่ ถ้าไม่มีจะเพิ่มแถวใหม่ให้ทันที)
+                curr.execute(
+                    """
+                    INSERT INTO users (username, fullname, email, password, birthdate, age)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (username) DO UPDATE 
+                    SET fullname = EXCLUDED.fullname,
+                        email = EXCLUDED.email,
+                        birthdate = EXCLUDED.birthdate,
+                        age = EXCLUDED.age
+                    """,
+                    (
+                        row['username'], 
+                        row['fullname'], 
+                        row['email'], 
+                        hash_password('1234'), # รหัสผ่านเริ่มต้นสำหรับสมาชิกใหม่ที่แอดมินเพิ่มผ่านหลังบ้าน
+                        str(row['birthdate']), 
+                        calc_age
+                    )
+                )
             
             conn.commit()
             curr.close()
