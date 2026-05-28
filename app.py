@@ -521,6 +521,7 @@ div.stButton > button:not([kind="primary"]):hover {
 
 </style>
 """, unsafe_allow_html=True)
+
 # --- 5. AUTHENTICATION PAGES ---
 def auth_page(T):
 
@@ -595,12 +596,16 @@ def auth_page(T):
             em = st.text_input(T["em_label"])
             un = st.text_input(T["user_label"])
 
+            # 🛠️ [เพิ่ม] ช่องปฏิทินให้เลือกวันเกิด (กำหนดค่าเริ่มต้นเป็นปี ค.ศ. 2000 และเลือกได้ไม่เกินวันปัจจุบัน)
+            birth_date = st.date_input("วันเดือนปีเกิด (ค.ศ.)", value=datetime(2000, 1, 1), max_value=datetime.today())
+
             pw = st.text_input(T["pass_label"], type="password")
             cpw = st.text_input(T["cp_label"], type="password")
 
             if st.button(T["btn_reg_submit"], type="primary", use_container_width=True):
 
-                if not fn or not em or not un or not pw:
+                # ตรวจสอบเพิ่มเติมว่าผู้ใช้เลือกวันเกิดเรียบร้อยแล้ว
+                if not fn or not em or not un or not pw or not birth_date:
 
                     msg_area.warning("กรุณากรอกข้อมูลให้ครบ")
 
@@ -609,6 +614,13 @@ def auth_page(T):
                     msg_area.error("รหัสผ่านไม่ตรงกัน")
 
                 else:
+
+                    # 🛠️ [เพิ่ม] คำนวณอายุแบบสากล โดยคำนึงถึงวัน/เดือนปัจจุบันเทียบกับวันเกิด
+                    today = datetime.today()
+                    calculated_age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+                    
+                    # แปลงค่าวันเกิดเป็นรูปแบบ String (YYYY-MM-DD) เพื่อส่งเข้า database
+                    birth_date_str = birth_date.strftime("%Y-%m-%d")
 
                     conn = get_conn()
                     cur = conn.cursor()
@@ -621,7 +633,8 @@ def auth_page(T):
                             (username, fullname, email, password, birthdate, age)
                             VALUES (%s,%s,%s,%s,%s,%s)
                             """,
-                            (un, fn, em, make_hashes(pw), "2000-01-01", 24)
+                            # นำตัวแปร birth_date_str และ calculated_age ไปบันทึกแทนของเดิม
+                            (un, fn, em, make_hashes(pw), birth_date_str, calculated_age)
                         )
 
                         conn.commit()
@@ -644,7 +657,6 @@ def auth_page(T):
                 on_click=lambda: st.session_state.update({"auth_mode":"login"}),
                 use_container_width=True
             )
-
 
         # ---------------- FORGOT PASSWORD ----------------
         elif st.session_state.auth_mode == "forgot":
