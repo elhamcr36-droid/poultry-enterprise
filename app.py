@@ -871,7 +871,8 @@ def user_page(T, L_CODE):
                 d_cost = daily_feed * r["cost"]
                 d_rev = (r["n"] * r["lay_r"] / 100) * r["egg_p"]
 
-                p1, p2, p3 = st.columns(3)
+                # 🛠️ [แก้ไขจุดนี้] ปรับขนาด Ratio ของคอลัมน์เพื่อไม่ให้ตัวเลขหลักพัน/หมื่น โดนย่อเป็นจุดไข่ปลา (...)
+                p1, p2, p3 = st.columns([1, 1, 1.25])
                 p1.metric(T["cost_day"], f"{d_cost:,.2f} ฿")
                 p2.metric(T["rev_day"], f"{d_rev:,.2f} ฿")
                 p3.metric(T["profit_month"], f"{(d_rev - d_cost) * 30:,.2f} ฿")
@@ -883,9 +884,9 @@ def user_page(T, L_CODE):
                     try:
                         items_summary = ", ".join([f"{row[T['table_name']]} ({row[T['table_ratio']]}%)" for _, row in table_disp.iterrows()])
                         conn = get_conn()
-                        curr = conn.cursor()
-                        curr.execute("SELECT column_name FROM information_schema.columns WHERE table_name='saved_recipes'")
-                        col_list = [col[0] for col in curr.fetchall()]
+                        queue = conn.cursor()
+                        queue.execute("SELECT column_name FROM information_schema.columns WHERE table_name='saved_recipes'")
+                        col_list = [col[0] for col in queue.fetchall()]
                         
                         c_user = "username" if "username" in col_list else col_list[1]
                         c_breed = "breed" if "breed" in col_list else ([c for c in col_list if "breed" in c or "type" in c] + [col_list[2]])[0]
@@ -898,16 +899,16 @@ def user_page(T, L_CODE):
                             INSERT INTO saved_recipes ({c_user}, {c_breed}, {c_stage}, {c_cost}, {c_det}, {c_date})
                             VALUES (%s, %s, %s, %s, %s, NOW())
                         """
-                        curr.execute(query, (st.session_state.username, str(r["b"]), str(r["s"]), float(r["cost"]), str(items_summary)))
+                        queue.execute(query, (st.session_state.username, str(r["b"]), str(r["s"]), float(r["cost"]), str(items_summary)))
                         conn.commit()
-                        curr.close()
+                        queue.close()
                         conn.close()
                         st.success("🎉 บันทึกสูตรอาหารเข้าสู่แท็บประวัติสำเร็จแล้ว!")
                     except Exception as e:
                         st.error(f"ไม่สามารถบันทึกได้เนื่องจากชื่อคอลัมน์ไม่ตรง: {e}")
             else:
                 st.write("👉 กรุณากรอกข้อมูลและกดปุ่มคำนวณสูตรอาหารระบบ AI ด้านซ้ายมือเพื่อเริ่มคำนวณ")
-
+                
 # ------------------ TAB 1: HIST (ประวัติการคำนวณ) ------------------
     with tabs[1]:
         st.subheader(T["tab_hist"])
