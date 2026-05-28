@@ -1011,10 +1011,41 @@ def user_page(T, L_CODE):
                     except Exception as e:
                         st.error(f"ไม่สามารถส่งข้อมูลได้เนื่องจากโครงสร้างตารางฐานข้อมูล: {e}")
 
-    # ------------------ TAB 4: PROFILE (โปรไฟล์ส่วนตัว) ------------------
+    # ------------------ TAB 4: PROFILE ------------------
     with tabs[4]:
         st.subheader(T["tab_profile"])
-        st.write("Username:", st.session_state.username)
+        
+        try:
+            # ดึงข้อมูลล่าสุดของ User ที่ล็อกอินอยู่จาก Database โดยอิงตาม username ปัจจุบันเท่านั้น
+            conn = get_conn()
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT fullname, email, birthdate, age FROM users WHERE username = %s", 
+                (st.session_state.username,)
+            )
+            user_info = cur.fetchone()
+            cur.close()
+            conn.close()
+
+            if user_info:
+                fullname, email, birthdate, age = user_info
+                
+                # จัดรูปแบบการแสดงผลให้อยู่ในกล่อง UI (Card) ที่สวยงาม อ่านง่าย แยกเป็นสัดส่วน
+                st.markdown(f"""
+                <div style="background-color: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-top: 10px;">
+                    <p style="font-size: 16px; margin-bottom: 10px;">👤 <b>{T['user_label']}:</b> <code style="font-size: 16px; color: #2e59d9;">{st.session_state.username}</code></p>
+                    <hr style="border: 0.5px solid #f1f5f9; margin: 15px 0;">
+                    <p style="font-size: 16px; margin-bottom: 10px;">📛 <b>{T['fn_label']}:</b> {fullname}</p>
+                    <p style="font-size: 16px; margin-bottom: 10px;">✉️ <b>{T['em_label']}:</b> {email}</p>
+                    <p style="font-size: 16px; margin-bottom: 10px;">📅 <b>วันเดือนปีเกิด:</b> {birthdate}</p>
+                    <p style="font-size: 16px; margin-bottom: 0px;">⏳ <b>อายุ:</b> {age} ปี</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.error("ไม่พบข้อมูลผู้ใช้งานในระบบ")
+                
+        except Exception as e:
+            st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูลโปรไฟล์: {e}")
 
 
 # ==========================================
