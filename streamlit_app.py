@@ -93,12 +93,16 @@ def load_ingredients_from_supabase():
     if supabase is None:
         return None
     try:
+        # 🔥 แก้ไขตรงนี้: เปลี่ยนจาก "name" เป็น "name_th" เพื่อให้ตรงกับโครงสร้างตารางจริงในระบบของคุณ
         response = supabase.table("ingredients").select(
-            "name, price_per_kg, protein_pct, fat_pct, me_kcal_per_kg, lysine_pct, methionine_pct, max_limit_pct"
+            "name_th, price_per_kg, protein_pct, fat_pct, me_kcal_per_kg, lysine_pct, methionine_pct, max_limit_pct"
         ).execute()
+        
         df = pd.DataFrame(response.data)
         if not df.empty:
-            df['name'] = df['name'].str.strip()
+            df['name_th'] = df['name_th'].str.strip()
+            # 💡 เปลี่ยนชื่อคอลัมน์ 'name_th' เป็น 'name' เพื่อให้โค้ดส่วนอื่นคำนวณต่อได้ทันที
+            df = df.rename(columns={'name_th': 'name'})
         return df
     except Exception as e:
         st.error(f"❌ ไม่สามารถดึงข้อมูลผ่าน API ของ Supabase ได้: {e}")
