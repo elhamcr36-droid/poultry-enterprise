@@ -93,16 +93,36 @@ def load_ingredients_from_supabase():
     if supabase is None:
         return None
     try:
-        # 🔥 แก้ไขตรงนี้: เปลี่ยนจาก "name" เป็น "name_th" เพื่อให้ตรงกับโครงสร้างตารางจริงในระบบของคุณ
-        response = supabase.table("ingredients").select(
-            "name_th, price_per_kg, protein_pct, fat_pct, me_kcal_per_kg, lysine_pct, methionine_pct, max_limit_pct"
-        ).execute()
-        
+        # 🔥 เปลี่ยนเป็นดึงข้อมูลทุกคอลัมน์ด้วย "*" เพื่อแก้ไขปัญหา Error คอลัมน์ไม่มีอยู่จริง
+        response = supabase.table("ingredients").select("*").execute()
         df = pd.DataFrame(response.data)
+        
         if not df.empty:
-            df['name_th'] = df['name_th'].str.strip()
-            # 💡 เปลี่ยนชื่อคอลัมน์ 'name_th' เป็น 'name' เพื่อให้โค้ดส่วนอื่นคำนวณต่อได้ทันที
-            df = df.rename(columns={'name_th': 'name'})
+            # 💡 ส่วนตรวจสอบ: ระบบจะพิมพ์รายชื่อคอลัมน์จริงทั้งหมดในตารางของคุณออกมาให้เห็นบนหน้าเว็บ
+            st.info("🔍 รายชื่อคอลัมน์จริงที่พบในฐานข้อมูล Supabase ของคุณ:")
+            st.write(df.columns.tolist()) 
+            
+            # 🛠️ ตารางจับคู่ชื่อคอลัมน์ (Mapping):
+            # โครงสร้าง: "ชื่อคอลัมน์ใน Supabase ของคุณ": "ชื่อที่โค้ดต้องการใช้"
+            # ให้อ่านรายชื่อคอลัมน์จากกล่องสีฟ้าด้านบน แล้วแก้ไขคำฝั่งซ้าย (ตัวหนา) ให้ตรงกับฐานข้อมูลของคุณครับ
+            rename_dict = {
+                "name_th": "name",           # เปลี่ยนชื่อวัตถุดิบภาษาไทยให้โค้ดนำไปใช้แสดงผล
+                "price_per_kg": "price_per_kg",  # 👈 แก้ไขคำฝั่งซ้ายตรงนี้หากในฐานข้อมูลคุณตั้งชื่ออื่น เช่น "price", "ราคา"
+                "protein_pct": "protein_pct",    # 👈 แก้ไขคำฝั่งซ้ายตรงนี้หากในฐานข้อมูลตั้งชื่ออื่น เช่น "protein", "โปรตีน"
+                "fat_pct": "fat_pct",
+                "me_kcal_per_kg": "me_kcal_per_kg",
+                "lysine_pct": "lysine_pct",
+                "methionine_pct": "methionine_pct",
+                "max_limit_pct": "max_limit_pct"
+            }
+            
+            # ทำการเปลี่ยนชื่อคอลัมน์ตามคู่ที่ระบุ (เปลี่ยนเฉพาะคอลัมน์ที่มีอยู่จริงเพื่อไม่ให้โปรแกรม Error)
+            actual_rename = {k: v for k, v in rename_dict.items() if k in df.columns}
+            df = df.rename(columns=actual_rename)
+            
+            if 'name' in df.columns:
+                df['name'] = df['name'].str.strip()
+                
         return df
     except Exception as e:
         st.error(f"❌ ไม่สามารถดึงข้อมูลผ่าน API ของ Supabase ได้: {e}")
@@ -162,61 +182,71 @@ st.markdown("##")
 
 if st.button("🚀 ประมวลผลและคำนวณสารอาหารที่แม่นยำที่สุด", use_container_width=True, type="primary"):
     if df_ingredients is not None and not df_ingredients.empty:
-        AUTO_PROTEIN = 20.0
-        AUTO_ME = 2900.0
-        AUTO_LYSINE = 1.10
-        AUTO_METHIONINE = 0.45
-        
-        prob = pulp.LpProblem("Feed_Optimization", pulp.LpMinimize)
-        ingredients_list = df_ingredients['name'].tolist()
-        
-        vars_dict = {name: pulp.LpVariable(f"Ing_{i}", lowBound=0) for i, name in enumerate(ingredients_list)}
-        
-        prob += pulp.lpSum([vars_dict[row['name']] * row['price_per_kg'] for _, row in df_ingredients.iterrows()])
-        prob += pulp.lpSum([vars_dict[i] for i in ingredients_list]) == 100.0
-        
-        for _, row in df_ingredients.iterrows():
-            prob += vars_dict[row['name']] <= row['max_limit_pct']
-        
-        prob += pulp.lpSum([vars_dict[row['name']] * row['protein_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_PROTEIN * 100)
-        prob += pulp.lpSum([vars_dict[row['name']] * row['me_kcal_per_kg'] for _, row in df_ingredients.iterrows()]) >= (AUTO_ME * 100)
-        prob += pulp.lpSum([vars_dict[row['name']] * row['lysine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_LYSINE * 100)
-        prob += pulp.lpSum([vars_dict[row['name']] * row['methionine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_METHIONINE * 100)
-        
-        prob.solve(pulp.PULP_CBC_CMD(msg=False))
-        
-        if pulp.LpStatus[prob.status] == "Optimal":
-            st.session_state.calculated = True
-            st.session_state.total_cost_100kg = pulp.value(prob.objective)
-            
-            result_list = []
-            calc_protein = 0.0
-            calc_me = 0.0
-            calc_lysine = 0.0
-            calc_methionine = 0.0
-            
-            for _, row in df_ingredients.iterrows():
-                w = vars_dict[row['name']].varValue
-                if w and w > 0.01:
-                    result_list.append({
-                        "ชื่อวัตถุดิบ": row['name'], 
-                        "สัดส่วน (%)": round(w, 2), 
-                        "ปริมาณที่ต้องใช้ (กก.)": round(w, 2),
-                        "ราคาประเมิน (บาท)": round(w * row['price_per_kg'], 2)
-                    })
-                    calc_protein += w * row['protein_pct']
-                    calc_me += w * row['me_kcal_per_kg']
-                    calc_lysine += w * row['lysine_pct']
-                    calc_methionine += w * row['methionine_pct']
-            
-            st.session_state.df_result = pd.DataFrame(result_list)
-            st.session_state.calculated_protein = calc_protein / 100
-            st.session_state.calculated_me = calc_me / 100
-            st.session_state.calculated_lysine = calc_lysine / 100
-            st.session_state.calculated_methionine = calc_methionine / 100
-            st.success("🎉 ระบบอัจฉริยะทำการวิเคราะห์และล็อกสัดส่วนสารอาหารที่แม่นยำที่สุดเรียบร้อยแล้ว!")
+        # ตรวจสอบว่ามีคอลัมน์ราคาใน DataFrame หรือยังก่อนส่งให้ PuLP คำนวณ
+        if 'price_per_kg' not in df_ingredients.columns:
+            st.error("❌ ไม่สามารถคำนวณได้: ไม่พบคอลัมน์ราคาในระบบ กรุณาตรวจสอบรายชื่อคอลัมน์ในกล่องข้อมูลสีฟ้าด้านบน แล้วแก้ไขชื่อในโค้ด (rename_dict) ให้ถูกต้อง")
         else:
-            st.error("❌ ไม่สามารถคำนวณตามเงื่อนไขสารอาหารมาตรฐานได้ คลังวัตถุดิบปัจจุบันอาจมีสารอาหารไม่เพียงพอหรือเงื่อนไขขัดกันเอง")
+            AUTO_PROTEIN = 20.0
+            AUTO_ME = 2900.0
+            AUTO_LYSINE = 1.10
+            AUTO_METHIONINE = 0.45
+            
+            prob = pulp.LpProblem("Feed_Optimization", pulp.LpMinimize)
+            ingredients_list = df_ingredients['name'].tolist()
+            
+            vars_dict = {name: pulp.LpVariable(f"Ing_{i}", lowBound=0) for i, name in enumerate(ingredients_list)}
+            
+            prob += pulp.lpSum([vars_dict[row['name']] * row['price_per_kg'] for _, row in df_ingredients.iterrows()])
+            prob += pulp.lpSum([vars_dict[i] for i in ingredients_list]) == 100.0
+            
+            if 'max_limit_pct' in df_ingredients.columns:
+                for _, row in df_ingredients.iterrows():
+                    prob += vars_dict[row['name']] <= row['max_limit_pct']
+            
+            # ตรวจสอบและใส่เงื่อนไขข้อจำกัดสารอาหารขั้นต่ำเฉพาะคอลัมน์ที่มีอยู่จริง
+            if 'protein_pct' in df_ingredients.columns:
+                prob += pulp.lpSum([vars_dict[row['name']] * row['protein_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_PROTEIN * 100)
+            if 'me_kcal_per_kg' in df_ingredients.columns:
+                prob += pulp.lpSum([vars_dict[row['name']] * row['me_kcal_per_kg'] for _, row in df_ingredients.iterrows()]) >= (AUTO_ME * 100)
+            if 'lysine_pct' in df_ingredients.columns:
+                prob += pulp.lpSum([vars_dict[row['name']] * row['lysine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_LYSINE * 100)
+            if 'methionine_pct' in df_ingredients.columns:
+                prob += pulp.lpSum([vars_dict[row['name']] * row['methionine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_METHIONINE * 100)
+            
+            prob.solve(pulp.PULP_CBC_CMD(msg=False))
+            
+            if pulp.LpStatus[prob.status] == "Optimal":
+                st.session_state.calculated = True
+                st.session_state.total_cost_100kg = pulp.value(prob.objective)
+                
+                result_list = []
+                calc_protein = 0.0
+                calc_me = 0.0
+                calc_lysine = 0.0
+                calc_methionine = 0.0
+                
+                for _, row in df_ingredients.iterrows():
+                    w = vars_dict[row['name']].varValue
+                    if w and w > 0.01:
+                        result_list.append({
+                            "ชื่อวัตถุดิบ": row['name'], 
+                            "สัดส่วน (%)": round(w, 2), 
+                            "ปริมาณที่ต้องใช้ (กก.)": round(w, 2),
+                            "ราคาประเมิน (บาท)": round(w * row['price_per_kg'], 2)
+                        })
+                        if 'protein_pct' in df_ingredients.columns: calc_protein += w * row['protein_pct']
+                        if 'me_kcal_per_kg' in df_ingredients.columns: calc_me += w * row['me_kcal_per_kg']
+                        if 'lysine_pct' in df_ingredients.columns: calc_lysine += w * row['lysine_pct']
+                        if 'methionine_pct' in df_ingredients.columns: calc_methionine += w * row['methionine_pct']
+                
+                st.session_state.df_result = pd.DataFrame(result_list)
+                st.session_state.calculated_protein = calc_protein / 100
+                st.session_state.calculated_me = calc_me / 100
+                st.session_state.calculated_lysine = calc_lysine / 100
+                st.session_state.calculated_methionine = calc_methionine / 100
+                st.success("🎉 ระบบอัจฉริยะทำการวิเคราะห์และล็อกสัดส่วนสารอาหารที่แม่นยำที่สุดเรียบร้อยแล้ว!")
+            else:
+                st.error("❌ ไม่สามารถคำนวณตามเงื่อนไขสารอาหารมาตรฐานได้ คลังวัตถุดิบปัจจุบันอาจมีสารอาหารไม่เพียงพอหรือเงื่อนไขขัดกันเอง")
     else:
         st.error("❌ ไม่สามารถดึงคลังวัตถุดิบมาจากฐานข้อมูล Supabase ได้")
 
