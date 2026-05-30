@@ -14,10 +14,10 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CUSTOM CSS FOR BACKGROUND & UI (NEW STABLE LINK)
+# 2. CUSTOM CSS FOR BACKGROUND & UI (MINIMAL EGG IMAGE)
 # ==========================================
 def add_background():
-    """ฟังก์ชัน CSS ล็อกลิงก์พื้นหลังฟาร์มไก่ระบบเสถียรความละเอียดสูง"""
+    """ฟังก์ชัน CSS ล็อกรูปภาพไข่ไก่สีน้ำตาลนวล มินิมอล อ่านง่าย สบายตา"""
     st.markdown(
         """
         <style>
@@ -26,17 +26,17 @@ def add_background():
             background-color: transparent !important;
         }
         
-        /* 2. ภาพพื้นหลังแม่ไก่และฟาร์มไก่ไข่ (อัปเดตลิงก์ตรงจากคลังภาพสากลสำหรับนักพัฒนา) */
+        /* 2. ภาพพื้นหลังไข่ไก่สีน้ำตาล (ล็อกลิงก์ตรงภาพไข่ไก่ล้วน ไม่ติดฟาร์ม ไม่ติดต้นไม้) */
         .stApp::before {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&q=80&w=1920");
+            background-image: url("https://images.unsplash.com/photo-1516448620398-c5f44bf9f441?auto=format&fit=crop&q=80&w=1920");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            opacity: 0.14; /* ความเข้ม 14% พอดีๆ ช่วยให้กล่องข้อความอ่านง่าย ไม่แสบตา */
+            opacity: 0.12; /* ปรับจางๆ 12% สบายตา ตัวหนังสือสีขาวบนกล่องดำจะเด่นมาก */
             z-index: -1;
         }
         
@@ -50,7 +50,7 @@ def add_background():
             backdrop-filter: blur(12px);
         }
         
-        /* 4. ปรับสีตัวอักษร Label ของ Inputs ให้อ่านง่าย */
+        /* 4. ปรับสีตัวอักษร Label ของ Inputs */
         label, [data-testid="stWidgetLabel"] p {
             color: #ffffff !important;
             font-weight: 500 !important;
