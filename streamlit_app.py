@@ -14,14 +14,19 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CUSTOM CSS FOR BACKGROUND (FIXED LAYER)
+# 2. CUSTOM CSS FOR BACKGROUND & UI (FIXED)
 # ==========================================
 def add_background():
-    """เพิ่ม CSS แยกเลเยอร์พื้นหลังรูปฟาร์มไก่ไข่จางๆ รองรับทั้ง Light/Dark Mode อย่างสมบูรณ์"""
+    """ฟังก์ชัน CSS ล้างเลเยอร์สีทับซ้อน เพื่อให้ภาพพื้นหลังฟาร์มไก่ไข่แสดงผลได้ 100%"""
     st.markdown(
         """
         <style>
-        /* สร้างเลเยอร์พื้นหลังอิสระด้านหลังสุด */
+        /* 1. ล้างสีพื้นหลังของเลเยอร์ Streamlit ทั้งหมดที่คอยบังภาพ */
+        .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+            background-color: transparent !important;
+        }
+        
+        /* 2. สร้างเลเยอร์พื้นหลังรูปฟาร์มไก่ไข่ไว้ด้านหลังสุด */
         .stApp::before {
             content: "";
             position: fixed;
@@ -35,37 +40,37 @@ def add_background():
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            /* ปรับค่าความจางตรงนี้ (0.10 - 0.15 กำลังพอดี ไม่แย่งสายตาและอ่านข้อความง่าย) */
+            /* ปรับค่าความจางตรงนี้ (0.15 กำลังดี ไม่แย่งสายตาและอ่านข้อความง่าย) */
             opacity: 0.15; 
             z-index: -1;
         }
         
-        /* ปรับแต่งกล่องเนื้อหาหลัก (Columns) ให้โปร่งแสงและมีมิติสไตล์กระจก */
+        /* 3. ปรับแต่งกล่องเนื้อหาหลัก (Columns) ให้เป็นสีพื้นหลังโปร่งแสงสไตล์กระจกฝ้า (Frosted Glass) */
         div[data-testid="stGridColumn"] > div {
-            background-color: rgba(255, 255, 255, 0.05) !important;
+            background-color: rgba(30, 30, 30, 0.75) !important; /* สีเทาดำโปร่งแสงช่วยให้ตัวหนังสือขาวเด่นขึ้น */
             padding: 25px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px); /* ปรับให้พื้นหลังเบลอจางๆ ดูมีมิติ */
         }
         
-        /* แก้ไขคอมโพเนนต์การ์ด Metric และ Expander ให้เข้ากับธีม */
-        [data-testid="stMetricValue"] {
-            font-weight: bold;
-        }
+        /* 4. ปรับแต่งกล่อง Metric สรุปตัวเลขทางการเงินให้มองเห็นชัดเจน */
         div[data-testid="stMetric"] {
-            background-color: rgba(0, 0, 0, 0.2);
+            background-color: rgba(0, 0, 0, 0.4) !important;
             padding: 15px;
             border-radius: 8px;
             border-left: 4px solid #ffaa00;
+        }
+        [data-testid="stMetricValue"] {
+            font-weight: bold;
         }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-# เรียกใช้งานฟังก์ชันพื้นหลัง
+# เรียกใช้งานฟังก์ชันพื้นหลังทันทีเมื่อเปิดแอป
 add_background()
 
 # ==========================================
@@ -76,7 +81,7 @@ try:
     key: str = st.secrets["SUPABASE_KEY"]
     supabase: Client = create_client(url, key)
 except Exception as e:
-    st.error("❌ 不พบข้อมูลการเชื่อมต่อ Supabase ใน Streamlit Secrets (กรุณาตรวจสอบไฟล์ secrets.toml)")
+    st.error("❌ ไม่พบข้อมูลการเชื่อมต่อ Supabase ใน Streamlit Secrets (กรุณาตรวจสอบไฟล์ secrets.toml)")
 
 @st.cache_data(ttl=60)
 def load_ingredients_from_supabase():
@@ -257,7 +262,7 @@ if st.session_state.calculated and st.session_state.df_result is not None:
             margin=dict(t=10, b=10, l=10, r=10), 
             height=320,
             legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
-            paper_bgcolor='rgba(0,0,0,0)',  # ตั้งค่าเป็นโปร่งใสเพื่อให้ทะลุเห็นเลเยอร์ฟาร์มไก่ไข่ด้านหลัง
+            paper_bgcolor='rgba(0,0,0,0)',  # ตั้งค่ากราฟโปร่งใสทะลุเห็นเลเยอร์ฟาร์มไก่ไข่ด้านหลัง
             plot_bgcolor='rgba(0,0,0,0)'
         )
         st.plotly_chart(fig, use_container_width=True)
