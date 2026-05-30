@@ -161,9 +161,10 @@ input_col1, input_col2 = st.columns(2, gap="large")
 
 with input_col1:
     st.markdown("##### 🐔 ข้อมูลฝูงไก่และสายพันธุ์")
-    st.selectbox("กลุ่มไก่ไข่", ["Commercial Brown Layer"], index=0, disabled=True)
-    st.selectbox("สายพันธุ์", ["อิซ่า บราวน์ (Isa Brown)"], index=0, disabled=True)
-    st.selectbox("ระยะการเลี้ยง", ["ช่วงอายุ แรกเกิด-6 สัปดาห์ (Starter 0-6 wk)"], index=0, disabled=True)
+    # 🛠️ [แก้ไข] ลบ disabled=True ออก และใส่ on_change เพื่อให้เปิดใช้งานและคลิกเลือกได้ปกติ
+    st.selectbox("กลุ่มไก่ไข่", ["Commercial Brown Layer"], index=0, on_change=reset_calculation)
+    st.selectbox("สายพันธุ์", ["อิซ่า บราวน์ (Isa Brown)"], index=0, on_change=reset_calculation)
+    st.selectbox("ระยะการเลี้ยง", ["ช่วงอายุ แรกเกิด-6 สัปดาห์ (Starter 0-6 wk)"], index=0, on_change=reset_calculation)
     
     st.info("💡 **เกณฑ์โภชนาการสำหรับไก่ไข่ช่วงอายุ 0-6 สัปดาห์:**\n"
             "- โปรตีน (Protein): ไม่ต่ำกว่า **20.0%**\n"
