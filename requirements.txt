@@ -1,8 +1,5 @@
 streamlit
 pandas
-numpy
-scipy
-plotly
 pulp
-psycopg2-binary
-matplotlib
+plotly
+supabase
