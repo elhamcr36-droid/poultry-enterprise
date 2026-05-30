@@ -26,17 +26,17 @@ def add_background():
             background-color: transparent !important;
         }
         
-        /* 2. ภาพพื้นหลังแม่ไก่ในโรงเรือนไก่ไข่ (แก้ไขเป็นลิงก์รูปภาพฟาร์มไก่ตรงสายงาน ไม่มีลายน้ำ) */
+        /* 2. ภาพพื้นหลังแม่ไก่ไข่สีน้ำตาลล้วนในโรงเรือน (ไม่มีสัตว์อื่นปน) */
         .stApp::before {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("https://images.unsplash.com/photo-1516467508483-a7212febe31a?q=80&w=1920");
+            background-image: url("https://images.unsplash.com/photo-1548550022-c3f910408542?q=80&w=1920");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            opacity: 0.15; /* ปรับระดับความคมชัดของพื้นหลังพอดีๆ เพื่อให้อ่านตัวหนังสือสีขาวได้ง่าย */
+            opacity: 0.16; /* ปรับความเข้มจางๆ สบายตา อ่านง่าย */
             z-index: -1;
         }
         
