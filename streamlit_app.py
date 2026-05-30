@@ -67,10 +67,10 @@ def add_background():
 add_background()
 
 # ==========================================
-# 3. HARDCODED DATA (แทนการดึงจาก SUPABASE)
+# 3. HARDCODED DATA (คลังข้อมูลในระบบ)
 # ==========================================
 
-# --- 3.1 ข้อมูลวัตถุดิบ (Ingredients) ครบทุกตัวตามหมวดหมู่ใน SQL ---
+# --- 3.1 ข้อมูลวัตถุดิบ (Ingredients) ครบทุกหมวดหมู่หลัก ---
 raw_ingredients = [
     # พลังงาน
     ('พลังงาน', 'ข้าวโพด', 'Corn'), ('พลังงาน', 'ข้าวฟ่าง', 'Sorghum'), ('พลังงาน', 'ข้าวสาลี', 'Wheat'),
@@ -144,7 +144,7 @@ raw_ingredients = [
 df_ingredients = pd.DataFrame(raw_ingredients, columns=['category', 'name_th', 'name_en'])
 df_ingredients['name'] = df_ingredients['name_th'] + " (" + df_ingredients['name_en'] + ")"
 
-# เติมตัวเลขทางโภชนาการจำลองเพื่อใช้คำนวณสมการ Optimization
+# กำหนดตัวเลขโภชนาการและราคาฐานสำหรับการประมวลผลสมการเชิงเส้น (Linear Programming)
 df_ingredients['price_per_kg'] = 15.0
 df_ingredients['protein_pct'] = 22.0
 df_ingredients['me_kcal_per_kg'] = 3000.0
@@ -153,42 +153,42 @@ df_ingredients['methionine_pct'] = 0.5
 df_ingredients['max_limit_pct'] = 100.0
 
 
-# --- 3.2 ข้อมูลสายพันธุ์ไก่ ครบทั้ง 45 สายพันธุ์ตาม SQL ---
+# --- 3.2 ข้อมูลสายพันธุ์ไก่ ครบทั้ง 45 สายพันธุ์ (แมปกลุ่มพร้อมวงเล็บภาษาอังกฤษ) ---
 raw_breeds = [
-    # สายพันธุ์เชิงพาณิชย์
-    ('สายพันธุ์เชิงพาณิชย์', 'ไฮไลน์ บราวน์', 'Hy-Line Brown'), ('สายพันธุ์เชิงพาณิชย์', 'ไฮไลน์ ดับเบิลยู-36', 'Hy-Line W-36'),
-    ('สายพันธุ์เชิงพาณิชย์', 'โลห์มันน์ บราวน์', 'Lohmann Brown'), ('สายพันธุ์เชิงพาณิชย์', 'โลห์มันน์ แอลเอสแอล คลาสสิก', 'Lohmann LSL Classic'),
-    ('สายพันธุ์เชิงพาณิชย์', 'ไอเอสเอ บราวน์', 'ISA Brown'), ('สายพันธุ์เชิงพาณิชย์', 'โนโวเจน บราวน์', 'Novogen Brown'),
-    ('สายพันธุ์เชิงพาณิชย์', 'โนโวเจน ไวท์', 'Novogen White'), ('สายพันธุ์เชิงพาณิชย์', 'โบแวนส์ บราวน์', 'Bovans Brown'),
-    ('สายพันธุ์เชิงพาณิชย์', 'โบแวนส์ ไวท์', 'Bovans White'), ('สายพันธุ์เชิงพาณิชย์', 'เดอแคลบ์ ไวท์', 'Dekalb White'),
-    ('สายพันธุ์เชิงพาณิชย์', 'เชเวอร์ บราวน์', 'Shaver Brown'), ('สายพันธุ์เชิงพาณิชย์', 'ไฮเซกซ์ บราวน์', 'Hisex Brown'),
-    ('สายพันธุ์เชิงพาณิชย์', 'ไฮเซกซ์ ไวท์', 'Hisex White'), ('สายพันธุ์เชิงพาณิชย์', 'นิค บราวน์', 'Nick Brown'),
-    ('สายพันธุ์เชิงพาณิชย์', 'แบ็บค็อก บราวน์', 'Babcock Brown'),
-    # สายพันธุ์แท้
-    ('สายพันธุ์แท้', 'เลกฮอร์นขาว', 'White Leghorn'), ('สายพันธุ์แท้', 'เลกฮอร์นน้ำตาล', 'Brown Leghorn'),
-    ('สายพันธุ์แท้', 'ไมนอร์กา', 'Minorca'), ('สายพันธุ์แท้', 'แอนโคนา', 'Ancona'),
-    ('สายพันธุ์แท้', 'ฮัมบูร์ก', 'Hamburg'), ('สายพันธุ์แท้', 'แคมพีน', 'Campine'),
-    ('สายพันธุ์แท้', 'โรดไอแลนด์เรด', 'Rhode Island Red'), ('สายพันธุ์แท้', 'โรดไอแลนด์ไวท์', 'Rhode Island White'),
-    ('สายพันธุ์แท้', 'นิวแฮมป์เชียร์', 'New Hampshire'), ('สายพันธุ์แท้', 'ซัสเซ็กซ์', 'Sussex'),
-    ('สายพันธุ์แท้', 'ออสตราลอร์ป', 'Australorp'), ('สายพันธุ์แท้', 'ออร์พิงตัน', 'Orpington'),
-    ('สายพันธุ์แท้', 'พลีมัธร็อก', 'Plymouth Rock'), ('สายพันธุ์แท้', 'ไวแอนดอตต์', 'Wyandotte'),
-    # กลุ่มไข่สีพิเศษ
-    ('กลุ่มไข่สีพิเศษ', 'อาราอูคานา', 'Araucana'), ('กลุ่มไข่สีพิเศษ', 'อเมราอูคานา', 'Ameraucana'),
-    ('กลุ่มไข่สีพิเศษ', 'ครีม เลกบาร์', 'Cream Legbar'), ('กลุ่มไข่สีพิเศษ', 'อีสเตอร์ เอกเกอร์', 'Easter Egger'),
-    ('กลุ่มไข่สีพิเศษ', 'โอลีฟ เอกเกอร์', 'Olive Egger'),
-    # สายพันธุ์พื้นเมืองและพรีเมียม
-    ('สายพันธุ์พื้นเมืองและพรีเมียม', 'ซิลกี้ หรือไก่ไหม', 'Silkie'), ('สายพันธุ์พื้นเมืองและพรีเมียม', 'มาร็องส์', 'Marans'),
-    ('สายพันธุ์พื้นเมืองและพรีเมียม', 'บาร์เนเวลเดอร์', 'Barnevelder'), ('สายพันธุ์พื้นเมืองและพรีเมียม', 'เวลซัมเมอร์', 'Welsummer'),
-    ('สายพันธุ์พื้นเมืองและพรีเมียม', 'เดลาแวร์', 'Delaware'), ('สายพันธุ์พื้นเมืองและพรีเมียม', 'บัคอาย', 'Buckeye'),
-    ('สายพันธุ์พื้นเมืองและพรีเมียม', 'จาวา', 'Java'), ('สายพันธุ์พื้นเมืองและพรีเมียม', 'เบรสส์', 'Bresse'),
-    ('สายพันธุ์พื้นเมืองและพรีเมียม', 'ชาโมะ', 'Shamo'), ('สายพันธุ์พื้นเมืองและพรีเมียม', 'ฮิไนโดริ', 'Hinai-dori'),
-    ('สายพันธุ์พื้นเมืองและพรีเมียม', 'ดองเต่า', 'Dong Tao')
+    # สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮไลน์ บราวน์', 'Hy-Line Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮไลน์ ดับเบิลยู-36', 'Hy-Line W-36'),
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โลห์มันน์ บราวน์', 'Lohmann Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โลห์มันน์ แอลเอสแอล คลาสสิก', 'Lohmann LSL Classic'),
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไอเอสเอ บราวน์', 'ISA Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โนโวเจน บราวน์', 'Novogen Brown'),
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โนโวเจน ไวท์', 'Novogen White'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โบแวนส์ บราวน์', 'Bovans Brown'),
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โบแวนส์ ไวท์', 'Bovans White'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'เดอแคลบ์ ไวท์', 'Dekalb White'),
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'เชเวอร์ บราวน์', 'Shaver Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮเซกซ์ บราวน์', 'Hisex Brown'),
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮเซกซ์ ไวท์', 'Hisex White'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'นิค บราวน์', 'Nick Brown'),
+    ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'แบ็บค็อก บราวน์', 'Babcock Brown'),
+    # สายพันธุ์แท้ (Purebreds)
+    ('สายพันธุ์แท้ (Purebreds)', 'เลกฮอร์นขาว', 'White Leghorn'), ('สายพันธุ์แท้ (Purebreds)', 'เลกฮอร์นน้ำตาล', 'Brown Leghorn'),
+    ('สายพันธุ์แท้ (Purebreds)', 'ไมนอร์กา', 'Minorca'), ('สายพันธุ์แท้ (Purebreds)', 'แอนโคนา', 'Ancona'),
+    ('สายพันธุ์แท้ (Purebreds)', 'ฮัมบูร์ก', 'Hamburg'), ('สายพันธุ์แท้ (Purebreds)', 'แคมพีน', 'Campine'),
+    ('สายพันธุ์แท้ (Purebreds)', 'โรดไอแลนด์เรด', 'Rhode Island Red'), ('สายพันธุ์แท้ (Purebreds)', 'โรดไอแลนด์ไวท์', 'Rhode Island White'),
+    ('สายพันธุ์แท้ (Purebreds)', 'นิวแฮมป์เชียร์', 'New Hampshire'), ('สายพันธุ์แท้ (Purebreds)', 'ซัสเซ็กซ์', 'Sussex'),
+    ('สายพันธุ์แท้ (Purebreds)', 'ออสตราลอร์ป', 'Australorp'), ('สายพันธุ์แท้ (Purebreds)', 'ออร์พิงตัน', 'Orpington'),
+    ('สายพันธุ์แท้ (Purebreds)', 'พลีมัธร็อก', 'Plymouth Rock'), ('สายพันธุ์แท้ (Purebreds)', 'ไวแอนดอตต์', 'Wyandotte'),
+    # กลุ่มไข่สีพิเศษ (Specialty Egg Layers)
+    ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'อาราอูคานา', 'Araucana'), ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'อเมราอูคานา', 'Ameraucana'),
+    ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'ครีม เลกบาร์', 'Cream Legbar'), ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'อีสเตอร์ เอกเกอร์', 'Easter Egger'),
+    ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'โอลีฟ เอกเกอร์', 'Olive Egger'),
+    # สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)
+    ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'ซิลกี้ หรือไก่ไหม', 'Silkie'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'มาร็องส์', 'Marans'),
+    ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'บาร์เนเวลเดอร์', 'Barnevelder'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'เวลซัมเมอร์', 'Welsummer'),
+    ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'เดลาแวร์', 'Delaware'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'บัคอาย', 'Buckeye'),
+    ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'จาวา', 'Java'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'เบรสส์', 'Bresse'),
+    ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'ชาโมะ', 'Shamo'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'ฮิไนโดริ', 'Hinai-dori'),
+    ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'ดองเต่า', 'Dong Tao')
 ]
 
 df_breeds_raw = pd.DataFrame(raw_breeds, columns=['category', 'name_th', 'name_en'])
 df_breeds_raw['display_name'] = df_breeds_raw['name_th'] + " (" + df_breeds_raw['name_en'] + ")"
 
-# ดึงกลุ่มสายพันธุ์แบบไดนามิก
+# ดึงกลุ่มสายพันธุ์มาทำรายการแบบไดนามิก (เรียงลำดับตามพยัญชนะ)
 list_groups = sorted(df_breeds_raw['category'].unique().tolist())
 
 list_stages = [
@@ -230,9 +230,10 @@ input_col1, input_col2 = st.columns(2, gap="large")
 with input_col1:
     st.markdown("##### 🐔 ข้อมูลฝูงไก่และสายพันธุ์")
     
+    # เลือกกลุ่มไก่ไข่ (แสดงผลพร้อมวงเล็บภาษาอังกฤษ)
     selected_group = st.selectbox("กลุ่มไก่ไข่", list_groups, index=0, on_change=reset_calculation)
     
-    # กรองสายพันธุ์ตามกลุ่มที่เลือกแบบรวดเร็ว (ไม่ต้องโหลดผ่านเน็ต)
+    # กรองจับคู่ข้อมูลเฉพาะกลุ่มที่เลือกขึ้นมาแสดงผลแบบรวดเร็ว
     filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == selected_group]['display_name'].tolist())
         
     selected_breed = st.selectbox("สายพันธุ์", filtered_breeds, index=0, on_change=reset_calculation)
