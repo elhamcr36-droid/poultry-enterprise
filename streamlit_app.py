@@ -26,28 +26,28 @@ def add_background():
             background-color: transparent !important;
         }
         
-        /* 2. ภาพพื้นหลังโรงเรือนไก่ไข่ (แก้ไขลิงก์ภาพที่เสถียรและเหมาะสม) */
+        /* 2. ภาพพื้นหลังแม่ไก่ในโรงเรือนไก่ไข่ (แก้ไขเป็นลิงก์รูปภาพฟาร์มไก่ตรงสายงาน ไม่มีลายน้ำ) */
         .stApp::before {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("https://images.unsplash.com/photo-1587132137056-bfbf0166836e?q=80&w=1920");
+            background-image: url("https://images.unsplash.com/photo-1516467508483-a7212febe31a?q=80&w=1920");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            opacity: 0.18; /* ปรับความเข้มพอดีๆ เพื่อให้อ่านตัวหนังสือได้ชัดเจน */
+            opacity: 0.15; /* ปรับระดับความคมชัดของพื้นหลังพอดีๆ เพื่อให้อ่านตัวหนังสือสีขาวได้ง่าย */
             z-index: -1;
         }
         
         /* 3. ปรับแต่งกล่องเนื้อหาหลัก (Columns) สไตล์กระจกฝ้าเข้ม */
         div[data-testid="stGridColumn"] > div {
-            background-color: rgba(20, 20, 20, 0.88) !important; 
+            background-color: rgba(25, 25, 25, 0.85) !important; 
             padding: 25px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
         }
         
         /* 4. ปรับสีตัวอักษร Label ของ Inputs ให้อ่านง่ายไม่กลืนกับพื้นหลัง */
