@@ -76,9 +76,9 @@ try:
     key: str = st.secrets["SUPABASE_KEY"]
     supabase = create_client(url, key)
 except Exception as e:
-    st.error("❌ ไม่พบข้อมูลการเชื่อมต่อ Supabase ใน Streamlit Secrets (กรุณาตรวจสอบไฟล์ secrets.toml)")
+    st.error("❌ ไม่พบข้อมูลการเชื่อมต่อ Supabase ใน Streamlit Secrets")
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=2)
 def load_ingredients_from_supabase():
     if supabase is None: return None
     try:
@@ -96,37 +96,29 @@ def load_ingredients_from_supabase():
     except Exception:
         return None
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=2)
 def load_chicken_breeds_dataframe():
     if supabase is None: return pd.DataFrame()
     try:
         response = supabase.table("chicken_breeds").select("category, name_th, name_en").execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
-            df['display_name'] = df['name_th'].str.strip() + " (" + df['name_en'].str.strip() + ")"
+            # ล้างช่องว่างที่อาจปนมาในฐานข้อมูลออกให้หมดเพื่อป้องกัน Bug
+            df['category'] = df['category'].astype(str).str.strip()
+            df['display_name'] = df['name_th'].astype(str).str.strip() + " (" + df['name_en'].astype(str).str.strip() + ")"
         return df
     except Exception:
         return pd.DataFrame()
 
-# โหลดข้อมูล
+# โหลดข้อมูลจริง
 df_ingredients = load_ingredients_from_supabase()
 df_breeds_raw = load_chicken_breeds_dataframe()
 
-# 🛠️ รายชื่อกลุ่มที่ต้องการให้แสดงบนหน้าเว็บ UI (ภาษาอังกฤษคู่ภาษาไทย)
-list_groups_ui = [
-    "Commercial Brown Layer (สายพันธุ์เชิงพาณิชย์)",
-    "Purebred Layer (สายพันธุ์แท้)",
-    "Special Egg Color (กลุ่มไข่สีพิเศษ)",
-    "Heritage & Premium (สายพันธุ์พื้นเมืองและพรีเมียม)"
-]
-
-# 🛠️ ดิกชันนารีสำหรับแปลงชื่อบน UI ไปเป็นค่าภาษาไทยที่เก็บในคอลัมน์ category ของ Supabase
-group_mapping = {
-    "Commercial Brown Layer (สายพันธุ์เชิงพาณิชย์)": "สายพันธุ์เชิงพาณิชย์",
-    "Purebred Layer (สายพันธุ์แท้)": "สายพันธุ์แท้",
-    "Special Egg Color (กลุ่มไข่สีพิเศษ)": "กลุ่มไข่สีพิเศษ",
-    "Heritage & Premium (สายพันธุ์พื้นเมืองและพรีเมียม)": "สายพันธุ์พื้นเมืองและพรีเมียม"
-}
+# 🛠️ ดึงรายชื่อกลุ่มที่มีอยู่จริงในฐานข้อมูลขึ้นมาแสดงโดยตรง (ไม่ Hardcode คำอังกฤษแล้วเพื่อความปลอดภัย)
+if not df_breeds_raw.empty:
+    list_groups = sorted(df_breeds_raw['category'].dropna().unique().tolist())
+else:
+    list_groups = ["สายพันธุ์เชิงพาณิชย์", "สายพันธุ์แท้", "กลุ่มไข่สีพิเศษ", "สายพันธุ์พื้นเมืองและพรีเมียม"]
 
 list_stages = [
     "ช่วงอายุ แรกเกิด-6 สัปดาห์ (Starter 0-6 wk)",
@@ -167,24 +159,20 @@ input_col1, input_col2 = st.columns(2, gap="large")
 with input_col1:
     st.markdown("##### 🐔 ข้อมูลฝูงไก่และสายพันธุ์")
     
-    # 1. เลือกกลุ่มไก่ไข่ในรูปแบบที่สวยงามบนหน้าจอ
-    selected_group_ui = st.selectbox("กลุ่มไก่ไข่", list_groups_ui, index=0, on_change=reset_calculation)
+    # ดึงชื่อกลุ่มตรงๆ จากตารางมาให้เลือก (จะแสดงผลเป็นภาษาไทยตามคอลัมน์ category ในฐานข้อมูลของคุณ)
+    selected_group = st.selectbox("กลุ่มไก่ไข่", list_groups, index=0, on_change=reset_calculation)
     
-    # 🛠️ แปลงค่าที่ผู้เลือกให้กลับเป็นภาษาไทยเพื่อไป Query หาข้อมูลในคอลัมน์ category
-    db_category_name = group_mapping.get(selected_group_ui, "สายพันธุ์เชิงพาณิชย์")
-    
-    # 2. กรองสายพันธุ์ให้ตรงกับคอลัมน์ภาษาไทยใน Supabase รายชื่อจะมาครบตามชุดข้อมูลจริงทันที
+    # กรองจับคู่ข้อมูลด้วยวิธีดักตัวอักษรเพื่อความแม่นยำสูง
     if not df_breeds_raw.empty:
-        filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == db_category_name]['display_name'].dropna().unique().tolist())
+        filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == selected_group]['display_name'].dropna().unique().tolist())
     else:
-        # ระบบสำรองกรณีเชื่อมต่อฐานข้อมูลล้มเหลว
         fallback_dict = {
             "สายพันธุ์เชิงพาณิชย์": ["ไฮไลน์ บราวน์ (Hy-Line Brown)", "ไอเอสเอ บราวน์ (ISA Brown)", "โลห์มันน์ บราวน์ (Lohmann Brown)"],
             "สายพันธุ์แท้": ["เลกฮอร์นขาว (White Leghorn)", "โรดไอแลนด์เรด (Rhode Island Red)"],
             "กลุ่มไข่สีพิเศษ": ["อาราอูคานา (Araucana)", "อเมราอูคานา (Ameraucana)"],
             "สายพันธุ์พื้นเมืองและพรีเมียม": ["ซิลกี้ หรือไก่ไหม (Silkie)", "มาร็องส์ (Marans)"]
         }
-        filtered_breeds = fallback_dict.get(db_category_name, ["ไอเอสเอ บราวน์ (ISA Brown)"])
+        filtered_breeds = fallback_dict.get(selected_group, ["ไอเอสเอ บราวน์ (ISA Brown)"])
         
     selected_breed = st.selectbox("สายพันธุ์", filtered_breeds, index=0, on_change=reset_calculation)
     selected_stage = st.selectbox("ระยะการเลี้ยง", list_stages, index=0, on_change=reset_calculation)
@@ -204,7 +192,7 @@ with input_col2:
 
 st.markdown("##")
 
-# ปุ่มคำนวณ
+# ปุ่มเริ่มคำนวณ
 if st.button("🚀 ประมวลผลและคำนวณสารอาหารที่แม่นยำที่สุด", use_container_width=True, type="primary"):
     if df_ingredients is not None and not df_ingredients.empty:
         AUTO_PROTEIN = 20.0
