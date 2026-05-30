@@ -82,7 +82,8 @@ except Exception as e:
 def load_ingredients_from_supabase():
     if supabase is None: return None
     try:
-        response = supabase.table("ingredients").select("id, category, name_th, name_en").execute()
+        # ปลดล็อกขีดจำกัดตารางวัตถุดิบ ดึงสูงสุด 1000 แถว
+        response = supabase.table("ingredients").select("id, category, name_th, name_en").range(0, 1000).execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
             df['name'] = df['name_th'].str.strip() + " (" + df['name_en'].str.strip() + ")"
@@ -100,21 +101,22 @@ def load_ingredients_from_supabase():
 def load_chicken_breeds_dataframe():
     if supabase is None: return pd.DataFrame()
     try:
-        response = supabase.table("chicken_breeds").select("category, name_th, name_en").execute()
+        # 💡 จุดแก้ไขสำคัญ: ใช้คำสั่ง .range(0, 1000) เพื่อบังคับดึงข้อมูลสายพันธุ์ออกมาทั้งหมด (ทลายขีดจำกัด Pagination)
+        response = supabase.table("chicken_breeds").select("category, name_th, name_en").range(0, 1000).execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
-            # ล้างช่องว่างที่อาจปนมาในฐานข้อมูลออกให้หมดเพื่อป้องกัน Bug
+            # ล้างช่องว่างหัวท้ายข้อความป้องกันปัญหาสะกดผิดพลาด
             df['category'] = df['category'].astype(str).str.strip()
             df['display_name'] = df['name_th'].astype(str).str.strip() + " (" + df['name_en'].astype(str).str.strip() + ")"
         return df
     except Exception:
         return pd.DataFrame()
 
-# โหลดข้อมูลจริง
+# โหลดข้อมูลจริงแบบปลดล็อกลิมิต
 df_ingredients = load_ingredients_from_supabase()
 df_breeds_raw = load_chicken_breeds_dataframe()
 
-# 🛠️ ดึงรายชื่อกลุ่มที่มีอยู่จริงในฐานข้อมูลขึ้นมาแสดงโดยตรง (ไม่ Hardcode คำอังกฤษแล้วเพื่อความปลอดภัย)
+# ดึงรายชื่อกลุ่มที่มีอยู่จริงในฐานข้อมูลขึ้นมาแสดง
 if not df_breeds_raw.empty:
     list_groups = sorted(df_breeds_raw['category'].dropna().unique().tolist())
 else:
@@ -159,10 +161,10 @@ input_col1, input_col2 = st.columns(2, gap="large")
 with input_col1:
     st.markdown("##### 🐔 ข้อมูลฝูงไก่และสายพันธุ์")
     
-    # ดึงชื่อกลุ่มตรงๆ จากตารางมาให้เลือก (จะแสดงผลเป็นภาษาไทยตามคอลัมน์ category ในฐานข้อมูลของคุณ)
+    # เลือกกลุ่มไก่ไข่
     selected_group = st.selectbox("กลุ่มไก่ไข่", list_groups, index=0, on_change=reset_calculation)
     
-    # กรองจับคู่ข้อมูลด้วยวิธีดักตัวอักษรเพื่อความแม่นยำสูง
+    # กรองข้อมูลสายพันธุ์ (ตอนนี้ข้อมูลใน df_breeds_raw จะมาครบ 45 แถวแล้ว)
     if not df_breeds_raw.empty:
         filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == selected_group]['display_name'].dropna().unique().tolist())
     else:
