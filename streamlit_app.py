@@ -14,10 +14,10 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CUSTOM CSS FOR BACKGROUND & UI (LOCKED CHICKEN IMAGE)
+# 2. CUSTOM CSS FOR BACKGROUND & UI (NEW STABLE LINK)
 # ==========================================
 def add_background():
-    """ฟังก์ชัน CSS ล็อกรูปภาพแม่ไก่ไข่จากคลังส่วนกลาง ไม่ให้เปลี่ยนเป็นรูปอื่น"""
+    """ฟังก์ชัน CSS ล็อกลิงก์พื้นหลังฟาร์มไก่ระบบเสถียรความละเอียดสูง"""
     st.markdown(
         """
         <style>
@@ -26,17 +26,17 @@ def add_background():
             background-color: transparent !important;
         }
         
-        /* 2. ภาพพื้นหลังแม่ไก่ไข่สีน้ำตาล (ล็อกลิงก์ตรงจาก Wikimedia มั่นใจได้ว่าเป็นรูปไก่) */
+        /* 2. ภาพพื้นหลังแม่ไก่และฟาร์มไก่ไข่ (อัปเดตลิงก์ตรงจากคลังภาพสากลสำหรับนักพัฒนา) */
         .stApp::before {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("https://upload.wikimedia.org/wikipedia/commons/e/ea/Brown_egg_20150919.jpg");
+            background-image: url("https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&q=80&w=1920");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            opacity: 0.15; /* ปรับความเข้มจางๆ 15% สบายตา อ่านง่าย */
+            opacity: 0.14; /* ความเข้ม 14% พอดีๆ ช่วยให้กล่องข้อความอ่านง่าย ไม่แสบตา */
             z-index: -1;
         }
         
