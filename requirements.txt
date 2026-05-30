@@ -1,7 +1,7 @@
 streamlit
-psycopg2-binary
 pandas
 numpy
 scipy
 plotly
-matplotlib
+pulp
+psycopg2-binary
