@@ -82,11 +82,12 @@ except Exception as e:
 def load_ingredients_from_supabase():
     if supabase is None: return None
     try:
-        # ปลดล็อกขีดจำกัดตารางวัตถุดิบ ดึงสูงสุด 1000 แถว
+        # ปลดล็อกขีดจำกัดตารางวัตถุดิบ ดึงครอบคลุมข้อมูลที่จัดกลุ่มใหม่ทั้งหมด (สูงสุด 1000 แถว)
         response = supabase.table("ingredients").select("id, category, name_th, name_en").range(0, 1000).execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
             df['name'] = df['name_th'].str.strip() + " (" + df['name_en'].str.strip() + ")"
+            # เติมโครงสร้างคอลัมน์คำนวณที่ SQL ไม่มีชั่วคราวเพื่อป้องกันสมการพัง
             if 'price_per_kg' not in df.columns: df['price_per_kg'] = 15.0
             if 'protein_pct' not in df.columns: df['protein_pct'] = 22.0
             if 'me_kcal_per_kg' not in df.columns: df['me_kcal_per_kg'] = 3000.0
@@ -101,26 +102,26 @@ def load_ingredients_from_supabase():
 def load_chicken_breeds_dataframe():
     if supabase is None: return pd.DataFrame()
     try:
-        # 💡 จุดแก้ไขสำคัญ: ใช้คำสั่ง .range(0, 1000) เพื่อบังคับดึงข้อมูลสายพันธุ์ออกมาทั้งหมด (ทลายขีดจำกัด Pagination)
+        # บังคับดึงข้อมูลสายพันธุ์ออกมาทั้งหมดแบบยืดหยุ่นขยายช่วง
         response = supabase.table("chicken_breeds").select("category, name_th, name_en").range(0, 1000).execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
-            # ล้างช่องว่างหัวท้ายข้อความป้องกันปัญหาสะกดผิดพลาด
+            # ล้างช่องว่างหัวท้ายข้อความที่อาจติดมาจากการป้อนคำสั่ง SQL
             df['category'] = df['category'].astype(str).str.strip()
             df['display_name'] = df['name_th'].astype(str).str.strip() + " (" + df['name_en'].astype(str).str.strip() + ")"
         return df
     except Exception:
         return pd.DataFrame()
 
-# โหลดข้อมูลจริงแบบปลดล็อกลิมิต
+# โหลดข้อมูลจริงที่แมปปิ้งโครงสร้างใหม่แล้ว
 df_ingredients = load_ingredients_from_supabase()
 df_breeds_raw = load_chicken_breeds_dataframe()
 
-# ดึงรายชื่อกลุ่มที่มีอยู่จริงในฐานข้อมูลขึ้นมาแสดง
+# ดึงกลุ่มสายพันธุ์ที่มีอยู่จริงในตารางขึ้นมาแสดงผลอัตโนมัติ (เรียงลำดับพยัญชนะ)
 if not df_breeds_raw.empty:
     list_groups = sorted(df_breeds_raw['category'].dropna().unique().tolist())
 else:
-    list_groups = ["สายพันธุ์เชิงพาณิชย์", "สายพันธุ์แท้", "กลุ่มไข่สีพิเศษ", "สายพันธุ์พื้นเมืองและพรีเมียม"]
+    list_groups = ["กลุ่มไข่สีพิเศษ", "สายพันธุ์เชิงพาณิชย์", "สายพันธุ์แท้", "สายพันธุ์พื้นเมืองและพรีเมียม"]
 
 list_stages = [
     "ช่วงอายุ แรกเกิด-6 สัปดาห์ (Starter 0-6 wk)",
@@ -164,7 +165,7 @@ with input_col1:
     # เลือกกลุ่มไก่ไข่
     selected_group = st.selectbox("กลุ่มไก่ไข่", list_groups, index=0, on_change=reset_calculation)
     
-    # กรองข้อมูลสายพันธุ์ (ตอนนี้ข้อมูลใน df_breeds_raw จะมาครบ 45 แถวแล้ว)
+    # กรองจับคู่ข้อมูลเฉพาะกลุ่มที่เลือกขึ้นมาแสดงผลแบบ Dynamic 
     if not df_breeds_raw.empty:
         filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == selected_group]['display_name'].dropna().unique().tolist())
     else:
@@ -174,7 +175,7 @@ with input_col1:
             "กลุ่มไข่สีพิเศษ": ["อาราอูคานา (Araucana)", "อเมราอูคานา (Ameraucana)"],
             "สายพันธุ์พื้นเมืองและพรีเมียม": ["ซิลกี้ หรือไก่ไหม (Silkie)", "มาร็องส์ (Marans)"]
         }
-        filtered_breeds = fallback_dict.get(selected_group, ["ไอเอสเอ บราวน์ (ISA Brown)"])
+        filtered_breeds = fallback_dict.get(selected_group, ["ไฮไลน์ บราวน์ (Hy-Line Brown)"])
         
     selected_breed = st.selectbox("สายพันธุ์", filtered_breeds, index=0, on_change=reset_calculation)
     selected_stage = st.selectbox("ระยะการเลี้ยง", list_stages, index=0, on_change=reset_calculation)
@@ -194,7 +195,7 @@ with input_col2:
 
 st.markdown("##")
 
-# ปุ่มเริ่มคำนวณ
+# ปุ่มเริ่มคำนวณสูตรอาหาร
 if st.button("🚀 ประมวลผลและคำนวณสารอาหารที่แม่นยำที่สุด", use_container_width=True, type="primary"):
     if df_ingredients is not None and not df_ingredients.empty:
         AUTO_PROTEIN = 20.0
