@@ -29,28 +29,36 @@ def add_background():
             left: 0;
             width: 100vw;
             height: 100vh;
-            /* ลิงก์รูปฟาร์มไก่ไข่ความละเอียดสูงและโหลดเสถียร */
+            /* ลิงก์รูปฟาร์มไก่ไข่ความละเอียดสูงและโหลดเสถียรจาก Unsplash */
             background-image: url("https://images.unsplash.com/photo-1516467508483-a7212febe31a?q=80&w=1920");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            /* ปรับค่าความจางตรงนี้ (0.12 กำลังพอดี ไม่แย่งสายตาจากตัวเลขและอ่านข้อความง่าย) */
-            opacity: 0.12; 
+            /* ปรับค่าความจางตรงนี้ (0.10 - 0.15 กำลังพอดี ไม่แย่งสายตาและอ่านข้อความง่าย) */
+            opacity: 0.15; 
             z-index: -1;
         }
         
-        /* ปรับแต่งกล่องเนื้อหาหลักให้โปร่งแสงเล็กน้อยเพื่อให้เห็นพื้นหลังและมีมิติ */
+        /* ปรับแต่งกล่องเนื้อหาหลัก (Columns) ให้โปร่งแสงและมีมิติสไตล์กระจก */
         div[data-testid="stGridColumn"] > div {
-            background-color: rgba(255, 255, 255, 0.05);
-            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(3px);
         }
         
-        /* แก้ไขคอมโพเนนต์ต่างๆ ให้โปร่งแสงเพื่อโชว์ภาพฟาร์มด้านหลัง */
-        [data-testid="stMetricValue"], [data-testid="stExpander"] {
-            opacity: 0.95;
+        /* แก้ไขคอมโพเนนต์การ์ด Metric และ Expander ให้เข้ากับธีม */
+        [data-testid="stMetricValue"] {
+            font-weight: bold;
+        }
+        div[data-testid="stMetric"] {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffaa00;
         }
         </style>
         """,
@@ -68,7 +76,7 @@ try:
     key: str = st.secrets["SUPABASE_KEY"]
     supabase: Client = create_client(url, key)
 except Exception as e:
-    st.error("❌ ไม่พบข้อมูลการเชื่อมต่อ Supabase ใน Streamlit Secrets (กรุณาตรวจสอบไฟล์ secrets.toml)")
+    st.error("❌ 不พบข้อมูลการเชื่อมต่อ Supabase ใน Streamlit Secrets (กรุณาตรวจสอบไฟล์ secrets.toml)")
 
 @st.cache_data(ttl=60)
 def load_ingredients_from_supabase():
@@ -226,7 +234,7 @@ if st.session_state.calculated and st.session_state.df_result is not None:
     with m2:
         st.metric(label="📈 รายได้รวมจากการขายไข่ / วัน", value=f"{revenue_per_day:,.2f} ฿")
     with m3:
-        st.metric(label="🏆 กำไรสุทธิคาดการณ์ / วัน", value=f"{net_profit_per_day:,.2f} ฿", delta=f"เฉลี่ย {net_profit_per_day/num_chickens:.2f} ฿/ตัว")
+        st.metric(label="🏆 กำไรสุทธิคาดการณ์ / วัน", value=f"{net_profit_per_day:,.2f} ฿", delta=f"{net_profit_per_day/num_chickens:.2f} ฿/ตัว")
     with m4:
         st.metric(label="💰 ราคาเฉลี่ยสูตรอาหาร (ต่อกก.)", value=f"{st.session_state.total_cost_100kg / 100:.2f} ฿")
 
