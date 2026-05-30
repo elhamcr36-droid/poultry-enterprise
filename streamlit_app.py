@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import pulp
 import plotly.express as px
+import base64
 from supabase import create_client, Client
 
 # ==========================================
@@ -14,62 +15,73 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CUSTOM CSS FOR BACKGROUND & UI (IMPROVED READABILITY)
+# 2. CUSTOM CSS FOR BACKGROUND & UI (BASE64 LOCAL IMAGE)
 # ==========================================
 def add_background():
-    """ฟังก์ชัน CSS ล้างเลเยอร์สีและเพิ่มสไตล์กระจกฝ้า พร้อมปรับสีตัวอักษรให้อ่านง่าย"""
+    """ฟังก์ชันโหลดภาพในเครื่องมาแปลงเป็น Base64 และใส่เป็นพื้นหลังแก้ปัญหาภาพไม่แสดงผล"""
+    # ระบุชื่อไฟล์รูปภาพที่คุณเตรียมไว้ในโฟลเดอร์เดียวกับโค้ด
+    image_file = "chicken_bg.jpg" 
+    
+    try:
+        with open(image_file, "rb") as f:
+            encoded_string = base64.b64encode(f.read()).decode()
+        bg_image_css = f"data:image/jpg;base64,{encoded_string}"
+    except FileNotFoundError:
+        # หากยังไม่ได้วางไฟล์ภาพหรือหาไฟล์ไม่เจอ จะใช้สีพื้นหลังเข้มเป็นสีสำรองเพื่อไม่ให้ระบบพัง
+        bg_image_css = "" 
+        
     st.markdown(
-        """
+        f"""
         <style>
         /* 1. ล้างสีพื้นหลังของเลเยอร์ Streamlit ทั้งหมด */
-        .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-            background-color: transparent !important;
-        }
+        .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
+            background-color: #121212 !important; 
+        }}
         
-        /* 2. ภาพพื้นหลังแม่ไก่ไข่สีน้ำตาลล้วนในโรงเรือน (ไม่มีสัตว์อื่นปน) */
-        .stApp::before {
+        /* 2. ภาพพื้นหลังฝังรหัส Base64 จากเครื่องคอมพิวเตอร์ของคุณ */
+        .stApp::before {{
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("https://images.unsplash.com/photo-1548550022-c3f910408542?q=80&w=1920");
+            background-image: url("{bg_image_css}");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            opacity: 0.16; /* ปรับความเข้มจางๆ สบายตา อ่านง่าย */
+            opacity: 0.15; /* ความเข้มจางๆ 15% เพื่อความสบายตาในการอ่านข้อมูล */
             z-index: -1;
-        }
+        }}
         
         /* 3. ปรับแต่งกล่องเนื้อหาหลัก (Columns) สไตล์กระจกฝ้าเข้ม */
-        div[data-testid="stGridColumn"] > div {
+        div[data-testid="stGridColumn"] > div {{
             background-color: rgba(25, 25, 25, 0.85) !important; 
             padding: 25px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(12px);
-        }
+        }}
         
         /* 4. ปรับสีตัวอักษร Label ของ Inputs ให้อ่านง่ายไม่กลืนกับพื้นหลัง */
-        label, [data-testid="stWidgetLabel"] p {
+        label, [data-testid="stWidgetLabel"] p {{
             color: #ffffff !important;
             font-weight: 500 !important;
-        }
+        }}
         
         /* 5. ปรับแต่งกล่อง Metric */
-        div[data-testid="stMetric"] {
+        div[data-testid="stMetric"] {{
             background-color: rgba(0, 0, 0, 0.65) !important;
             padding: 15px;
             border-radius: 8px;
             border-left: 4px solid #ffaa00;
-        }
-        [data-testid="stMetricValue"] {
+        }}
+        [data-testid="stMetricValue"] {{
             font-weight: bold;
             color: #ffaa00 !important;
-        }
-        [data-testid="stMetricLabel"] {
+        }}
+        [data-testid="stMetricLabel"] {{
             color: #e0e0e0 !important;
-        }
+        }}
         </style>
         """,
         unsafe_allow_html=True
