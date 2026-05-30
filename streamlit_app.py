@@ -26,17 +26,17 @@ def add_background():
             background-color: transparent !important;
         }
         
-        /* 2. ภาพพื้นหลังโรงเรือนไก่ไข่ */
+        /* 2. ภาพพื้นหลังโรงเรือนไก่ไข่ (แก้ไขลิงก์ภาพที่เสถียรและเหมาะสม) */
         .stApp::before {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("https://images.unsplash.com/photo-1548550022-c3f910408542?q=80&w=1920");
+            background-image: url("https://images.unsplash.com/photo-1587132137056-bfbf0166836e?q=80&w=1920");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            opacity: 0.25; /* ปรับลดความเข้มลงเล็กน้อยเพื่อให้อ่านตัวหนังสือชัดขึ้น */
+            opacity: 0.18; /* ปรับความเข้มพอดีๆ เพื่อให้อ่านตัวหนังสือได้ชัดเจน */
             z-index: -1;
         }
         
@@ -280,7 +280,7 @@ if st.session_state.calculated and st.session_state.df_result is not None:
             st.progress(min(st.session_state.calculated_lysine / 1.10, 1.0), text=f"ไลซีน: {st.session_state.calculated_lysine:.2f}% (เป้า: 1.10%)")
         with prog_col2:
             st.progress(min(st.session_state.calculated_me / 2900.0, 1.0), text=f"พลังงาน: {st.session_state.calculated_me:.0f} kcal (เป้า: 2900 kcal)")
-            st.progress(min(st.session_state.calculated_methionine / 0.45, 1.0), text=f"เมทไธโอนีน: {st.session_state.calculated_methionine:.2f}% (เปะา: 0.45%)")
+            st.progress(min(st.session_state.calculated_methionine / 0.45, 1.0), text=f"เมทไธโอนีน: {st.session_state.calculated_methionine:.2f}% (เป้า: 0.45%)")
 
     with report_right:
         st.markdown("##### 📋 ตารางสัดส่วนใบสั่งผสมวัตถุดิบจริง (ต่อ 100 กิโลกรัม)")
@@ -297,8 +297,6 @@ if st.session_state.calculated and st.session_state.df_result is not None:
             if st.button("💾 บันทึกสูตรลงฐานข้อมูลฟาร์ม", use_container_width=True):
                 if supabase is not None:
                     try:
-                        # ตัวอย่าง Logic การสร้าง Payload บันทึกลง Supabase
-                        # ⚠️ ตรวจสอบชื่อ Table และ Schema ในฐานข้อมูลของคุณก่อนใช้งานจริง
                         save_data = {
                             "formula_cost_100kg": st.session_state.total_cost_100kg,
                             "calculated_protein": st.session_state.calculated_protein,
