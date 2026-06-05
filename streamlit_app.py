@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import pulp
 import plotly.express as px
+import re
+from supabase import create_client, Client
 
 # ==========================================
 # 1. PAGE CONFIGURATION & THEME
@@ -42,6 +44,16 @@ def add_background():
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(12px);
         }
+        /* Auth Container Styling */
+        .auth-container {
+            background-color: rgba(25, 25, 25, 0.92) !important;
+            padding: 35px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+            max-width: 550px;
+            margin: 0 auto;
+        }
         label, [data-testid="stWidgetLabel"] p {
             color: #ffffff !important;
             font-weight: 500 !important;
@@ -67,10 +79,32 @@ def add_background():
 add_background()
 
 # ==========================================
-# 3. HARDCODED DATA (คลังข้อมูลในระบบ)
+# 3. SUPABASE AUTH INTEGRATION & VALIDATION
 # ==========================================
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- 3.1 ข้อมูลวัตถุดิบ (Ingredients) ครบทุกหมวดหมู่หลัก ---
+def is_password_strong(password):
+    if len(password) < 8:
+        return False, "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร"
+    if not re.search("[a-z]", password):
+        return False, "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษตัวพิมพ์เล็ก (a-z)"
+    if not re.search("[A-Z]", password):
+        return False, "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษตัวพิมพ์ใหญ่ (A-Z)"
+    if not re.search("[0-9]", password):
+        return False, "รหัสผ่านต้องมีตัวเลข (0-9)"
+    if not re.search("[_@$!%*#?&|-]", password):
+        return False, "รหัสผ่านต้องมีสัญลักษณ์พิเศษอย่างน้อย 1 ตัว (เช่น @, $, !, %, *, #)"
+    return True, "รหัสผ่านปลอดภัยตามมาตรฐาน"
+
+# เช็ค Session การเข้าสู่ระบบในเครื่องผู้ใช้
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+# ==========================================
+# 4. HARDCODED DATA (คลังข้อมูลวัตถุดิบและสายพันธุ์)
+# ==========================================
 raw_ingredients = [
     # พลังงาน
     ('พลังงาน', 'ข้าวโพด', 'Corn'), ('พลังงาน', 'ข้าวฟ่าง', 'Sorghum'), ('พลังงาน', 'ข้าวสาลี', 'Wheat'),
@@ -144,7 +178,6 @@ raw_ingredients = [
 df_ingredients = pd.DataFrame(raw_ingredients, columns=['category', 'name_th', 'name_en'])
 df_ingredients['name'] = df_ingredients['name_th'] + " (" + df_ingredients['name_en'] + ")"
 
-# กำหนดตัวเลขโภชนาการและราคาฐานสำหรับการประมวลผลสมการเชิงเส้น (Linear Programming)
 df_ingredients['price_per_kg'] = 15.0
 df_ingredients['protein_pct'] = 22.0
 df_ingredients['me_kcal_per_kg'] = 3000.0
@@ -152,10 +185,7 @@ df_ingredients['lysine_pct'] = 1.2
 df_ingredients['methionine_pct'] = 0.5
 df_ingredients['max_limit_pct'] = 100.0
 
-
-# --- 3.2 ข้อมูลสายพันธุ์ไก่ ครบทั้ง 45 สายพันธุ์ (แมปกลุ่มพร้อมวงเล็บภาษาอังกฤษ) ---
 raw_breeds = [
-    # สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)
     ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮไลน์ บราวน์', 'Hy-Line Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮไลน์ ดับเบิลยู-36', 'Hy-Line W-36'),
     ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โลห์มันน์ บราวน์', 'Lohmann Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โลห์มันน์ แอลเอสแอล คลาสสิก', 'Lohmann LSL Classic'),
     ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไอเอสเอ บราวน์', 'ISA Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'โนโวเจน บราวน์', 'Novogen Brown'),
@@ -164,7 +194,6 @@ raw_breeds = [
     ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'เชเวอร์ บราวน์', 'Shaver Brown'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮเซกซ์ บราวน์', 'Hisex Brown'),
     ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'ไฮเซกซ์ ไวท์', 'Hisex White'), ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'นิค บราวน์', 'Nick Brown'),
     ('สายพันธุ์เชิงพาณิชย์ (Commercial Breeds)', 'แบ็บค็อก บราวน์', 'Babcock Brown'),
-    # สายพันธุ์แท้ (Purebreds)
     ('สายพันธุ์แท้ (Purebreds)', 'เลกฮอร์นขาว', 'White Leghorn'), ('สายพันธุ์แท้ (Purebreds)', 'เลกฮอร์นน้ำตาล', 'Brown Leghorn'),
     ('สายพันธุ์แท้ (Purebreds)', 'ไมนอร์กา', 'Minorca'), ('สายพันธุ์แท้ (Purebreds)', 'แอนโคนา', 'Ancona'),
     ('สายพันธุ์แท้ (Purebreds)', 'ฮัมบูร์ก', 'Hamburg'), ('สายพันธุ์แท้ (Purebreds)', 'แคมพีน', 'Campine'),
@@ -172,11 +201,9 @@ raw_breeds = [
     ('สายพันธุ์แท้ (Purebreds)', 'นิวแฮมป์เชียร์', 'New Hampshire'), ('สายพันธุ์แท้ (Purebreds)', 'ซัสเซ็กซ์', 'Sussex'),
     ('สายพันธุ์แท้ (Purebreds)', 'ออสตราลอร์ป', 'Australorp'), ('สายพันธุ์แท้ (Purebreds)', 'ออร์พิงตัน', 'Orpington'),
     ('สายพันธุ์แท้ (Purebreds)', 'พลีมัธร็อก', 'Plymouth Rock'), ('สายพันธุ์แท้ (Purebreds)', 'ไวแอนดอตต์', 'Wyandotte'),
-    # กลุ่มไข่สีพิเศษ (Specialty Egg Layers)
     ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'อาราอูคานา', 'Araucana'), ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'อเมราอูคานา', 'Ameraucana'),
     ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'ครีม เลกบาร์', 'Cream Legbar'), ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'อีสเตอร์ เอกเกอร์', 'Easter Egger'),
     ('กลุ่มไข่สีพิเศษ (Specialty Egg Layers)', 'โอลีฟ เอกเกอร์', 'Olive Egger'),
-    # สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)
     ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'ซิลกี้ หรือไก่ไหม', 'Silkie'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'มาร็องส์', 'Marans'),
     ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'บาร์เนเวลเดอร์', 'Barnevelder'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'เวลซัมเมอร์', 'Welsummer'),
     ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'เดลาแวร์', 'Delaware'), ('สายพันธุ์พื้นเมืองและพรีเมียม (Heritage & Premium Breeds)', 'บัคอาย', 'Buckeye'),
@@ -188,9 +215,7 @@ raw_breeds = [
 df_breeds_raw = pd.DataFrame(raw_breeds, columns=['category', 'name_th', 'name_en'])
 df_breeds_raw['display_name'] = df_breeds_raw['name_th'] + " (" + df_breeds_raw['name_en'] + ")"
 
-# ดึงกลุ่มสายพันธุ์มาทำรายการแบบไดนามิก (เรียงลำดับตามพยัญชนะ)
 list_groups = sorted(df_breeds_raw['category'].unique().tolist())
-
 list_stages = [
     "ช่วงอายุ แรกเกิด-6 สัปดาห์ (Starter 0-6 wk)",
     "ช่วงอายุ 6-12 สัปดาห์ (Grower 6-12 wk)",
@@ -199,7 +224,7 @@ list_stages = [
 ]
 
 # ==========================================
-# 4. INITIALIZE SESSION STATE
+# 5. INITIALIZE OPTIMIZATION SESSION STATE
 # ==========================================
 if "calculated" not in st.session_state:
     st.session_state.calculated = False
@@ -213,166 +238,283 @@ if "calculated" not in st.session_state:
 def reset_calculation():
     st.session_state.calculated = False
 
-# ==========================================
-# 5. MAIN CONTENT & HEADER
-# ==========================================
-st.title("🥚 Smart Layer Feed")
-st.subheader("ระบบคำนวณและวางแผนสูตรอาหารไก่ไข่อัจฉริยะด้วยปัญญาประดิษฐ์")
-st.markdown("---")
 
 # ==========================================
-# SECTION 1: แผงควบคุมและตั้งค่า
+# 6. ROUTING - CHECK LOGIN STATUS
 # ==========================================
-st.markdown("### ⚙️ แผงควบคุมและตั้งค่าการจำลองฟาร์ม")
 
-input_col1, input_col2 = st.columns(2, gap="large")
-
-with input_col1:
-    st.markdown("##### 🐔 ข้อมูลฝูงไก่และสายพันธุ์")
+# --- หน้าต่างต้อนรับ / ลงชื่อเข้าใช้งาน (กรณีไม่มี Session) ---
+if st.session_state.user is None:
+    st.title("🍳 ยินดีต้อนรับสู่ Smart Layer Feed")
+    st.subheader("ระบบจัดการสารอาหารไก่ไข่ประสิทธิภาพสูง")
+    st.write("กรุณาลงชื่อเข้าใช้งานหรือสมัครสมาชิกบัญชีฟาร์มเพื่อเข้าสู่ระบบคำนวณเชิงลึก")
     
-    # เลือกกลุ่มไก่ไข่ (แสดงผลพร้อมวงเล็บภาษาอังกฤษ)
-    selected_group = st.selectbox("กลุ่มไก่ไข่", list_groups, index=0, on_change=reset_calculation)
+    # แบ่งแท็บสำหรับระบบความปลอดภัย
+    tab_login, tab_register, tab_forgot = st.tabs(["🔒 เข้าสู่ระบบบัญชีฟาร์ม", "📝 สมัครสมาชิกใหม่", "🔑 ลืมรหัสผ่าน"])
     
-    # กรองจับคู่ข้อมูลเฉพาะกลุ่มที่เลือกขึ้นมาแสดงผลแบบรวดเร็ว
-    filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == selected_group]['display_name'].tolist())
+    # 📌 แท็บเข้าสู่ระบบ
+    with tab_login:
+        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+        st.markdown("### เข้าสู่ระบบ")
+        login_email = st.text_input("อีเมลผู้ใช้งาน", key="input_login_email")
+        login_pass = st.text_input("รหัสผ่าน", type="password", key="input_login_pass")
         
-    selected_breed = st.selectbox("สายพันธุ์", filtered_breeds, index=0, on_change=reset_calculation)
-    selected_stage = st.selectbox("ระยะการเลี้ยง", list_stages, index=0, on_change=reset_calculation)
-    
-    st.info("💡 **เกณฑ์โภชนาการสำหรับไก่ไข่ช่วงอายุ 0-6 สัปดาห์:**\n"
-            "- โปรตีน (Protein): ไม่ต่ำกว่า **20.0%**\n"
-            "- พลังงานใช้ประโยชน์ได้ (ME): ไม่ต่ำกว่า **2,900 kcal/กก.**\n"
-            "- ไลซีน (Lysine): ไม่ต่ำกว่า **1.10%**\n"
-            "- เมทไธโอนีน (Methionine): ไม่ต่ำกว่า **0.45%**")
-
-with input_col2:
-    st.markdown("##### 💰 ข้อมูลจำลองขนาดฟาร์มและเป้าหมายการผลิต")
-    num_chickens = st.number_input("จำนวนไก่ไข่ในเล้า (ตัว)", min_value=1, value=180, step=10, on_change=reset_calculation)
-    feed_per_bird_g = st.number_input("อัตราการกินอาหาร (กรัม/ตัว/วัน)", min_value=1.0, value=180.0, step=5.0, on_change=reset_calculation)
-    egg_price = st.number_input("ราคาไข่ไก่เฉลี่ยที่คาดหวัง (บาท/ฟอง)", min_value=0.0, value=4.10, step=0.1, on_change=reset_calculation)
-    laying_rate = st.slider("อัตราการให้ไข่ของฝูงเป้าหมาย (%)", min_value=0, max_value=100, value=85, on_change=reset_calculation)
-
-st.markdown("##")
-
-# ปุ่มเริ่มคำนวณสูตรอาหาร
-if st.button("🚀 ประมวลผลและคำนวณสารอาหารที่แม่นยำที่สุด", use_container_width=True, type="primary"):
-    if not df_ingredients.empty:
-        AUTO_PROTEIN = 20.0
-        AUTO_ME = 2900.0
-        AUTO_LYSINE = 1.10
-        AUTO_METHIONINE = 0.45
+        if st.button("ล็อกอินเข้าสู่ระบบ", use_container_width=True, type="primary"):
+            try:
+                response = supabase.auth.sign_in_with_password({"email": login_email, "password": login_pass})
+                st.session_state.user = response.user
+                st.success("🎉 ยินดีด้วย! เข้าสู่ระบบฟาร์มของคุณสำเร็จ")
+                st.rerun()
+            except Exception as e:
+                st.error("❌ การเข้าสู่ระบบล้มเหลว: อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        prob = pulp.LpProblem("Feed_Optimization", pulp.LpMinimize)
-        ingredients_list = df_ingredients['name'].tolist()
+    # 📌 แท็บสมัครสมาชิก (ดีไซน์ฟิลด์แบบละเอียดคล้าย Facebook พร้อมข้อมูลฟาร์ม)
+    with tab_register:
+        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+        st.markdown("### สมัครสมาชิกใหม่")
+        st.caption("เปิดบัญชีผู้ใช้ฟรีเพื่อจัดการข้อมูลและสูตรอาหารคำนวณด้วย AI")
         
-        vars_dict = {name: pulp.LpVariable(f"Ing_{i}", lowBound=0) for i, name in enumerate(ingredients_list)}
-        
-        prob += pulp.lpSum([vars_dict[row['name']] * row['price_per_kg'] for _, row in df_ingredients.iterrows()])
-        prob += pulp.lpSum([vars_dict[i] for i in ingredients_list]) == 100.0
-        
-        for _, row in df_ingredients.iterrows():
-            prob += vars_dict[row['name']] <= row['max_limit_pct']
-        
-        prob += pulp.lpSum([vars_dict[row['name']] * row['protein_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_PROTEIN * 100)
-        prob += pulp.lpSum([vars_dict[row['name']] * row['me_kcal_per_kg'] for _, row in df_ingredients.iterrows()]) >= (AUTO_ME * 100)
-        prob += pulp.lpSum([vars_dict[row['name']] * row['lysine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_LYSINE * 100)
-        prob += pulp.lpSum([vars_dict[row['name']] * row['methionine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_METHIONINE * 100)
-        
-        prob.solve(pulp.PULP_CBC_CMD(msg=False))
-        
-        if pulp.LpStatus[prob.status] == "Optimal":
-            st.session_state.calculated = True
-            st.session_state.total_cost_100kg = pulp.value(prob.objective)
+        # ฟิลด์ข้อมูลแบบ Facebook (ชื่อ - นามสกุลในแถวเดียวกัน)
+        f_col1, f_col2 = st.columns(2)
+        with f_col1:
+            first_name = st.text_input("ชื่อจริงผู้ดูแลฟาร์ม", key="reg_fn")
+        with f_col2:
+            last_name = st.text_input("นามสกุล", key="reg_ln")
             
-            result_list = []
-            calc_protein = 0.0
-            calc_me = 0.0
-            calc_lysine = 0.0
-            calc_methionine = 0.0
-            
-            for _, row in df_ingredients.iterrows():
-                w = vars_dict[row['name']].varValue
-                if w and w > 0.01:
-                    result_list.append({
-                        "ชื่อวัตถุดิบ": row['name'], 
-                        "สัดส่วน (%)": round(w, 2), 
-                        "ปริมาณที่ต้องใช้ (กก.)": round(w, 2),
-                        "ราคาประเมิน (บาท)": round(w * row['price_per_kg'], 2)
+        reg_email = st.text_input("ที่อยู่อีเมล (Email Address)", key="reg_email")
+        reg_password = st.text_input("ตั้งรหัสผ่านใหม่ (Password)", type="password", key="reg_password", help="ต้องมีความยาว 8 ตัวอักษรขึ้นไป ประกอบด้วยพิมพ์ใหญ่ พิมพ์เล็ก ตัวเลข และสัญลักษณ์")
+        
+        # แสดงระดับความปลอดภัยของรหัสผ่านแบบ Real-time
+        if reg_password:
+            is_valid, msg = is_password_strong(reg_password)
+            if is_valid:
+                st.success(f"🟢 รหัสผ่านปลอดภัย: {msg}")
+            else:
+                st.warning(f"🟡 {msg}")
+                
+        st.markdown("---")
+        st.markdown("##### 🏡 ข้อมูลจำลองโปรไฟล์ฟาร์มของคุณ")
+        farm_name = st.text_input("ชื่อฟาร์ม / ชื่อสถานประกอบการ")
+        farm_province = st.selectbox("ภูมิภาคที่ตั้งฟาร์ม", ["ภาคกลาง", "ภาคเหนือ", "ภาคตะวันออกเฉียงเหนือ", "ภาคใต้", "ภาคตะวันออก", "ภาคตะวันตก"])
+        farm_size = st.radio("ขนาดฟาร์มจำลอง", ["รายย่อย (1-500 ตัว)", "ปานกลาง (501-5,000 ตัว)", "อุตสาหกรรม (มากกว่า 5,000 ตัว)"], horizontal=True)
+
+        if st.button("สร้างบัญชีผู้ใช้ใหม่", use_container_width=True):
+            is_valid, msg = is_password_strong(reg_password)
+            if not (first_name and last_name and reg_email and farm_name):
+                st.error("❌ กรุณากรอกข้อมูลส่วนตัวและข้อมูลจำลองฟาร์มให้ครบถ้วน")
+            elif not is_valid:
+                st.error(f"❌ รหัสผ่านไม่ผ่านเกณฑ์ความปลอดภัย: {msg}")
+            else:
+                try:
+                    # สมัครในระบบและบันทึกข้อมูลเสริมลง Metadata ไปพร้อมกัน
+                    res = supabase.auth.sign_up({
+                        "email": reg_email,
+                        "password": reg_password,
+                        "options": {
+                            "data": {
+                                "first_name": first_name,
+                                "last_name": last_name,
+                                "farm_name": farm_name,
+                                "farm_province": farm_province,
+                                "farm_size": farm_size
+                            }
+                        }
                     })
-                    calc_protein += w * row['protein_pct']
-                    calc_me += w * row['me_kcal_per_kg']
-                    calc_lysine += w * row['lysine_pct']
-                    calc_methionine += w * row['methionine_pct']
+                    st.success("📩 สมัครสมาชิกสำเร็จเรียบร้อย! ระบบส่งอีเมลยืนยันตัวตนไปที่กล่องข้อความของคุณแล้ว กรุณากดลิงก์ในอีเมลก่อนลงชื่อเข้าใช้งาน")
+                except Exception as e:
+                    st.error(f"เกิดข้อผิดพลาดจากระบบหลังบ้าน: {str(e)}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 📌 แท็บลืมรหัสผ่าน (Forgot Password)
+    with tab_forgot:
+        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+        st.markdown("### ค้นหาบัญชีและกู้คืนรหัสผ่าน")
+        st.write("ระบบจะส่งลิงก์สำหรับเปลี่ยนรหัสผ่านใหม่ที่ปลอดภัยไปให้ท่านทางอีเมลทันที")
+        reset_email = st.text_input("กรอกอีเมลที่ท่านใช้สมัครสมาชิก", key="forgot_email")
+        
+        if st.button("ส่งอีเมลรีเซ็ตรหัสผ่าน", use_container_width=True):
+            if reset_email:
+                try:
+                    supabase.auth.reset_password_for_email(reset_email)
+                    st.success("📩 ระบบได้ส่งลิงก์สำหรับสร้างรหัสผ่านใหม่ไปยังอีเมลของท่านเรียบร้อยแล้ว!")
+                except Exception as e:
+                    st.error(f"เกิดข้อผิดพลาด: {str(e)}")
+            else:
+                st.error("❌ กรุณากรอกอีเมล")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# --- หน้าหลักของแอปพลิเคชันคำนวณ (กรณีล็อกอินสำเร็จแล้ว) ---
+else:
+    # ดึงข้อมูลผู้ใช้จาก Metadata มาทักทายแบบเป็นมิตร
+    user_info = st.session_state.user.user_metadata
+    user_name = user_info.get("first_name", "ผู้ใช้งาน")
+    farm_title = user_info.get("farm_name", "ระบบอัจฉริยะ")
+    
+    # ด้านบนสุดทำแถบเมนูต้อนรับและปุ่ม Log out
+    header_col1, header_col2 = st.columns([8, 2])
+    with header_col1:
+        st.title("🥚 Smart Layer Feed")
+        st.subheader(f"👋 สวัสดีคุณ {user_name} | แผงควบคุม {farm_title}")
+    with header_col2:
+        st.write("")
+        if st.button("🔒 ออกจากระบบ", use_container_width=True):
+            supabase.auth.sign_out()
+            st.session_state.user = None
+            st.rerun()
+
+    st.markdown("---")
+
+    # ==========================================
+    # SECTION 1: แผงควบคุมและตั้งค่า
+    # ==========================================
+    st.markdown("### ⚙️ แผงควบคุมและตั้งค่าการจำลองฟาร์ม")
+
+    input_col1, input_col2 = st.columns(2, gap="large")
+
+    with input_col1:
+        st.markdown("##### 🐔 ข้อมูลฝูงไก่และสายพันธุ์")
+        
+        selected_group = st.selectbox("กลุ่มไก่ไข่", list_groups, index=0, on_change=reset_calculation)
+        filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == selected_group]['display_name'].tolist())
             
-            st.session_state.df_result = pd.DataFrame(result_list)
-            st.session_state.calculated_protein = calc_protein / 100
-            st.session_state.calculated_me = calc_me / 100
-            st.session_state.calculated_lysine = calc_lysine / 100
-            st.session_state.calculated_methionine = calc_methionine / 100
-            st.success("🎉 ล็อกสัดส่วนและสูตรอาหารที่คุ้มค่าที่สุดเรียบร้อยแล้ว!")
-        else:
-            st.error("❌ ไม่สามารถคำนวณหาจุดคุ้มค่าได้ คลังวัตถุดิบปัจจุบันอาจมีสารอาหารต่ำเกินไป หรือเงื่อนไขขัดกันเอง")
+        selected_breed = st.selectbox("สายพันธุ์", filtered_breeds, index=0, on_change=reset_calculation)
+        selected_stage = st.selectbox("ระยะการเลี้ยง", list_stages, index=0, on_change=reset_calculation)
+        
+        st.info("💡 **เกณฑ์โภชนาการสำหรับไก่ไข่ช่วงอายุ 0-6 สัปดาห์:**\n"
+                "- โปรตีน (Protein): ไม่ต่ำกว่า **20.0%**\n"
+                "- พลังงานใช้ประโยชน์ได้ (ME): ไม่ต่ำกว่า **2,900 kcal/กก.**\n"
+                "- ไลซีน (Lysine): ไม่ต่ำกว่า **1.10%**\n"
+                "- เมทไธโอนีน (Methionine): ไม่ต่ำกว่า **0.45%**")
 
-st.markdown("---")
-
-# ==========================================
-# SECTION 2: รายงานผลลัพธ์
-# ==========================================
-st.markdown("### 📊 รายงานผลลัพธ์และการวิเคราะห์ประสิทธิภาพสูตรอาหาร")
-
-if st.session_state.calculated and st.session_state.df_result is not None:
-    total_feed_day_kg = (num_chickens * feed_per_bird_g) / 1000
-    cost_per_day = total_feed_day_kg * (st.session_state.total_cost_100kg / 100)
-    expected_eggs_day = num_chickens * (laying_rate / 100)
-    revenue_per_day = expected_eggs_day * egg_price
-    net_profit_per_day = revenue_per_day - cost_per_day
-
-    m1, m2, m3, m4 = st.columns(4)
-    with m1: st.metric(label="📉 ต้นทุนอาหารรวม / วัน", value=f"{cost_per_day:,.2f} ฿")
-    with m2: st.metric(label="📈 รายได้รวมจากการขายไข่ / วัน", value=f"{revenue_per_day:,.2f} ฿")
-    with m3: st.metric(label="🏆 กำไรสุทธิคาดการณ์ / วัน", value=f"{net_profit_per_day:,.2f} ฿", delta=f"{net_profit_per_day/num_chickens:.2f} ฿/ตัว")
-    with m4: st.metric(label="💰 ราคาเฉลี่ยสูตรอาหาร (ต่อกก.)", value=f"{st.session_state.total_cost_100kg / 100:.2f} ฿")
+    with input_col2:
+        st.markdown("##### 💰 ข้อมูลจำลองขนาดฟาร์มและเป้าหมายการผลิต")
+        num_chickens = st.number_input("จำนวนไก่ไข่ในเล้า (ตัว)", min_value=1, value=180, step=10, on_change=reset_calculation)
+        feed_per_bird_g = st.number_input("อัตราการกินอาหาร (กรัม/ตัว/วัน)", min_value=1.0, value=180.0, step=5.0, on_change=reset_calculation)
+        egg_price = st.number_input("ราคาไข่ไก่เฉลี่ยที่คาดหวัง (บาท/ฟอง)", min_value=0.0, value=4.10, step=0.1, on_change=reset_calculation)
+        laying_rate = st.slider("อัตราการให้ไข่ของฝูงเป้าหมาย (%)", min_value=0, max_value=100, value=85, on_change=reset_calculation)
 
     st.markdown("##")
-    report_left, report_right = st.columns([1.1, 0.9], gap="large")
-    
-    with report_left:
-        st.markdown("##### 🍩 แผนภูมิสัดส่วนโครงสร้างวัตถุดิบ")
-        fig = px.pie(
-            st.session_state.df_result, 
-            values='สัดส่วน (%)', 
-            names='ชื่อวัตถุดิบ', 
-            hole=0.45,
-            color_discrete_sequence=px.colors.qualitative.Safe
-        )
-        fig.update_layout(
-            margin=dict(t=10, b=10, l=10, r=10), 
-            height=320, 
-            font=dict(color="white"), 
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        
-        st.markdown("##### 🧪 ความแม่นยำของสารอาหารที่ได้จริง")
-        prog_col1, prog_col2 = st.columns(2)
-        with prog_col1:
-            st.progress(min(st.session_state.calculated_protein / 20.0, 1.0), text=f"โปรตีน: {st.session_state.calculated_protein:.2f}% (เป้า: 20.0%)")
-            st.progress(min(st.session_state.calculated_lysine / 1.10, 1.0), text=f"ไลซีน: {st.session_state.calculated_lysine:.2f}% (เป้า: 1.10%)")
-        with prog_col2:
-            st.progress(min(st.session_state.calculated_me / 2900.0, 1.0), text=f"พลังงาน: {st.session_state.calculated_me:.0f} kcal (เป้า: 2,900 kcal)")
-            st.progress(min(st.session_state.calculated_methionine / 0.45, 1.0), text=f"เมทไธโอนีน: {st.session_state.calculated_methionine:.2f}% (เป้า: 0.45%)")
 
-    with report_right:
-        st.markdown("##### 📋 ตารางสัดส่วนใบสั่งผสมวัตถุดิบจริง (ต่อ 100 กิโลกรัม)")
-        st.dataframe(st.session_state.df_result, use_container_width=True, hide_index=True, height=320)
+    # ปุ่มเริ่มคำนวณสูตรอาหาร
+    if st.button("🚀 ประมวลผลและคำนวณสารอาหารที่แม่นยำที่สุด", use_container_width=True, type="primary"):
+        if not df_ingredients.empty:
+            AUTO_PROTEIN = 20.0
+            AUTO_ME = 2900.0
+            AUTO_LYSINE = 1.10
+            AUTO_METHIONINE = 0.45
+            
+            prob = pulp.LpProblem("Feed_Optimization", pulp.LpMinimize)
+            ingredients_list = df_ingredients['name'].tolist()
+            
+            vars_dict = {name: pulp.LpVariable(f"Ing_{i}", lowBound=0) for i, name in enumerate(ingredients_list)}
+            
+            prob += pulp.lpSum([vars_dict[row['name']] * row['price_per_kg'] for _, row in df_ingredients.iterrows()])
+            prob += pulp.lpSum([vars_dict[i] for i in ingredients_list]) == 100.0
+            
+            for _, row in df_ingredients.iterrows():
+                prob += vars_dict[row['name']] <= row['max_limit_pct']
+            
+            prob += pulp.lpSum([vars_dict[row['name']] * row['protein_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_PROTEIN * 100)
+            prob += pulp.lpSum([vars_dict[row['name']] * row['me_kcal_per_kg'] for _, row in df_ingredients.iterrows()]) >= (AUTO_ME * 100)
+            prob += pulp.lpSum([vars_dict[row['name']] * row['lysine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_LYSINE * 100)
+            prob += pulp.lpSum([vars_dict[row['name']] * row['methionine_pct'] for _, row in df_ingredients.iterrows()]) >= (AUTO_METHIONINE * 100)
+            
+            prob.solve(pulp.PULP_CBC_CMD(msg=False))
+            
+            if pulp.LpStatus[prob.status] == "Optimal":
+                st.session_state.calculated = True
+                st.session_state.total_cost_100kg = pulp.value(prob.objective)
+                
+                result_list = []
+                calc_protein = 0.0
+                calc_me = 0.0
+                calc_lysine = 0.0
+                calc_methionine = 0.0
+                
+                for _, row in df_ingredients.iterrows():
+                    w = vars_dict[row['name']].varValue
+                    if w and w > 0.01:
+                        result_list.append({
+                            "ชื่อวัตถุดิบ": row['name'], 
+                            "สัดส่วน (%)": round(w, 2), 
+                            "ปริมาณที่ต้องใช้ (กก.)": round(w, 2),
+                            "ราคาประเมิน (บาท)": round(w * row['price_per_kg'], 2)
+                        })
+                        calc_protein += w * row['protein_pct']
+                        calc_me += w * row['me_kcal_per_kg']
+                        calc_lysine += w * row['lysine_pct']
+                        calc_methionine += w * row['methionine_pct']
+                
+                st.session_state.df_result = pd.DataFrame(result_list)
+                st.session_state.calculated_protein = calc_protein / 100
+                st.session_state.calculated_me = calc_me / 100
+                st.session_state.calculated_lysine = calc_lysine / 100
+                st.session_state.calculated_methionine = calc_methionine / 100
+                st.success("🎉 ล็อกสัดส่วนและสูตรอาหารที่คุ้มค่าที่สุดเรียบร้อยแล้ว!")
+            else:
+                st.error("❌ ไม่สามารถคำนวณหาจุดคุ้มค่าได้ คลังวัตถุดิบปัจจุบันอาจมีสารอาหารต่ำเกินไป หรือเงื่อนไขขัดกันเอง")
+
+    st.markdown("---")
+
+    # ==========================================
+    # SECTION 2: รายงานผลลัพธ์
+    # ==========================================
+    st.markdown("### 📊 รายงานผลลัพธ์และการวิเคราะห์ประสิทธิภาพสูตรอาหาร")
+
+    if st.session_state.calculated and st.session_state.df_result is not None:
+        total_feed_day_kg = (num_chickens * feed_per_bird_g) / 1000
+        cost_per_day = total_feed_day_kg * (st.session_state.total_cost_100kg / 100)
+        expected_eggs_day = num_chickens * (laying_rate / 100)
+        revenue_per_day = expected_eggs_day * egg_price
+        net_profit_per_day = revenue_per_day - cost_per_day
+
+        m1, m2, m3, m4 = st.columns(4)
+        with m1: st.metric(label="📉 ต้นทุนอาหารรวม / วัน", value=f"{cost_per_day:,.2f} ฿")
+        with m2: st.metric(label="📈 รายได้รวมจากการขายไข่ / วัน", value=f"{revenue_per_day:,.2f} ฿")
+        with m3: st.metric(label="🏆 กำไรสุทธิคาดการณ์ / วัน", value=f"{net_profit_per_day:,.2f} ฿", delta=f"{net_profit_per_day/num_chickens:.2f} ฿/ตัว")
+        with m4: st.metric(label="💰 ราคาเฉลี่ยสูตรอาหาร (ต่อกก.)", value=f"{st.session_state.total_cost_100kg / 100:.2f} ฿")
+
+        st.markdown("##")
+        report_left, report_right = st.columns([1.1, 0.9], gap="large")
         
-        st.markdown("---")
-        action_c1, action_c2 = st.columns(2)
-        with action_c1:
-            if st.button("💾 บันทึกสูตรลงฐานข้อมูลฟาร์ม", use_container_width=True):
-                st.toast("📝 บันทึกสูตรอาหารเรียบร้อยแล้ว (Simulated)!")
-        with action_c2:
-            st.button("🖨️ พิมพ์ใบสั่งผสมอาหาร (PDF)", use_container_width=True, disabled=True)
-else:
-    st.info("💡 **ระบบพร้อมใช้งาน:** ตั้งค่ากลุ่มไก่และสายพันธุ์จากแผงควบคุมด้านบน จากนั้นกดปุ่มประมวลผลสูตรอาหารได้ทันทีครับ")
+        with report_left:
+            st.markdown("##### 🍩 แผนภูมิสัดส่วนโครงสร้างวัตถุดิบ")
+            fig = px.pie(
+                st.session_state.df_result, 
+                values='สัดส่วน (%)', 
+                names='ชื่อวัตถุดิบ', 
+                hole=0.45,
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            fig.update_layout(
+                margin=dict(t=10, b=10, l=10, r=10), 
+                height=320, 
+                font=dict(color="white"), 
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.markdown("##### 🧪 ความแม่นยำของสารอาหารที่ได้จริง")
+            prog_col1, prog_col2 = st.columns(2)
+            with prog_col1:
+                st.progress(min(st.session_state.calculated_protein / 20.0, 1.0), text=f"โปรตีน: {st.session_state.calculated_protein:.2f}% (เป้า: 20.0%)")
+                st.progress(min(st.session_state.calculated_lysine / 1.10, 1.0), text=f"ไลซีน: {st.session_state.calculated_lysine:.2f}% (เป้า: 1.10%)")
+            with prog_col2:
+                st.progress(min(st.session_state.calculated_me / 2900.0, 1.0), text=f"พลังงาน: {st.session_state.calculated_me:.0f} kcal (เป้า: 2,900 kcal)")
+                st.progress(min(st.session_state.calculated_methionine / 0.45, 1.0), text=f"เมทไธโอนีน: {st.session_state.calculated_methionine:.2f}% (เป้า: 0.45%)")
+
+        with report_right:
+            st.markdown("##### 📋 ตารางสัดส่วนใบสั่งผสมวัตถุดิบจริง (ต่อ 100 กิโลกรัม)")
+            st.dataframe(st.session_state.df_result, use_container_width=True, hide_index=True, height=320)
+            
+            st.markdown("---")
+            action_c1, action_c2 = st.columns(2)
+            with action_c1:
+                if st.button("💾 บันทึกสูตรลงฐานข้อมูลฟาร์ม", use_container_width=True):
+                    st.toast(f"📝 บันทึกสูตรอาหารเรียบร้อยภายใต้บัญชีคุณ {user_name}!")
+            with action_c2:
+                st.button("🖨️ พิมพ์ใบสั่งผสมอาหาร (PDF)", use_container_width=True, disabled=True)
+    else:
+        st.info("💡 **ระบบพร้อมใช้งาน:** ตั้งค่ากลุ่มไก่และสายพันธุ์จากแผงควบคุมด้านบน จากนั้นกดปุ่มประมวลผลสูตรอาหารได้ทันทีครับ")
