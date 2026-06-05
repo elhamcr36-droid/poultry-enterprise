@@ -16,10 +16,11 @@ SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Supabase Ano
 # 📋 2. ฐานข้อมูลส่วนประกอบและโภชนาการมาตรฐาน
 # ==========================================
 
+# 🔄 ปรับให้ชื่อภาษาไทยขึ้นก่อน และตามด้วยอังกฤษในวงเล็บ
 STAGE_NUTRITION_TARGETS = {
-    "starter": {"name": "ลูกไก่ไข่ (0 - 6 สัปดาห์)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42},
-    "grower": {"name": "ไก่รุ่นไข่ (6 - 16 สัปดาห์)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32},
-    "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต (16 สัปดาห์ขึ้นไป)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38}
+    "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42},
+    "grower": {"name": "ไก่รุ่นไข่ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32},
+    "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต 16 สัปดาห์ขึ้นไป (Laying)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38}
 }
 
 INGREDIENT_DATA = {
@@ -32,31 +33,32 @@ INGREDIENT_DATA = {
     "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
 }
 
+# 🔄 ปรับชื่อสายพันธุ์ทั้งหมดเป็น: ภาษาไทย (ภาษาอังกฤษ) ตามรูปแบบคอมโบ้บ็อกซ์ในรูปภาพของคุณ
 BREED_PROFILES = {
     "1. กลุ่มไฮบริด / ลูกผสมพาณิชย์ (Commercial Hybrids)": {
-        "Isa Brown": {"name": "Isa Brown (ไอซ่า บราวน์)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนร้อนดีเยี่ยม"},
-        "Hy-Line Brown": {"name": "Hy-Line Brown (ไฮไลน์ บราวน์)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "กินน้อยแต่ไข่นิ่ง อัตราผลิตสม่ำเสมอยาวนาน เปลือกแข็งแรงแตกยาก"},
-        "Hisex Brown": {"name": "Hisex Brown (ไฮ-เซ็กส์ บราวน์)", "egg_color": "🤎 น้ำตาลสว่าง", "bg_color": "#c2410c", "text_color": "#ffffff", "default_feed": 113, "desc": "สายพันธุ์อึด ให้ผลผลิตสูงช่วงต้นของการไข่เร็วมาก นิยมไม่แพ้สองพันธุ์แรก"},
-        "Bovans Brown": {"name": "Bovans Brown (โบบัน บราวน์)", "egg_color": "🤎 น้ำตาลทอง", "bg_color": "#a16207", "text_color": "#ffffff", "default_feed": 112, "desc": "อารมณ์ดี ไม่เครียดง่าย โครงสร้างร่างกายแข็งแรง ทนต่อสิ่งแวดล้อมได้ดี"},
-        "Novogen Brown": {"name": "Novogen Brown (โนโวเจน บราวน์)", "egg_color": "🤎 น้ำตาลคลาสสิก", "bg_color": "#9a3412", "text_color": "#ffffff", "default_feed": 111, "desc": "สายพันธุ์ฝรั่งเศส เด่นเรื่องคุณภาพภายในของไข่ ไข่แดงนูนสวย ไข่ขาวข้น"},
-        "Lohmann Brown": {"name": "Lohmann Brown (โลห์แมน บราวน์)", "egg_color": "🤎 น้ำตาลสม่ำเสมอ", "bg_color": "#78350f", "text_color": "#ffffff", "default_feed": 114, "desc": "สายพันธุ์เยอรมัน ปรับตัวกับกรงตับและระบบปิดได้ดีเยี่ยม ไข่ฟองใหญ่เสมอกัน"}
+        "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนร้อนดีเยี่ยม"},
+        "Hy-Line Brown": {"name": "ไฮไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "กินน้อยแต่ไข่นิ่ง อัตราผลิตสม่ำเสมอยาวนาน เปลือกแข็งแรงแตกยาก"},
+        "Hisex Brown": {"name": "ไฮ-เซ็กส์ บราวน์ (Hisex Brown)", "egg_color": "🤎 น้ำตาลสว่าง", "bg_color": "#c2410c", "text_color": "#ffffff", "default_feed": 113, "desc": "สายพันธุ์อึด ให้ผลผลิตสูงช่วงต้นของการไข่เร็วมาก นิยมไม่แพ้สองพันธุ์แรก"},
+        "Bovans Brown": {"name": "โบบัน บราวน์ (Bovans Brown)", "egg_color": "🤎 น้ำตาลทอง", "bg_color": "#a16207", "text_color": "#ffffff", "default_feed": 112, "desc": "อารมณ์ดี ไม่เครียดง่าย โครงสร้างร่างกายแข็งแรง ทนต่อสิ่งแวดล้อมได้ดี"},
+        "Novogen Brown": {"name": "โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "🤎 น้ำตาลคลาสสิก", "bg_color": "#9a3412", "text_color": "#ffffff", "default_feed": 111, "desc": "สายพันธุ์ฝรั่งเศส เด่นเรื่องคุณภาพภายในของไข่ ไข่แดงนูนสวย ไข่ขาวข้น"},
+        "Lohmann Brown": {"name": "โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "🤎 น้ำตาลสม่ำเสมอ", "bg_color": "#78350f", "text_color": "#ffffff", "default_feed": 114, "desc": "สายพันธุ์เยอรมัน ปรับตัวกับกรงตับและระบบปิดได้ดีเยี่ยม ไข่ฟองใหญ่เสมอกัน"}
     },
     "2. กลุ่มสายพันธุ์แท้ (Pure Breeds)": {
-        "Rhode Island Red": {"name": "Rhode Island Red (โรดไอแลนด์เรด)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่สีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด ทนฝน เหมาะสำหรับเลี้ยงปล่อยธรรมชาติ (Free-range)"},
-        "White Leghorn": {"name": "White Leghorn (เลกฮอร์นขาว)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ตัวเล็ก ขนขาว ปราดเปรียว บินเก่ง ให้ไข่เปลือกสีขาวสะอาด ดกมากเกือบเท่าไก่ไฮบริด"},
-        "Barred Plymouth Rock": {"name": "Barred Plymouth Rock (บาร์พลีมัทร็อค)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#64748b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายเสือตัวใหญ่ แข็งแรง ทนทาน นอกจากไข่ดีแล้ว เนื้อยังอร่อยด้วย (กึ่งเนื้อกึ่งไข่)"},
-        "Australorp": {"name": "Australorp (ออสตราลอป)", "egg_color": "🤎 น้ำตาลครีมนวล", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ดำเหลือบเขียวมะกอก เชื่องมาก ตัวอวบอ้วนทนทานสูง ผลผลิตไข่สม่ำเสมอ"},
-        "Sussex": {"name": "Sussex (ซัสเซกส์)", "egg_color": "🩷 ชมพูอมน้ำตาลอ่อน", "bg_color": "#f1f5f9", "text_color": "#0f172a", "default_feed": 118, "desc": "โดยเฉพาะพันธุ์ Light Sussex (ตัวขาวคอดำ) น่ารัก นิสัยดี ให้ไข่สีสวยงามนุ่มนวล"}
+        "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่สีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด ทนฝน เหมาะสำหรับเลี้ยงปล่อยธรรมชาติ (Free-range)"},
+        "White Leghorn": {"name": "เลกฮอร์นขาว (White Leghorn)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ตัวเล็ก ขนขาว ปราดเปรียว บินเก่ง ให้ไข่เปลือกสีขาวสะอาด ดกมากเกือบเท่าไก่ไฮบริด"},
+        "Barred Plymouth Rock": {"name": "บาร์พลีมัทร็อค (Barred Plymouth Rock)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#64748b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายเสือตัวใหญ่ แข็งแรง ทนทาน นอกจากไข่ดีแล้ว เนื้อยังอร่อยด้วย (กึ่งเนื้อกึ่งไข่)"},
+        "Australorp": {"name": "ออสตราลอป (Australorp)", "egg_color": "🤎 น้ำตาลครีมนวล", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ดำเหลือบเขียวมะกอก เชื่องมาก ตัวอวบอ้วนทนทานสูง ผลผลิตไข่สม่ำเสมอ"},
+        "Sussex": {"name": "ซัสเซกส์ (Sussex)", "egg_color": "🩷 ชมพูอมน้ำตาลอ่อน", "bg_color": "#f1f5f9", "text_color": "#0f172a", "default_feed": 118, "desc": "โดยเฉพาะพันธุ์ Light Sussex (ตัวขาวคอดำ) น่ารัก นิสัยดี ให้ไข่สีสวยงามนุ่มนวล"}
     },
     "3. กลุ่มสายพันธุ์พัฒนาของไทย (Thai Developed Breeds)": {
-        "DLD Layer": {"name": "ไก่ไข่กรมปศุสัตว์", "egg_color": "🤎 น้ำตาล", "bg_color": "#047857", "text_color": "#ffffff", "default_feed": 110, "desc": "ลูกผสมระหว่างโรดไอแลนด์เรดกับบาร์พลีมัทร็อค ทนโรคระบาดและอากาศร้อนชื้นในไทยดีมาก"},
-        "SUT Layer": {"name": "ไก่ไข่ มทส. (ม.เทคโนโลยีสุรนารี)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#065f46", "text_color": "#ffffff", "default_feed": 100, "desc": "ตัวเล็กกินอาหารน้อย พัฒนาให้ไข่ดก เหมาะกับการเลี้ยงปล่อยในสวนปาล์ม สวนยาง หรือหลังบ้าน"},
-        "KU Layer": {"name": "ไก่ไข่ มก. (ม.เกษตรศาสตร์)", "egg_color": "🤎 น้ำตาลหนา", "bg_color": "#0f766e", "text_color": "#ffffff", "default_feed": 112, "desc": "โครงสร้างร่างกายแข็งแรง เลี้ยงง่าย ให้ไข่ฟองโต เปลือกหนา เหมาะกับเกษตรกรรายย่อย"}
+        "DLD Layer": {"name": "ไก่ไข่กรมปศุสัตว์ (DLD Layer)", "egg_color": "🤎 น้ำตาล", "bg_color": "#047857", "text_color": "#ffffff", "default_feed": 110, "desc": "ลูกผสมระหว่างโรดไอแลนด์เรดกับบาร์พลีมัทร็อค ทนโรคระบาดและอากาศร้อนชื้นในไทยดีมาก"},
+        "SUT Layer": {"name": "ไก่ไข่ มทส. (SUT Layer)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#065f46", "text_color": "#ffffff", "default_feed": 100, "desc": "ตัวเล็กกินอาหารน้อย พัฒนาให้ไข่ดก เหมาะกับการเลี้ยงปล่อยในสวนปาล์ม สวนยาง หรือหลังบ้าน"},
+        "KU Layer": {"name": "ไก่ไข่ มก. (KU Layer)", "egg_color": "🤎 น้ำตาลหนา", "bg_color": "#0f766e", "text_color": "#ffffff", "default_feed": 112, "desc": "โครงสร้างร่างกายแข็งแรง เลี้ยงง่าย ให้ไข่ฟองโต เปลือกหนา เหมาะกับเกษตรกรรายย่อย"}
     },
     "4. กลุ่มไข่สีแฟนซี (Designer / Colored Egg Layers)": {
-        "Araucana": {"name": "Araucana / Ameraucana (อารอคาน่า)", "egg_color": "🩵 ฟ้า/เขียวพาสเทล", "bg_color": "#0ea5e9", "text_color": "#ffffff", "default_feed": 110, "desc": "เด่นที่สุดในกลุ่มนี้ มีเครา ขนฟู ให้ไข่เปลือกสีฟ้าพาสเทล ตลาดไข่พรีเมียม/อินทรีย์ต้องการสูง"},
-        "Marans": {"name": "Marans (มารันส์)", "egg_color": "🍫 ช็อกโกแลตเข้ม", "bg_color": "#451a03", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ฝรั่งเศส ขึ้นชื่อเรื่องให้ไข่เปลือกสีช็อกโกแลตเข้มสวยงาม เนื้อผิวเงาและราคาแพงมาก"},
-        "Olive Egger": {"name": "Olive Egger (โอลิฟ เอ็กเกอร์)", "egg_color": "💚 เขียวมะกอก", "bg_color": "#3f6212", "text_color": "#ffffff", "default_feed": 115, "desc": "ลูกผสมข้ามสายพันธุ์ที่ทำให้ได้ไข่เปลือกสีเขียวมะกอก เป็นที่นิยมสูงในกลุ่มผู้บริโภคสายโมเดิร์น"}
+        "Araucana": {"name": "อารอคาน่า (Araucana / Ameraucana)", "egg_color": "🩵 ฟ้า/เขียวพาสเทล", "bg_color": "#0ea5e9", "text_color": "#ffffff", "default_feed": 110, "desc": "เด่นที่สุดในกลุ่มนี้ มีเครา ขนฟู ให้ไข่เปลือกสีฟ้าพาสเทล ตลาดไข่พรีเมียม/อินทรีย์ต้องการสูง"},
+        "Marans": {"name": "มารันส์ (Marans)", "egg_color": "🍫 ช็อกโกแลตเข้ม", "bg_color": "#451a03", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ฝรั่งเศส ขึ้นชื่อเรื่องให้ไข่เปลือกสีช็อกโกแลตเข้มสวยงาม เนื้อผิวเงาและราคาแพงมาก"},
+        "Olive Egger": {"name": "โอลิฟ เอ็กเกอร์ (Olive Egger)", "egg_color": "💚 เขียวมะกอก", "bg_color": "#3f6212", "text_color": "#ffffff", "default_feed": 115, "desc": "ลูกผสมข้ามสายพันธุ์ที่ทำให้ได้ไข่เปลือกสีเขียวมะกอก เป็นที่นิยมสูงในกลุ่มผู้บริโภคสายโมเดิร์น"}
     }
 }
 
@@ -79,7 +81,6 @@ with c_group:
 
 with c_breed:
     breed_options = BREED_PROFILES[selected_group]
-    # 🔥 แก้ไขจุดที่ 1: ใช้ฟังก์ชัน format_func เพื่อเปลี่ยนคีย์อังกฤษใน Selectbox ให้แสดงผลเป็นชื่อภาษาไทยที่จัดแต่งไว้
     selected_breed_key = st.selectbox(
         "สายพันธุ์หลักในโรงเรือน:", 
         options=list(breed_options.keys()),
@@ -93,7 +94,7 @@ st.markdown(f"""
 <div style='background-color:{breed_info['bg_color']}; padding:15px; border-radius:10px; color:{breed_info['text_color']}; margin-bottom:15px; border: 1px solid rgba(0,0,0,0.1);'>
     <b>🧬 สายพันธุ์ปัจจุบัน: {breed_info['name']}</b> | 🎨 สีเปลือกไข่: {breed_info['egg_color']} | 🥣 อัตรากินอาหาร: {breed_info['default_feed']} กรัม/วัน <br>
     <p style='margin: 5px 0 0 0; font-size: 0.9em; opacity: 0.95;'>ℹ️ <i>{breed_info['desc']}</i></p>
-    <small style='display:block; margin-top:5px; font-weight: bold; opacity: 0.8;'>📊 สถานะการซิงค์ข้อมูลฐานข้อมูลคลาวด์ Supabase: {cloud_status_text}</small>
+    <small style='display:block; margin-top:5px; font-weight: bold; opacity: 0.8;'>📊 Status ระบบคลาวด์ Supabase: {cloud_status_text}</small>
 </div>
 """, unsafe_allow_html=True)
 
@@ -105,7 +106,6 @@ st.markdown("---")
 st.markdown("### ⛅ 1. ระบบปรับสมดุลและคำนวณสารอาหารเป้าหมาย")
 c_age, c_weather = st.columns(2)
 with c_age:
-    # 🔥 แก้ไขจุดที่ 2: ใช้ format_func เปลี่ยน 'starter', 'grower', 'laying' ให้แสดงชื่อไทยในช่องเลือก
     current_key = st.selectbox(
         "เลือกช่วงอายุ/โปรไฟล์ของไก่ (Animal Profile):", 
         options=list(STAGE_NUTRITION_TARGETS.keys()), 
