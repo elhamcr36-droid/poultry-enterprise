@@ -79,20 +79,32 @@ BREED_PROFILES = {
 
 LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
 
-# ผูกตัวแปรพื้นฐานเข้ากับ Session State
-if "selected_group" not in st.session_state: st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
-if "selected_breed_key" not in st.session_state: st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
+# ==========================================
+# 🛡️ 3. ระบบจัดการตัวแปรคงคลังและป้องกัน Bug (Safe State Validation)
+# ==========================================
+if "selected_group" not in st.session_state: 
+    st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
+
+# 🔥 แก้ไขจุดบกพร่อง: ตรวจสอบและบังคับรีเซ็ตกลุ่ม หากตรวจพบชื่อกลุ่มแบบเก่าค้างอยู่ในเบราว์เซอร์ผู้ใช้
+if st.session_state.selected_group not in BREED_PROFILES:
+    st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
+
+if "selected_breed_key" not in st.session_state: 
+    st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
+
+# ตรวจสอบและบังคับรีเซ็ตสายพันธุ์ย่อยให้สัมพันธ์กันกับกลุ่ม
+if st.session_state.selected_breed_key not in BREED_PROFILES[st.session_state.selected_group]:
+    st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
+
 if "current_key" not in st.session_state: st.session_state.current_key = "laying"
 if "weather_env" not in st.session_state: st.session_state.weather_env = "🌡️ อากาศปกติ (25-32°C)"
 if "chicken_count" not in st.session_state: st.session_state.chicken_count = 1000
+
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 if "use_phytase" not in st.session_state: st.session_state.use_phytase = True
 
-# ตรวจสอบความถูกต้องของ Key ป้องกันตกรุ่นกรณีเลือกค้างไว้
-if st.session_state.selected_breed_key not in BREED_PROFILES[st.session_state.selected_group]:
-    st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
-
+# ดึงข้อมูลโปรไฟล์สายพันธุ์ที่การันตีความปลอดภัยเรียบร้อยแล้ว
 breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
 
 # ฟังก์ชันคำนวณโภชนาการปัจจุบัน
