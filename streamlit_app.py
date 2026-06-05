@@ -75,7 +75,7 @@ SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Su
 SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
 
 # ==========================================
-# 🧭 ระบบเมนูแท็บนำทางด้านบน (สลับเอาระบบหลังบ้านไปไว้ท้ายสุด)
+# 🧭 ระบบเมนูแท็บนำทางด้านบน
 # ==========================================
 st.markdown("# 🐔 Smart Layer Feed")
 st.markdown("### ระบบคำนวณสูตรอาหารและบริหารจัดการฟาร์มไก่ไข่อัจฉริยะแบบครบวงจร")
@@ -194,9 +194,27 @@ with page_tabs[0]:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ⛅ การจัดการอายุฝูงสัตว์")
+    # 📍 ย้ายโมดูลการจัดการสภาพแวดล้อมและคำนวณน้ำดื่มขึ้นมาไว้ตรงนี้ตามสั่ง
+    st.markdown("---")
+    st.markdown("### ⛅ การจัดการสภาพแวดล้อมและอุณหภูมิโรงเรือน")
+    weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
+    st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้ (ส่งผลต่อการกินน้ำและโภชนาการไก่):", weather_list, horizontal=True)
+    
+    # 💧 คำนวณน้ำดื่มเชื่อมโยงทันทีในแผงหน้าแรก
+    base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
+    calc_water = st.session_state.chicken_count * base_water
+    if "ร้อนจัด" in st.session_state.weather_env:
+        calc_water *= 1.25
+        st.error("🔥 ตรวจพบสภาวะอากาศร้อนจัด! ระบบปรับโภชนาการเมตาบอลิซึม และแนะนำให้จ่ายน้ำเพิ่มขึ้น +25% ทันทีเพื่อลดสภาวะ Heat Stress")
+    
+    w_col1, w_col2 = st.columns(2)
+    with w_col1:
+        st.session_state.chicken_count = st.number_input("จำนวนไก่ในฟาร์มทั้งหมด (ตัว):", min_value=1, value=st.session_state.chicken_count, step=100)
+    with w_col2:
+        st.metric("💧 ปริมาณน้ำดื่มรวมที่ต้องจ่ายเข้าโรงเรือนวันนี้", f"{calc_water:,.1f} ลิตร")
+
+    st.markdown("### 🗓️ การจัดการอายุฝูงสัตว์")
     st.session_state.current_key = st.selectbox("เลือกช่วงอายุ/โปรไฟล์ของไก่:", options=list(STAGE_NUTRITION_TARGETS.keys()), format_func=lambda x: STAGE_NUTRITION_TARGETS[x]["name"])
-    st.session_state.chicken_count = st.number_input("จำนวนไก่ในฟาร์มทั้งหมด (ตัว):", min_value=1, value=st.session_state.chicken_count, step=100)
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
@@ -277,7 +295,7 @@ with page_tabs[0]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 2]: สถิติผลผลิต & บัญชีฟาร์ม (ขยับขึ้นมาลำดับที่ 2) ---
+# --- [แท็บที่ 2]: สถิติผลผลิต & บัญชีฟาร์ม ---
 with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 สมุดจดบันทึกสถิติและวิเคราะห์ผลกำไรฟาร์ม")
@@ -332,29 +350,12 @@ with page_tabs[1]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 3]: ระบบหลังบ้าน (ย้ายมาไว้หลังสุดขวาสุด) ---
+# --- [แท็บที่ 3]: ระบบหลังบ้าน ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ระบบหลังบ้าน (Backoffice Management)")
     
-    st.markdown("### ⛅ การจัดการสภาพแวดล้อมและอุณหภูมิ")
-    weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
-    st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้ (ส่งผลต่อน้ำดื่มและการคำนวณโภชนาการ AI):", weather_list, horizontal=True)
-    
-    st.markdown("---")
-    
-    st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
-    breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
-    base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
-    calc_water = st.session_state.chicken_count * base_water
-    if "ร้อนจัด" in st.session_state.weather_env:
-        calc_water *= 1.25
-        st.error("🔥 ตรวจพบอุณหภูมิอากาศร้อนจัด! ระบบหลังบ้านปรับสูตรปริมาณน้ำดื่มขึ้น 25% เพื่อลดสภาวะ Heat Stress")
-    st.metric("ปริมาณน้ำดื่มรวมที่ต้องจ่ายเข้าโรงเรือนต่อวัน", f"{calc_water:,.1f} ลิตร (Liters)")
-    
-    st.markdown("---")
     st.markdown("### 💰 อัปเดตราคาวัตถุดิบประจำงวด (บาท/กิโลกรัม)")
-    
     all_ingredients = list(st.session_state.ingredient_data.keys())
     chunk_size = 4
     for i in range(0, len(all_ingredients), chunk_size):
@@ -371,7 +372,7 @@ with page_tabs[2]:
     st.markdown("---")
     st.markdown("### 📝 ใบประมาณการจัดซื้อและดาวน์โหลด PO")
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
-    st.info(f"📊 ปริมาณอาหารรวมที่ต้องจัดซื้อจัดสำรอง: **{total_feed_needed_kg/1000.0:,.2f} ตัน**")
+    st.info(f"📊 ปริมาณอาหารรวมที่ต้องจัดซื้อจัดสำรองตามจำนวนสัตว์: **{total_feed_needed_kg/1000.0:,.2f} ตัน**")
     
     budget_data = []
     for name, weight in st.session_state.optimized_weights.items():
@@ -397,4 +398,4 @@ with page_tabs[2]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ปรับย้ายลำดับปุ่มระบบหลังบ้านไปท้ายสุดสำเร็จ</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ย้ายโมดูลสภาพแวดล้อมและระบบคำนวณน้ำมาไว้หน้าแรกสำเร็จ</div>", unsafe_allow_html=True)
