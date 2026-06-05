@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# [ปรับปรุง] แถบข้างซ้ายเหลือไว้เฉพาะการเชื่อมต่อ Cloud เท่านั้น เมนูนำทางเดิมในวงกลมแดงถูกย้ายออกแล้วตามภาพ edited-image.png
+# แถบข้างซ้ายเหลือไว้เฉพาะการเชื่อมต่อ Cloud เท่านั้น เมนูนำทางเดิมในวงกลมแดงถูกย้ายออกแล้วตามภาพ edited-image.png
 st.sidebar.markdown("### ☁️ การเชื่อมต่อคลาวด์ระดับองค์กร")
 SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-project.supabase.co").strip()
 SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
@@ -120,6 +120,10 @@ if st.session_state.selected_breed_key not in BREED_PROFILES[st.session_state.se
 if "current_key" not in st.session_state: st.session_state.current_key = "laying"
 if "weather_env" not in st.session_state: st.session_state.weather_env = "🌡️ อากาศปกติ (25-32°C)"
 if "chicken_count" not in st.session_state: st.session_state.chicken_count = 1000
+
+# 🔥 [แก้ไขบั๊กล็อกอินแรกสุด] ป้องกัน AttributeError บังคับประกาศสถานะ use_phytase เป็น False ทันทีหากพึ่งเปิดแอป
+if "use_phytase" not in st.session_state: 
+    st.session_state.use_phytase = False
 
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {name: 0.0 for name in st.session_state.ingredient_data.keys()}
@@ -253,7 +257,7 @@ with page_tabs[1]:
     if st.session_state.use_phytase:
         adjusted_target["phos"] = max(0.30, adjusted_target["phos"] - 0.10)
 
-    # ปุ่มรัน AI ลิเนียร์โปรแกรมมิ่งคำนวณราคาต่ำสุด (โดยคำนวณตามเงื่อนไขสารอาหารเดิมทั้งหมดครบถ้วน)
+    # ปุ่มรัน AI ลิเนียร์โปรแกรมมิ่งคำนวณราคาต่ำสุด
     if st.button("⚡ สั่งคำนวณสูตรอาหารต้นทุนต่ำที่สุดด้วย AI (Run AI Least-Cost Optimizer)"):
         prob = pulp.LpProblem("LeastCostLayerFeed", pulp.LpMinimize)
         ingredient_vars = {name: pulp.LpVariable(name, lowBound=data.get("min_limit", 0.0), upBound=data.get("max_limit", 100.0)) for name, data in st.session_state.ingredient_data.items()}
@@ -446,4 +450,4 @@ with page_tabs[3]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed | รวบรวมฟังก์ชันทุกอย่างจากเวอร์ชันก่อนหน้ากลับมาครบถ้วน 100% เรียบร้อยแล้ว</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed | แก้ไขปัญหา AttributeError สำหรับสถานะเริ่มต้นครบถ้วนเสร็จสมบูรณ์</div>", unsafe_allow_html=True)
