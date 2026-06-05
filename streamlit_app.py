@@ -75,14 +75,13 @@ SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Su
 SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
 
 # ==========================================
-# 🧭 ระบบเมนูแท็บนำทางด้านบน (Top Tabs Navigation)
+# 🧭 ระบบเมนูแท็บนำทางด้านบน (Top Tabs Navigation - ยุบเหลือ 3 แท็บหลัก)
 # ==========================================
 st.markdown("# 🐔 Smart Layer Feed")
 st.markdown("### ระบบคำนวณสูตรอาหารและบริหารจัดการฟาร์มไก่ไข่อัจฉริยะแบบครบวงจร")
 
 page_tabs = st.tabs([
-    "🏠 หน้าแรก & ตั้งค่าสายพันธุ์", 
-    "🧠 คำนวณสูตรอาหาร (AI Optimizer)", 
+    "🏠 หน้าแรก & ห้องปฏิบัติการสูตรอาหาร", 
     "📦 ระบบหลังบ้าน", 
     "📈 สถิติผลผลิต & บัญชีฟาร์ม"
 ])
@@ -178,10 +177,10 @@ current_nutrition, current_formula_cost, total_moisture, total_risk_score = calc
 # 📥 4. ส่วนเนื้อหาของแต่ละแท็บแอปพลิเคชัน
 # ==========================================
 
-# --- [แท็บที่ 1]: หน้าแรก & ตั้งค่าสายพันธุ์ ---
+# --- [แท็บที่ 1]: หน้าแรก & ห้องปฏิบัติการสูตรอาหาร (รวมกันตามสั่ง) ---
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 🏠 ข้อมูลสายพันธุ์หลักและสภาพแวดล้อมฟาร์ม")
+    st.markdown("<h2>🏠 ข้อมูลสายพันธุ์หลักและการตั้งค่าฟาร์ม</h2>")
     
     c_group, c_breed = st.columns(2)
     with c_group:
@@ -199,24 +198,17 @@ with page_tabs[0]:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ⛅ การจัดการอายุและสภาพแวดล้อม")
-    c_age, c_weather = st.columns(2)
-    with c_age:
-        st.session_state.current_key = st.selectbox("เลือกช่วงอายุ/โปรไฟล์ของไก่:", options=list(STAGE_NUTRITION_TARGETS.keys()), format_func=lambda x: STAGE_NUTRITION_TARGETS[x]["name"])
-    with c_weather:
-        weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
-        st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้:", weather_list, horizontal=True)
-
+    st.markdown("### ⛅ การจัดการอายุฝูงสัตว์")
+    st.session_state.current_key = st.selectbox("เลือกช่วงอายุ/โปรไฟล์ของไก่:", options=list(STAGE_NUTRITION_TARGETS.keys()), format_func=lambda x: STAGE_NUTRITION_TARGETS[x]["name"])
     st.session_state.chicken_count = st.number_input("จำนวนไก่ในฟาร์มทั้งหมด (ตัว):", min_value=1, value=st.session_state.chicken_count, step=100)
     st.markdown("</div>", unsafe_allow_html=True)
 
-
-# --- [แท็บที่ 2]: คำนวณสูตรอาหาร (AI Optimizer) ---
-with page_tabs[1]:
+    # 🔥 ย้าย "ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์" มาไว้ที่หน้าแรกตรงนี้
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 🧠 ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์")
+    st.markdown("<h2>🧠 ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์ (AI Optimizer)</h2>")
     
     target = STAGE_NUTRITION_TARGETS[st.session_state.current_key]
+    # ดึงค่าปัจจัยความหนาแน่นสารอาหารตามสภาพอากาศที่ระบุไว้ในหน้าหลังบ้านมาใช้ประมวลผลร่วมกัน
     density_factor = 1.08 if "ร้อนจัด" in st.session_state.weather_env else (0.95 if "หนาว" in st.session_state.weather_env else 1.0)
     adjusted_target = {
         "protein": target["protein"] * density_factor, "me": target["me"],
@@ -253,7 +245,7 @@ with page_tabs[1]:
     creator_left, creator_right = st.columns(2, gap="large")
     
     with creator_left:
-        st.markdown("#### 🔧 1. ปรับสัดส่วนวัตถุดิบ (%)")
+        st.markdown("#### 🔧 1. ปรับสัดส่วนวัตถุดิบด้วยมือ (%)")
         user_weights = {}
         for name in list(st.session_state.ingredient_data.keys()):
             val = float(st.session_state.optimized_weights.get(name, 0.0))
@@ -291,19 +283,26 @@ with page_tabs[1]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 3]: ระบบหลังบ้าน (ย้ายระบบคำนวณน้ำมาไว้หน้านี้แล้ว) ---
-with page_tabs[2]:
+# --- [แท็บที่ 2]: ระบบหลังบ้าน (ย้ายสภาพอากาศ และระบบน้ำดื่มมาไว้ที่นี่ทั้งหมด) ---
+with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ระบบหลังบ้าน (Backoffice Management)")
     
-    # 💧 ย้ายระบบคำนวณน้ำดื่มประจำวันมาไว้ส่วนบนของหน้านี้ตามสั่ง
+    # ⛅ ย้ายส่วน "สภาพอากาศและอุณหภูมิวันนี้" มาไว้ที่นี่ตามสั่ง
+    st.markdown("### ⛅ การจัดการสภาพแวดล้อมและอุณหภูมิ")
+    weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
+    st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้ (ส่งผลต่อน้ำดื่มและการคำนวณโภชนาการ AI):", weather_list, horizontal=True)
+    
+    st.markdown("---")
+    
+    # 💧 ระบบคำนวณน้ำดื่มประจำวัน
     st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
     breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
     base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
     calc_water = st.session_state.chicken_count * base_water
     if "ร้อนจัด" in st.session_state.weather_env:
         calc_water *= 1.25
-        st.error("🔥 ตรวจพบอุณหภูมิอากาศร้อนจัด! ระบบหลังบ้านปรับสูตรปริมาณน้ำดื่มขึ้น 25% อัตโนมัติ")
+        st.error("🔥 ตรวจพบอุณหภูมิอากาศร้อนจัด! ระบบหลังบ้านปรับสูตรปริมาณน้ำดื่มขึ้น 25% เพื่อลดสภาวะ Heat Stress")
     st.metric("ปริมาณน้ำดื่มรวมที่ต้องจ่ายเข้าโรงเรือนต่อวัน", f"{calc_water:,.1f} ลิตร (Liters)")
     
     st.markdown("---")
@@ -325,7 +324,7 @@ with page_tabs[2]:
     st.markdown("---")
     st.markdown("### 📝 ใบประมาณการจัดซื้อและดาวน์โหลด PO")
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
-    st.info(f"📊 ปри量อาหารรวมที่ต้องจัดซื้อจัดสำรอง: **{total_feed_needed_kg/1000.0:,.2f} ตัน** (วิเคราะห์ความต้องการจากฐานข้อมูลจำนวนไก่ฝูงปัจจุบัน)")
+    st.info(f"📊 ปริมาณอาหารรวมที่ต้องจัดซื้อจัดสำรอง: **{total_feed_needed_kg/1000.0:,.2f} ตัน** (วิเคราะห์ความต้องการจากฐานข้อมูลจำนวนไก่ฝูงปัจจุบัน)")
     
     budget_data = []
     for name, weight in st.session_state.optimized_weights.items():
@@ -348,8 +347,8 @@ with page_tabs[2]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 4]: สถิติผลผลิต & บัญชีฟาร์ม ---
-with page_tabs[3]:
+# --- [แท็บที่ 3]: สถิติผลผลิต & บัญชีฟาร์ม ---
+with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 สมุดจดบันทึกสถิติและวิเคราะห์ผลกำไรฟาร์ม")
     if "tracker_data" not in st.session_state:
@@ -406,4 +405,4 @@ with page_tabs[3]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ปรับปรุงระบบหลังบ้านและระบบย้ายส่วนคำนวณเรียบร้อย</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ย้ายโครงสร้างวิเคราะห์สภาพอากาศและแล็บ AI สำเร็จสมบูรณ์</div>", unsafe_allow_html=True)
