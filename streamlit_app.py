@@ -83,7 +83,7 @@ st.markdown("### ระบบคำนวณสูตรอาหารและ
 page_tabs = st.tabs([
     "🏠 หน้าแรก & ตั้งค่าสายพันธุ์", 
     "🧠 คำนวณสูตรอาหาร (AI Optimizer)", 
-    "📦 แผนการจัดซื้อวัตถุดิบ", 
+    "📦 ระบบหลังบ้าน", 
     "📈 สถิติผลผลิต & บัญชีฟาร์ม"
 ])
 
@@ -207,15 +207,7 @@ with page_tabs[0]:
         weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
         st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้:", weather_list, horizontal=True)
 
-    st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
     st.session_state.chicken_count = st.number_input("จำนวนไก่ในฟาร์มทั้งหมด (ตัว):", min_value=1, value=st.session_state.chicken_count, step=100)
-    
-    base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
-    calc_water = st.session_state.chicken_count * base_water
-    if "ร้อนจัด" in st.session_state.weather_env:
-        calc_water *= 1.25
-        st.error("🔥 อากาศร้อนจัด! ระบบคำนวณให้ฝูงไก่ต้องดื่มน้ำเพิ่มขึ้น 25% เพื่อลดความเครียด")
-    st.metric("ปริมาณน้ำที่ฝูงไก่ต้องบริโภคต่อวันรวม", f"{calc_water:,.1f} ลิตร (Liters)")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -299,11 +291,23 @@ with page_tabs[1]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 3]: แผนการจัดซื้อวัตถุดิบ ---
+# --- [แท็บที่ 3]: ระบบหลังบ้าน (ย้ายระบบคำนวณน้ำมาไว้หน้านี้แล้ว) ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 แผนจัดซื้อวัตถุดิบอาหารสัตว์และควบคุมความเสี่ยง")
-    st.markdown("### 💰 อัปเดตราคาวัตถุดิบปัจจุบัน (บาท/กิโลกรัม)")
+    st.markdown("## 📦 ระบบหลังบ้าน (Backoffice Management)")
+    
+    # 💧 ย้ายระบบคำนวณน้ำดื่มประจำวันมาไว้ส่วนบนของหน้านี้ตามสั่ง
+    st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
+    breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
+    base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
+    calc_water = st.session_state.chicken_count * base_water
+    if "ร้อนจัด" in st.session_state.weather_env:
+        calc_water *= 1.25
+        st.error("🔥 ตรวจพบอุณหภูมิอากาศร้อนจัด! ระบบหลังบ้านปรับสูตรปริมาณน้ำดื่มขึ้น 25% อัตโนมัติ")
+    st.metric("ปริมาณน้ำดื่มรวมที่ต้องจ่ายเข้าโรงเรือนต่อวัน", f"{calc_water:,.1f} ลิตร (Liters)")
+    
+    st.markdown("---")
+    st.markdown("### 💰 อัปเดตราคาวัตถุดิบประจำงวด (บาท/กิโลกรัม)")
     
     all_ingredients = list(st.session_state.ingredient_data.keys())
     chunk_size = 4
@@ -321,7 +325,7 @@ with page_tabs[2]:
     st.markdown("---")
     st.markdown("### 📝 ใบประมาณการจัดซื้อและดาวน์โหลด PO")
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
-    st.info(f"📊 ปริมาณอาหารรวมที่ฟาร์มคุณต้องเตรียมสำรองรอบนี้: **{total_feed_needed_kg/1000.0:,.2f} ตัน** (คิดจากจำนวนสัตว์ในฟาร์ม)")
+    st.info(f"📊 ปри量อาหารรวมที่ต้องจัดซื้อจัดสำรอง: **{total_feed_needed_kg/1000.0:,.2f} ตัน** (วิเคราะห์ความต้องการจากฐานข้อมูลจำนวนไก่ฝูงปัจจุบัน)")
     
     budget_data = []
     for name, weight in st.session_state.optimized_weights.items():
@@ -338,9 +342,9 @@ with page_tabs[2]:
     if not df_budget.empty:
         st.dataframe(df_budget, use_container_width=True, hide_index=True)
         csv = df_budget.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 ดาวน์โหลดใบจัดซื้อ (Download PO CSV)", data=csv, file_name="ใบจัดซื้อวัตถุดิบ_SmartLayer.csv", mime="text/csv")
+        st.download_button("📥 ดาวน์โหลดใบจัดซื้อระบบหลังบ้าน (Download PO CSV)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบ_BackOffice.csv", mime="text/csv")
     else:
-        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาตั้งค่าอาหารหรือรัน AI Optimizer ก่อน")
+        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาปรับตั้งค่าสูตรอาหารที่แผงควบคุมก่อน")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -402,4 +406,4 @@ with page_tabs[3]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ปรับปรุงระบบแสดงผลการ์ดกึ่งโปร่งใสสมบูรณ์แบบ</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ปรับปรุงระบบหลังบ้านและระบบย้ายส่วนคำนวณเรียบร้อย</div>", unsafe_allow_html=True)
