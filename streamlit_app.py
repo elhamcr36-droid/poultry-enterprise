@@ -76,13 +76,18 @@ st.markdown("### 🧬 0. ข้อมูลสายพันธุ์และ�
 c_group, c_breed = st.columns(2)
 with c_group:
     selected_group = st.selectbox("เลือกกลุ่มสายพันธุ์ไก่ไข่:", list(BREED_PROFILES.keys()))
+
 with c_breed:
     breed_options = BREED_PROFILES[selected_group]
-    selected_breed_key = st.selectbox("สายพันธุ์หลักในโรงเรือน:", list(breed_options.keys()))
+    # 🔥 แก้ไขจุดที่ 1: ใช้ฟังก์ชัน format_func เพื่อเปลี่ยนคีย์อังกฤษใน Selectbox ให้แสดงผลเป็นชื่อภาษาไทยที่จัดแต่งไว้
+    selected_breed_key = st.selectbox(
+        "สายพันธุ์หลักในโรงเรือน:", 
+        options=list(breed_options.keys()),
+        format_func=lambda x: breed_options[x]["name"]
+    )
 
 breed_info = breed_options[selected_breed_key]
 
-# แปลสถานะระบบคลาวด์ด้านล่างกล่องข้อความ
 cloud_status_text = "พร้อมใช้งาน (เชื่อมต่อระบบจริง)" if "your-project" not in SUPABASE_URL and SUPABASE_KEY != "your-anon-key" else "โหมดทำงานแบบออฟไลน์ชั่วคราว"
 st.markdown(f"""
 <div style='background-color:{breed_info['bg_color']}; padding:15px; border-radius:10px; color:{breed_info['text_color']}; margin-bottom:15px; border: 1px solid rgba(0,0,0,0.1);'>
@@ -100,7 +105,13 @@ st.markdown("---")
 st.markdown("### ⛅ 1. ระบบปรับสมดุลและคำนวณสารอาหารเป้าหมาย")
 c_age, c_weather = st.columns(2)
 with c_age:
-    current_key = st.selectbox("เลือกช่วงอายุ/โปรไฟล์ของไก่ (Animal Profile):", list(STAGE_NUTRITION_TARGETS.keys()), index=2)
+    # 🔥 แก้ไขจุดที่ 2: ใช้ format_func เปลี่ยน 'starter', 'grower', 'laying' ให้แสดงชื่อไทยในช่องเลือก
+    current_key = st.selectbox(
+        "เลือกช่วงอายุ/โปรไฟล์ของไก่ (Animal Profile):", 
+        options=list(STAGE_NUTRITION_TARGETS.keys()), 
+        index=2,
+        format_func=lambda x: STAGE_NUTRITION_TARGETS[x]["name"]
+    )
     target = STAGE_NUTRITION_TARGETS[current_key]
 with c_weather:
     weather_env = st.radio("สภาพอากาศและอุณหภูมิในโรงเรือนวันนี้:", ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"], horizontal=True)
@@ -166,7 +177,6 @@ with creator_left:
         val = float(st.session_state.optimized_weights.get(name, 0.0))
         user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, val, step=0.1, key=f"sl_{name}")
 
-    # ระบบตรวจสอบผลรวมสไลเดอร์
     sum_weights = sum(user_weights.values())
     st.markdown(f"**🔢 ผลรวมสัดส่วนปัจจุบัน:** `{sum_weights:.1f}%` / `100.0%`")
     if not (99.9 <= sum_weights <= 100.1):
@@ -266,7 +276,6 @@ with track_col1:
             new_row = pd.DataFrame([{"วันที่": in_date, "สูตรอาหาร": f_name, "อัตราการไข่ (%)": lay_r, "อัตราไข่บุบแตก (%)": crack_r}])
             st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
             
-            # โครงสร้างชุดข้อมูลสำหรับบันทึกส่งออกไปยังระบบ Cloud
             payload = {
                 "date_record": in_date, 
                 "formula_name": f_name, 
