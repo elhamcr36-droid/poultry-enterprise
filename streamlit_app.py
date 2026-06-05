@@ -102,7 +102,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 💰🆕 ฟีเจอร์เพิ่มใหม่: หน้าจอปรับราคาวัตถุดิบ (Dynamic Price Dashboard)
+# 💰 แผงควบคุมและอัปเดตราคาวัตถุดิบหน้าฟาร์ม (Dynamic Price Dashboard)
 # ==========================================
 with st.expander("💰 🛠️ แผงควบคุมและอัปเดตราคาวัตถุดิบหน้าฟาร์ม (Dynamic Price)"):
     st.caption("ปรับเปลี่ยนราคาที่นี่เพื่อใช้คำนวณต้นทุนจริงและให้ AI Optimizer ประมวลผลจุดคุ้มทุนใหม่")
@@ -255,7 +255,7 @@ with m_col3:
 st.markdown("---")
 
 # ==========================================
-# 📊 8. การวางแผนปริมาณสั่งซื้อและใบจัดซื้อวัตถุดิบ [🆕 เพิ่มปุ่มดาวน์โหลดรายงาน Excel/CSV]
+# 📊 8. การวางแผนปริมาณสั่งซื้อและใบจัดซื้อวัตถุดิบ
 # ==========================================
 st.markdown("### 📅 5. แผนการสำรองวัตถุดิบและประมาณการคำสั่งซื้อ")
 total_phase_feed_needed_kg = chicken_count * LIFECYCLE_FEED_BUDGET[current_key]
@@ -275,18 +275,18 @@ if not df_budget.empty:
     st.download_button(
         label="📥 ดาวน์โหลดใบจัดซื้อวัตถุดิบอาหารสัตว์ (CSV)",
         data=csv_budget,
-        file_name=f"ใบสั่งซื้อวัตถุดิบ_{in_date if 'in_date' in locals() else 'รายงาน'}.csv",
+        file_name="ใบสั่งซื้อวัตถุดิบ_รายงาน.csv",
         mime="text/csv"
     )
 
 st.markdown("---")
 
 # ==========================================
-# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [เวอร์ชันอัปเกรดเชิงลึก — FCR & Financial Tracker]
+# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [🔧 แก้ไข KeyError ตรงโครงสร้างเริ่มต้น]
 # ==========================================
 st.markdown("### 📈 6. สมุดจดสถิติและกราฟวิเคราะห์ผลผลิตประจำวัน (เวอร์ชันอัปเกรดการคำนวณกำไร)")
 
-# ตั้งค่าฐานข้อมูลจำลองเริ่มต้นรวมถึงรายได้และกำไร
+# 🛠️ จุดแก้ไขหลัก: แก้ไขให้ชื่อคีย์ตรงกับระบบประมวลผล FCR ป้องกัน KeyError
 if "tracker_data" not in st.session_state:
     st.session_state.tracker_data = pd.DataFrame([
         {"วันที่": "01/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 82.0, "อัตราไข่บุบแตก (%)": 4.5, "น้ำหนักไข่รวม (กก.)": 52.0, "ไข่เบอร์ 0-1 (%)": 20.0, "ไข่เบอร์ 2-3 (%)": 55.0, "ไข่เบอร์ 4-5 (%)": 25.0, "ตาย/คัดทิ้ง (ตัว)": 0, "กำไรสุทธิวันนี้ (บาท)": 420.0, "หมายเหตุ": "ปกติ"},
@@ -322,7 +322,6 @@ with m_profit:
 
 st.markdown("---")
 
-# 💵🆕 ฟีเจอร์เพิ่มใหม่: แผงรับข้อมูลราคาขายไข่ประจำวัน (Financial Tracker Inputs)
 st.markdown("##### 💵 📊 ตารางตั้งราคาขายหน้าฟาร์มวันนี้เพื่อคำนวณผลกำไร")
 p_c1, p_c2, p_c3 = st.columns(3)
 with p_c1:
@@ -369,7 +368,6 @@ with track_col1:
             submit_disabled = False
             
         if st.form_submit_button("💾 กดบันทึกสถิติวันนี้", disabled=submit_disabled):
-            # คำนวณรายได้จากจำนวนไข่ทั้งหมดตามสัดส่วนเบอร์
             total_eggs_today = chicken_count * (lay_r / 100.0)
             revenue_today = (
                 (total_eggs_today * (g_large / 100.0) * price_large) +
@@ -393,7 +391,6 @@ with track_col1:
             }])
             st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
             
-            # จัดเตรียม Payload ส่ง Cloud (Supabase)
             payload = {
                 "date_record": in_date, 
                 "formula_name": f_name, 
@@ -464,7 +461,6 @@ with track_col2:
         st.plotly_chart(fig_bar, use_container_width=True)
 
     with tab_profit:
-        # กราฟแท่งแสดงแนวโน้มผลกำไรสุทธิแต่ละวัน
         fig_profit = px.bar(
             df_track, x="วันที่", y="กำไรสุทธิวันนี้ (บาท)",
             title="📊 กราฟสรุปผลกำไรสุทธิรายวันหลังหักค่าอาหาร (Net Daily Profit)",
@@ -473,7 +469,6 @@ with track_col2:
         fig_profit.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_profit, use_container_width=True)
 
-    # แสดงตารางและปุ่มดาวน์โหลดรายงานสถิติประจำวันทั้งหมด
     st.markdown("##### 📝 ตารางสถิติดิบทั้งหมดในเครื่องปัจจุบัน")
     st.dataframe(df_track, use_container_width=True, hide_index=True)
     
