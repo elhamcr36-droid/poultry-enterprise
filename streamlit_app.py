@@ -380,10 +380,6 @@ with page_tabs[2]:
         st.session_state.ingredient_data = new_data
         st.success("บันทึกข้อมูลวัตถุดิบเรียบร้อยแล้ว!")
         st.rerun()
-                
-    st.markdown("---")"
-                )
-                
     st.markdown("---")
     st.markdown("### 📝 ใบประมาณการจัดซื้อและดาวน์โหลด PO")
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
