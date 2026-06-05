@@ -16,7 +16,6 @@ SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Supabase Ano
 # 📋 2. ฐานข้อมูลส่วนประกอบและโภชนาการมาตรฐาน
 # ==========================================
 
-# 🔄 ปรับให้ชื่อภาษาไทยขึ้นก่อน และตามด้วยอังกฤษในวงเล็บเพื่อความเข้าใจง่าย
 STAGE_NUTRITION_TARGETS = {
     "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42},
     "grower": {"name": "ไก่รุ่นไข่ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32},
@@ -33,7 +32,6 @@ INGREDIENT_DATA = {
     "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
 }
 
-# 🔄 ปรับชื่อสายพันธุ์ทั้งหมดให้เป็น: ภาษาไทย (ภาษาอังกฤษ) ตามโมเดลตัวเลือกในโรงเรือน
 BREED_PROFILES = {
     "1. กลุ่มไฮบริด / ลูกผสมพาณิชย์ (Commercial Hybrids)": {
         "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนร้อนดีเยี่ยม"},
@@ -64,7 +62,6 @@ BREED_PROFILES = {
 
 LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
 
-# ตั้งค่าสถานะเริ่มต้นของสัดส่วนอาหาร
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 
@@ -81,7 +78,6 @@ with c_group:
 
 with c_breed:
     breed_options = BREED_PROFILES[selected_group]
-    # ดึงค่าแสดงผลแบบภาษาไทย (อังกฤษในวงเล็บ) มาโชว์ในคอมโบ้บ็อกซ์
     selected_breed_key = st.selectbox(
         "สายพันธุ์หลักในโรงเรือน:", 
         options=list(breed_options.keys()),
@@ -107,7 +103,6 @@ st.markdown("---")
 st.markdown("### ⛅ 1. ระบบปรับสมดุลและคำนวณสารอาหารเป้าหมาย")
 c_age, c_weather = st.columns(2)
 with c_age:
-    # ดึงค่าแสดงผลช่วงอายุแบบภาษาไทย (อังกฤษในวงเล็บ) มาโชว์ในช่องเลือกแบบสมบูรณ์
     current_key = st.selectbox(
         "เลือกช่วงอายุ/โปรไฟล์ของไก่ (Animal Profile):", 
         options=list(STAGE_NUTRITION_TARGETS.keys()), 
@@ -259,7 +254,6 @@ st.markdown("---")
 # ==========================================
 # 📈 9. ระบบบันทึกผลผลิตและเชื่อมต่อ Supabase
 # ==========================================
-# ⚙️ ปรับเปลี่ยนส่วนนี้ให้กลายเป็นภาษาชาวบ้าน อ่านแล้วเข้าใจง่ายทันทีในหน้างานจริง
 st.markdown("### 📈 6. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน")
 
 if "tracker_data" not in st.session_state:
@@ -271,13 +265,11 @@ if "tracker_data" not in st.session_state:
 track_col1, track_col2 = st.columns([4, 6], gap="large")
 with track_col1:
     with st.form("supabase_sync_form"):
-        # ปรับภาษาป้ายอินพุตให้อ่านง่าย สบายตา ไม่เป็นศัพท์คอมพิวเตอร์จ๋า
         in_date = st.text_input("📝 วันที่บันทึก (เช่น 04/06):", value="04/06")
         f_name = st.text_input("🥣 วันนี้ใช้สูตรอาหารชื่ออะไร:", value="สูตร AI แนะนำ")
         lay_r = st.number_input("🥚 วันนี้เก็บไข่ได้กี่ % (อัตราการไข่):", value=86.2)
         crack_r = st.number_input("💥 วันนี้มีไข่บุบ/ไข่แตกกี่ %:", value=1.5)
         
-        # ปรับปุ่มลบศัพท์วิชาการออก เพื่อกระชับและส่งข้อมูลเข้าคลาวด์อย่างปลอดภัย
         if st.form_submit_button("💾 กดบันทึกสถิติวันนี้"):
             new_row = pd.DataFrame([{"วันที่": in_date, "สูตรอาหาร": f_name, "อัตราการไข่ (%)": lay_r, "อัตราไข่บุบแตก (%)": crack_r}])
             st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
@@ -314,7 +306,20 @@ with track_col1:
             st.rerun()
 
 with track_col2:
-    # ปรับหัวข้อกราฟให้กระชับและสื่อสารวัตถุประสงค์ของการเปรียบเทียบชัดเจน
-    fig = px.line(st.session_state.tracker_data, x="วันที่", y=["อัตราการไข่ (%)", "อัตราไข่บุบแตก (%)"], markers=True, title="📈 กราฟเปรียบเทียบ: อาหารสูตรไหนให้ผลผลิตดีที่สุด")
-    fig.update_layout(hovermode="x unified", paper_bgcolor='rgba(255,255,255,0.95)', plot_bgcolor='rgba(255,255,255,0.95)', font=dict(color="#1e293b"))
+    # 🎨 ปรับปรุงส่วนนี้: บังคับใช้ธีม "plotly_dark" เพื่อแก้ไขปัญหาตัวอักษรกลืนหายไปกับพื้นหลังสีขาวใน Dark Mode
+    fig = px.line(
+        st.session_state.tracker_data, 
+        x="วันที่", 
+        y=["อัตราการไข่ (%)", "อัตราไข่บุบแตก (%)"], 
+        markers=True, 
+        template="plotly_dark",  # เปลี่ยนเป็นธีมมืดเพื่อให้ตัวเลขและเส้นกราฟเด้งชัดขึ้นมา
+        title="📈 กราฟเปรียบเทียบ: อาหารสูตรไหนให้ผลผลิตดีที่สุด"
+    )
+    
+    # เคลียร์สีพื้นหลังขาวอันเก่าออก เพื่อให้กลมกลืนกับพื้นหลังแอปพลิเคชันอย่างเป็นธรรมชาติ
+    fig.update_layout(
+        hovermode="x unified",
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
     st.plotly_chart(fig, use_container_width=True)
