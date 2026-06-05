@@ -130,16 +130,15 @@ MASTER_INGREDIENT_DICTIONARY = {
     "พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น": {"price": 120.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 82.0, "moisture": 2.0, "salt": 1.00, "choline": 25000, "tox_risk": 0, "min_limit": 0.2, "max_limit": 0.5}
 }
 
-# 🛠️ [จุดแก้ไขหลัก]: ตรวจเช็คและจองพื้นที่ใน Session State เพื่อป้องกัน AttributeError
+# 🛠️ ตรวจเช็คและจองพื้นที่ใน Session State เพื่อป้องกัน AttributeError
 if "chicken_count" not in st.session_state:
-    st.session_state.chicken_count = 100  # กำหนดจำนวนสัตว์ปีกเริ่มต้นในระบบ
+    st.session_state.chicken_count = 100  
 
 if "use_phytase" not in st.session_state:
     st.session_state.use_phytase = False
 
 if "ingredient_data" not in st.session_state:
     st.session_state.ingredient_data = {
-        # แหล่งคาร์โบไฮเดรต/พลังงาน (7 ชนิด)
         "ข้าวโพดบดเม็ด": MASTER_INGREDIENT_DICTIONARY["ข้าวโพดบดเม็ด"],
         "รำข้าวละเอียดดิบ": MASTER_INGREDIENT_DICTIONARY["รำข้าวละเอียดดิบ"],
         "ปลายข้าวขาว": MASTER_INGREDIENT_DICTIONARY["ปลายข้าวขาว"],
@@ -147,26 +146,18 @@ if "ingredient_data" not in st.session_state:
         "มันเส้นบดแห้งเกรด A": MASTER_INGREDIENT_DICTIONARY["มันเส้นบดแห้งเกรด A"],
         "ข้าวสาลีบดละเอียด": MASTER_INGREDIENT_DICTIONARY["ข้าวสาลีบดละเอียด"],
         "ข้าวฟ่างบด": MASTER_INGREDIENT_DICTIONARY["ข้าวฟ่างบด"],
-        
-        # แหล่งโปรตีนพืช (6 ชนิด)
         "กากถั่วเหลือง (โปรตีน 44%)": MASTER_INGREDIENT_DICTIONARY["กากถั่วเหลือง (โปรตีน 44%)"],
         "กากถั่วเหลืองสกัด (โปรตีน 48%)": MASTER_INGREDIENT_DICTIONARY["กากถั่วเหลืองสกัด (โปรตีน 48%)"],
         "กากเนื้อปาล์มเนื้อใน": MASTER_INGREDIENT_DICTIONARY["กากเนื้อปาล์มเนื้อใน"],
         "กากมะพร้าวอัด": MASTER_INGREDIENT_DICTIONARY["กากมะพร้าวอัด"],
         "กากเมล็ดทานตะวันสกัด": MASTER_INGREDIENT_DICTIONARY["กากเมล็ดทานตะวันสกัด"],
         "กลูเตนข้าวโพด (Corn Gluten Meal)": MASTER_INGREDIENT_DICTIONARY["กลูเตนข้าวโพด (Corn Gluten Meal)"],
-        
-        # แหล่งโปรตีนสัตว์ & ทางเลือก (4 ชนิด)
         "ปลาป่นพรีเมียม (โปรตีน 60%)": MASTER_INGREDIENT_DICTIONARY["ปลาป่นพรีเมียม (โปรตีน 60%)"],
         "เนื้อและกระดูกป่น (Meat & Bone)": MASTER_INGREDIENT_DICTIONARY["เนื้อและกระดูกป่น (Meat & Bone)"],
         "กากเบียร์แห้ง (DDGS ข้าวโพด)": MASTER_INGREDIENT_DICTIONARY["กากเบียร์แห้ง (DDGS ข้าวโพด)"],
         "ใบกระถินป่นอบแห้งพรีเมียม": MASTER_INGREDIENT_DICTIONARY["ใบกระถินป่นอบแห้งพรีเมียม"],
-        
-        # ไขมันเสริมพลังงาน (2 ชนิด)
         "น้ำมันปาล์มดิบกระสอบ": MASTER_INGREDIENT_DICTIONARY["น้ำมันปาล์มดิบกระสอบ"],
         "น้ำมันถั่วเหลืองผ่านกรรมวิธี": MASTER_INGREDIENT_DICTIONARY["น้ำมันถั่วเหลืองผ่านกรรมวิธี"],
-        
-        # กรดอะมิโนและแร่ธาตุจำเป็น (6 ชนิด)
         "แอล-ไลซีน (L-Lysine HCl)": MASTER_INGREDIENT_DICTIONARY["แอล-ไลซีน (L-Lysine HCl)"],
         "ดีแอล-เมทไธโอนีน (DL-Methionine)": MASTER_INGREDIENT_DICTIONARY["ดีแอล-เมทไธโอนีน (DL-Methionine)"],
         "เปลือกหอยทะเลบดละเอียด": MASTER_INGREDIENT_DICTIONARY["เปลือกหอยทะเลบดละเอียด"],
@@ -335,21 +326,38 @@ with page_tabs[0]:
         st.markdown("#### 🔧 1. สัดส่วนและโครงสร้างวัตถุดิบความจุสูง (%)")
         user_weights = {}
         
-        # จัดเรียงแสดงผลวัตถุดิบแบ่งตามหมวดหมู่เพื่อความสะอาดและอ่านง่ายในกรณีเปิดใช้งานเยอะ
-        sorted_ingredients = sorted(list(st.session_state.ingredient_data.keys()))
+        # 👑 [จุดแก้ไขเด่น]: ทำการจัดเรียงคีย์ตามค่าน้ำหนักสัดส่วนปัจจุบันจาก "มากไปหาน้อย" (Descending Order)
+        sorted_by_weight = sorted(
+            st.session_state.ingredient_data.keys(), 
+            key=lambda x: st.session_state.optimized_weights.get(x, 0.0), 
+            reverse=True
+        )
         
-        for name in sorted_ingredients:
+        # แสดงรายการที่ถูกจัดเรียงใหม่แล้วบนแอปพลิเคชัน
+        for name in sorted_by_weight:
             val = float(st.session_state.optimized_weights.get(name, 0.0))
-            st.write(f"**🌾 {name}**")
+            
+            # ทำไฮไลต์วัตถุดิบที่มีการใช้งานจริง (> 0%) ให้โดดเด่นมองง่ายยิ่งขึ้น
+            if val > 0:
+                st.write(f"**🔥 {name} ({val}%)**")
+            else:
+                st.write(f"🌿 {name}")
+                
             slider_col, input_col = st.columns([7, 3])
             with slider_col:
                 s_val = st.slider(f"ปรับสัดส่วน {name}", 0.0, 100.0, val, step=0.1, label_visibility="collapsed", key=f"sl_bar_{name}")
             with input_col:
                 i_val = st.number_input(f"กรอกตัวเลข {name}", min_value=0.0, max_value=100.0, value=s_val, step=0.1, format="%.1f", label_visibility="collapsed", key=f"num_in_{name}")
+            
+            # บันทึกค่าล่าสุดกลับเข้า Object ของผู้ใช้
             user_weights[name] = i_val
             
-        st.session_state.optimized_weights = user_weights
-        total_sum = sum(user_weights.values())
+        # ตรวจเช็คหากมีการสไลด์ปรับเปลี่ยนค่าด้วยมือ ให้ทำการจัดเก็บลง State
+        if user_weights != st.session_state.optimized_weights:
+            st.session_state.optimized_weights = user_weights
+            st.rerun()
+            
+        total_sum = sum(st.session_state.optimized_weights.values())
         st.markdown(f"**🔢 น้ำหนักรวมปัจจุบัน:** `{total_sum:.1f}%` (เป้าหมายร่วมกันคือ 100%)")
         if not (99.9 <= total_sum <= 100.1):
             st.warning("⚠️ สัดส่วนรวมยังไม่เท่ากับ 100% พอดี ผลการวิเคราะห์สารอาหารอาจจะไม่ตรงตามจริง")
@@ -502,7 +510,15 @@ with page_tabs[2]:
     st.info(f"📊 คิดคำนวณสำหรับสัตว์ปีกจำนวน **{st.session_state.chicken_count:,} ตัว** ต้องใช้อาหารผสมรวมทั้งสิ้น **{total_feed_needed_kg:,.1f} กิโลกรัม**")
     
     budget_data = []
-    for name, weight in st.session_state.optimized_weights.items():
+    
+    # ดึงค่าตามลำดับจัดเรียงจริงเพื่อความสอดคล้องกันในทุกๆ หน้าจอ
+    sorted_budget_keys = sorted(
+        st.session_state.optimized_weights.items(), 
+        key=lambda x: x[1], 
+        reverse=True
+    )
+    
+    for name, weight in sorted_budget_keys:
         w_kg = (weight / 100.0) * total_feed_needed_kg
         if w_kg > 0:
             p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
