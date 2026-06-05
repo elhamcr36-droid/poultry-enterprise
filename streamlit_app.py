@@ -21,11 +21,9 @@ SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🗺️ เมนูนำทางเลือกหน้าจอ")
 
-# ใช้ Session State เพื่อจำว่าตอนนี้อยู่หน้าไหน
 if "current_page" not in st.session_state:
     st.session_state.current_page = "🏠 หน้าแรก & ตั้งค่าสายพันธุ์"
 
-# สร้างปุ่มกดเลือกหน้าใน Sidebar
 page = st.sidebar.radio(
     "ไปที่หน้าจอ:",
     ["🏠 หน้าแรก & ตั้งค่าสายพันธุ์", "🧠 คำนวณสูตรอาหาร (AI Optimizer)", "📦 แผนการจัดซื้อวัตถุดิบ", "📈 สถิติผลผลิต & บัญชีฟาร์ม"],
@@ -54,20 +52,34 @@ if "ingredient_data" not in st.session_state:
     }
 
 BREED_PROFILES = {
-    "1. กลุ่มไฮบริด / ลูกผสมพาณิชย์ (Commercial Hybrids)": {
+    "1. กลุ่มไฮบริดสีน้ำตาลพาณิชย์ (Commercial Brown Hybrids)": {
         "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนร้อนดีเยี่ยม"},
-        "Hy-Line Brown": {"name": "ไฮไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "กินน้อยแต่ไข่นิ่ง อัตราผลิตสม่ำเสมอยาวนาน เปลือกแข็งแรงแตกยาก"},
-        "Hisex Brown": {"name": "ไฮ-เซ็กส์ บราวน์ (Hisex Brown)", "egg_color": "🤎 น้ำตาลสว่าง", "bg_color": "#c2410c", "text_color": "#ffffff", "default_feed": 113, "desc": "สายพันธุ์อึด ให้ผลผลิตสูงช่วงต้นของการไข่เร็วมาก นิยมไม่แพ้สองพันธุ์แรก"}
+        "Hy-Line Brown": {"name": "ไฮไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "กินน้อย FCR ดีมาก อัตราผลิตสม่ำเสมอยาวนาน เปลือกแข็งแรงแตกยาก"},
+        "Hisex Brown": {"name": "ไฮ-เซ็กส์ บราวน์ (Hisex Brown)", "egg_color": "🤎 น้ำตาลสว่าง", "bg_color": "#c2410c", "text_color": "#ffffff", "default_feed": 113, "desc": "สายพันธุ์อึด ให้ผลผลิตสูงช่วงต้นของการไข่เร็วมาก นิยมในฟาร์มระบบปิด"},
+        "Bovans Brown": {"name": "โบแวนส์ บราวน์ (Bovans Brown)", "egg_color": "🤎 น้ำตาลเข้มจัด", "bg_color": "#9a3412", "text_color": "#ffffff", "default_feed": 114, "desc": "โครงสร้างแข็งแรง ปรับตัวเข้ากับสภาพแวดล้อมเปิดได้ดี ไข่ฟองใหญ่ไซส์จัมโบ้"},
+        "Novogen Brown": {"name": "โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "🤎 น้ำตาลช็อกโกแลต", "bg_color": "#78350f", "text_color": "#ffffff", "default_feed": 112, "desc": "สายพันธุ์ฝรั่งเศส นิสัยเชื่อง เลี้ยงง่าย อัตราการจิกตีกระทบกระทั่งกันต่ำมาก"}
     },
-    "2. กลุ่มสายพันธุ์แท้ (Pure Breeds)": {
-        "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่สีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด ทนฝน เหมาะสำหรับเลี้ยงปล่อยธรรมชาติ"},
-        "White Leghorn": {"name": "เลกฮอร์นขาว (White Leghorn)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ตัวเล็ก ขนขาว ปราดเปรียว บินเก่ง ให้ไข่เปลือกสีขาวสะอาด ดกมาก"}
+    "2. กลุ่มไฮบริดสีขาวพาณิชย์ (Commercial White Hybrids)": {
+        "Hy-Line W-36": {"name": "ไฮไลน์ ดับบลิว-36 (Hy-Line W-36)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#f1f5f9", "text_color": "#0f172a", "default_feed": 101, "desc": "กินอาหารน้อยที่สุดในกลุ่มพาณิชย์ ไข่เปลือกขาวสะอาด น้ำหนักตัวเบา จัดการง่าย"},
+        "Lohmann White": {"name": "โลห์แมน ไวท์ (Lohmann White)", "egg_color": "🤍 ขาวมุก", "bg_color": "#e2e8f0", "text_color": "#0f172a", "default_feed": 105, "desc": "สายพันธุ์เยอรมัน ให้ผลผลิตเปอร์เซ็นต์ไข่สูงยาวนาน (Persistent laying) นิยมในตลาดอุตสาหกรรมแปรรูปไข่เหลว"}
+    },
+    "3. กลุ่มสายพันธุ์แท้ / อนุรักษ์ (Pure Breeds)": {
+        "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่เนื้อแน่นสีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด เหมาะสำหรับเลี้ยงปล่อยธรรมชาติหรือทำพันธุ์ผสม"},
+        "White Leghorn": {"name": "เลกฮอร์นขาว (White Leghorn)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ต้นตระกูลไก่ไข่ขาว ตัวเล็ก ปราดเปรียว บินเก่ง ตกใจง่าย ไม่ชอบให้ขังในที่แคบ"},
+        "Barred Plymouth Rock": {"name": "บาร์ พลีมัธร็อค (Barred Rock)", "egg_color": "🤎 น้ำตาลอมชมพู", "bg_color": "#475569", "text_color": "#ffffff", "default_feed": 130, "desc": "ไก่ลายเสือตัวใหญ่ เป็นทั้งไก่เนื้อและไก่ไข่ (Dual-purpose) นิสัยเป็นมิตร เลี้ยงปล่อยสวนหลังบ้านดีมาก"}
+    },
+    "4. กลุ่มไก่ไข่สวยงาม / ไข่สีพิเศษ (Designer & Heritage Eggers)": {
+        "Ameraucana": {"name": "อเมรอกาน่า (Ameraucana)", "egg_color": "🩵 ฟ้าพาสเทล / เขียวมินต์", "bg_color": "#0ea5e9", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่หน้าเครา มีเสน่ห์ที่ยีนพิเศษทำให้ไข่ออกมาเป็นสีฟ้าพาสเทล ตลาดพรีเมียมต้องการสูง"},
+        "Marans": {"name": "มารันส์ (Black Copper Marans)", "egg_color": "🤎 น้ำตาลช็อกโกแลตเข้มจัด (Dark Chocolate)", "bg_color": "#451a03", "text_color": "#ffffff", "default_feed": 120, "desc": "ฉายา 'ไข่ไก่ช็อกโกแลต' เปลือกไข่มีสีน้ำตาลไหม้เงางาม ฝรั่งเศสนิยมทานดิบเพราะเปลือกหนาเชื้อโรคเข้ายาก"}
+    },
+    "5. กลุ่มไก่ไข่พื้นเมือง / พัฒนาโดยกรมปศุสัตว์ไทย (Thai Native & Layer Breeds)": {
+        "Pradu Hang Dam Taku": {"name": "ประดู่หางดำ (กรมปศุสัตว์)", "egg_color": "🧡 ครีมอมชมพู", "bg_color": "#14532d", "text_color": "#ffffff", "default_feed": 95, "desc": "ไก่พื้นเมืองแท้ของไทย ทนทานโรคระบาดและสภาพความร้อนชื้นได้ดีที่สุด ไข่ใบเล็กแต่ไข่แดงมันวาวและใบใหญ่"}
     }
 }
 
 LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
 
-# ป้องกันข้อมูลหายระหว่างสลับหน้าด้วยการล็อกตัวแปรไว้กับ Session State
+# ผูกตัวแปรพื้นฐานเข้ากับ Session State
 if "selected_group" not in st.session_state: st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
 if "selected_breed_key" not in st.session_state: st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
 if "current_key" not in st.session_state: st.session_state.current_key = "laying"
@@ -77,10 +89,13 @@ if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 if "use_phytase" not in st.session_state: st.session_state.use_phytase = True
 
-# ดึงข้อมูลสายพันธุ์ที่เลือกอยู่ปัจจุบันมาแสดงผลด้านบนสุด
+# ตรวจสอบความถูกต้องของ Key ป้องกันตกรุ่นกรณีเลือกค้างไว้
+if st.session_state.selected_breed_key not in BREED_PROFILES[st.session_state.selected_group]:
+    st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
+
 breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
 
-# ฟังก์ชันส่วนกลางสำหรับคำนวณคุณค่าทางโภชนาการและต้นทุน (Global Calculation Engine)
+# ฟังก์ชันคำนวณโภชนาการปัจจุบัน
 def calculate_current_formulation():
     nut_calc = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0, "fiber": 0.0, "fat": 0.0}
     cost = 0.0
@@ -178,7 +193,11 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
         
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["price"] / 100.0) for name in st.session_state.ingredient_data.keys()])
         prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0
+        
+        # เพิ่มขอบเขตบนเพื่อความปลอดภัยเชิงสัตวบาล (Animal Health Safety Bound)
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["protein"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["protein"]
+        prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["protein"] / 100.0) for name in st.session_state.ingredient_data.keys()]) <= adjusted_target["protein"] + 3.0
+        
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["me"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["me"]
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["calcium"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["calcium"]
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["phos"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["phos"]
@@ -191,7 +210,7 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
             st.success("🎉 AI ประมวลผลสำเร็จ ค้นพบสูตรอาหารที่ประหยัดเงินที่สุดในท้องตลาดปัจจุบันแล้ว!")
             st.rerun()
         else:
-            st.error("❌ ขีดจำกัดสารอาหารแน่นเกินไป วัตถุดิบปัจจุบันไม่พอผสมให้ครบคุณค่าได้")
+            st.error("❌ ขีดจำกัดสารอาหารแน่นเกินไป วัตถุดิบปัจจุบันไม่พอผสมให้ครบคุณค่าได้ กรุณาขยายช่วง Min/Max Limit ของวัตถุดิบ")
 
     st.markdown("---")
     creator_left, creator_right = st.columns(2, gap="large")
@@ -205,12 +224,13 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
                 n_pro = st.number_input("โปรตีน (%):", value=15.0)
                 n_me = st.number_input("พลังงาน (kcal/kg):", value=2000.0)
                 if st.form_submit_button("บันทึกวัตถุดิบ"):
-                    st.session_state.ingredient_data[new_name] = {"price": n_p, "protein": n_pro, "me": n_me, "calcium": 1.0, "phos": 0.4, "amino": 0.3, "moisture": 10.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 50.0}
-                    st.session_state.optimized_weights[new_name] = 0.0
-                    st.rerun()
+                    if new_name.strip():
+                        st.session_state.ingredient_data[new_name] = {"price": n_p, "protein": n_pro, "me": n_me, "calcium": 1.0, "phos": 0.4, "amino": 0.3, "moisture": 10.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 50.0}
+                        st.session_state.optimized_weights[new_name] = 0.0
+                        st.rerun()
 
         user_weights = {}
-        for name in st.session_state.ingredient_data.keys():
+        for name in list(st.session_state.ingredient_data.keys()):
             val = float(st.session_state.optimized_weights.get(name, 0.0))
             user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, val, step=0.1, key=f"form_sl_{name}")
         st.session_state.optimized_weights = user_weights
@@ -226,7 +246,7 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
         nutrient_display = [
             ("🥩 โปรตีนรวม (Crude Protein)", "protein", "%"),
             ("⚡ พลังงานใช้ประโยชน์ได้ (ME)", "me", "kcal/kg"),
-            ("Bone แคลเซียม (Calcium)", "calcium", "%"),
+            ("🦴 แคลเซียม (Calcium)", "calcium", "%"),
             ("🧪 ฟอสฟอรัสที่เป็นประโยชน์ (Phosphorus)", "phos", "%"),
             ("🧬 กรดอะมิโนจำเป็นรวม (Amino Acids)", "amino", "%")
         ]
@@ -258,7 +278,7 @@ elif st.session_state.current_page == "📦 แผนการจัดซื้
     for name, weight in st.session_state.optimized_weights.items():
         w_kg = (weight / 100.0) * total_feed_needed_kg
         if w_kg > 0:
-            p_unit = st.session_state.ingredient_data[name]["price"]
+            p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
             budget_data.append({
                 "วัตถุดิบวัตถุ": name,
                 "สัดส่วนในสูตร (%)": f"{weight}%",
@@ -296,8 +316,10 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
         
     df_track = st.session_state.tracker_data.copy()
     
-    # คำนวณปริมาณอาหารที่กินต่อวันเพื่อคำนวณ FCR
+    # คำนวณปริมาณอาหารและราคาที่กินจริง ณ ปัจจุบัน
     daily_feed_consumed_kg = (st.session_state.chicken_count * breed_info['default_feed']) / 1000.0
+    daily_feed_cost = daily_feed_consumed_kg * current_formula_cost
+    
     df_track["FCR"] = (daily_feed_consumed_kg / df_track["น้ำหนักไข่รวม (กก.)"]).round(2)
     
     avg_lay = df_track["อัตราการไข่ (%)"].mean()
@@ -321,8 +343,13 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
             egg_w = st.number_input("น้ำหนักไข่รวมหน้าแผง (กก.):", value=54.0)
             dead = st.number_input("ไก่ตาย/คัดออกวันนี้ (ตัว):", value=0, step=1)
             
-            st.caption(f"💡 ระบบคำนวณต้นทุนค่าอาหารวันนี้ให้อัตโนมัติ: {daily_feed_consumed_kg * current_formula_cost:,.1f} บาท")
-            profit_today = st.number_input("คำนวณหรือกรอกกำไรสุทธิวันนี้ (บาท):", value=650.0)
+            st.success(f"💰 ต้นทุนค่าอาหารวันนี้: {daily_feed_cost:,.2f} บาท")
+            
+            # ระบบแนะนำกำไรอัตโนมัติ (Dynamic Revenue Estimation)
+            estimated_revenue = egg_w * 65.0  # ค่าเฉลี่ยราคารับซื้อแผงละประมาณ 115-125 บาท
+            suggested_profit = max(0.0, estimated_revenue - daily_feed_cost)
+            
+            profit_today = st.number_input("คำนวณหรือกรอกกำไรสุทธิวันนี้ (บาท):", value=round(suggested_profit, 2))
             
             if st.form_submit_button("💾 กดบันทึกข้อมูลเข้าฐานระบบ"):
                 new_row = {
@@ -340,7 +367,7 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
         fig_prod = go.Figure()
         fig_prod.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["อัตราการไข่ (%)"], name="อัตราการไข่ (%)", line=dict(color='#22c55e', width=3)))
         fig_prod.add_trace(go.Bar(x=df_track["วันที่"], y=df_track["อัตราไข่บุบแตก (%)"], name="ไข่แตกเสียหาย (%)", marker_color='#ef4444', opacity=0.4))
-        fig_prod.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=280)
+        fig_prod.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=280, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
         st.plotly_chart(fig_prod, use_container_width=True)
         
     st.markdown("##### 📄 ตารางบัญชีและสถิติประวัติย้อนหลัง (Historical Ledger)")
