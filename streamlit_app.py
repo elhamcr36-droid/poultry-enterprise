@@ -51,7 +51,7 @@ BREED_PROFILES = {
     "2. กลุ่มสายพันธุ์แท้ (Pure Breeds)": {
         "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่สีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด ทนฝน เหมาะสำหรับเลี้ยงปล่อยธรรมชาติ (Free-range)"},
         "White Leghorn": {"name": "เลกฮอร์นขาว (White Leghorn)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ตัวเล็ก ขนขาว ปราดเปรียว บินเก่ง ให้ไข่เปลือกสีขาวสะอาด ดกมากเกือบเท่าไก่ไฮบริด"},
-        "Barred Plymouth Rock": {"name": "บาร์พลีมัทร็оค (Barred Plymouth Rock)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#64748b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายเสือตัวใหญ่ แข็งแรง ทนทาน นอกจากไข่ดีแล้ว เนื้อยังอร่อยด้วย (กึ่งเนื้อกึ่งไข่)"},
+        "Barred Plymouth Rock": {"name": "บาร์พลีมัทร็อค (Barred Plymouth Rock)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#64748b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายเสือตัวใหญ่ แข็งแรง ทนทาน นอกจากไข่ดีแล้ว เนื้อยังอร่อยด้วย (กึ่งเนื้อกึ่งไข่)"},
         "Australorp": {"name": "ออสตราลอป (Australorp)", "egg_color": "🤎 น้ำตาลครีมนวล", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ดำเหลือบเขียวมะกอก เชื่องมาก ตัวอวบอ้วนทนทานสูง ผลผลิตไข่สม่ำเสมอ"},
         "Sussex": {"name": "ซัสเซกส์ (Sussex)", "egg_color": "🩷 ชมพูอมน้ำตาลอ่อน", "bg_color": "#f1f5f9", "text_color": "#0f172a", "default_feed": 118, "desc": "โดยเฉพาะพันธุ์ Light Sussex (ตัวขาวคอดำ) น่ารัก นิสัยดี ให้ไข่สีสวยงามนุ่มนวล"}
     },
@@ -179,6 +179,7 @@ if st.button("⚡ สั่งปัญญาประดิษฐ์ประ�
             val = round(ingredient_vars[name].varValue, 1)
             st.session_state.optimized_weights[name] = val
         st.success("🎉 ค้นพบทางเลือกการผสมสูตรอาหารที่ประหยัดเงินที่สุดและปลอดภัยเรียบร้อยแล้ว! (Optimal Formulation Found)")
+        st.rerun()
     else:
         st.error("❌ ข้อจำกัดสารอาหารแน่นเกินไป หรือวัตถุดิบในคลังปัจจุบันไม่สามารถผสมให้ได้ค่าสารอาหารตามสภาวะอากาศนี้ได้ โปรดปรับสัดส่วนเองด้วยมือด้านล่าง (Infeasible Constraints)")
 st.markdown("---")
@@ -448,129 +449,74 @@ with track_col1:
             submit_disabled = False
             
         if st.form_submit_button("💾 กดบันทึกสถิติวันนี้ (Save Daily Records)", disabled=submit_disabled):
+            # คำนวณรายได้และกำไรอัตโนมัติจากราคาฟาร์มและสัดส่วนเบอร์ไข่
             total_eggs_today = chicken_count * (lay_r / 100.0)
             revenue_today = (
                 (total_eggs_today * (g_large / 100.0) * price_large) +
                 (total_eggs_today * (g_med / 100.0) * price_med) +
                 (total_eggs_today * (g_small / 100.0) * price_small)
             )
-            profit_today = round(revenue_today - daily_feed_cost, 1)
-
-            new_row = pd.DataFrame([{
+            profit_today = revenue_today - daily_feed_cost
+            
+            new_row = {
                 "วันที่": in_date, 
                 "สูตรอาหาร": f_name, 
                 "อัตราการไข่ (%)": lay_r, 
-                "อัตราไข่บุบแตก (%)": crack_r,
-                "น้ำหนักไข่รวม (กก.)": egg_weight_total,
-                "ไข่เบอร์ 0-1 (%)": g_large,
-                "ไข่เบอร์ 2-3 (%)": g_med,
-                "ไข่เบอร์ 4-5 (%)": g_small,
-                "ตาย/คัดทิ้ง (ตัว)": dead_count,
-                "กำไรสุทธิวันนี้ (บาท)": profit_today,
+                "อัตราไข่บุบแตก (%)": crack_r, 
+                "น้ำหนักไข่รวม (กก.)": egg_weight_total, 
+                "ไข่เบอร์ 0-1 (%)": g_large, 
+                "ไข่เบอร์ 2-3 (%)": g_med, 
+                "ไข่เบอร์ 4-5 (%)": g_small, 
+                "ตาย/คัดทิ้ง (ตัว)": dead_count, 
+                "กำไรสุทธิวันนี้ (บาท)": round(profit_today, 2), 
                 "หมายเหตุ": note_text
-            }])
-            st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
-            
-            payload = {
-                "date_record": in_date, 
-                "formula_name": f_name, 
-                "laying_rate": lay_r, 
-                "crack_rate": crack_r, 
-                "egg_weight_total": egg_weight_total,
-                "grade_large_pct": g_large,
-                "grade_med_pct": g_med,
-                "grade_small_pct": g_small,
-                "dead_count": dead_count,
-                "net_profit_day": profit_today,
-                "cost_per_kg": float(total_cost),
-                "breed_name": breed_info['name'],
-                "notes": note_text
             }
             
-            if "your-project" not in SUPABASE_URL and SUPABASE_KEY != "your-anon-key":
-                try:
-                    headers = {
-                        "apikey": SUPABASE_KEY, 
-                        "Authorization": f"Bearer {SUPABASE_KEY}", 
-                        "Content-Type": "application/json",
-                        "Prefer": "return=minimal"
-                    }
-                    endpoint = f"{SUPABASE_URL}/rest/v1/farm_records"
-                    response = requests.post(endpoint, json=payload, headers=headers, timeout=5)
-                    if response.status_code in [200, 201]:
-                        st.success("☁️ ซิงค์ข้อมูลขึ้นคลาวด์เดต้าเบสสำเร็จ! (Cloud Sync Completed)")
-                    else:
-                        st.warning(f"⚠️ ข้อมูลบันทึกลงเครื่องแล้ว แต่คลาวด์ตอบกลับข้อผิดพลาดรหัส: {response.status_code}")
-                except Exception as e:
-                    st.error(f"❌ ไม่สามารถติดต่อ Server คลาวด์ได้เนื่องจาก: {str(e)}")
-            else:
-                st.info("💡 ทำการบันทึกข้อมูลไว้ในหน่วยความจำชั่วคราวบนเครื่อง (Local Browser Memory Saved Successfully)")
+            st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, pd.DataFrame([new_row])], ignore_index=True)
+            st.success("🎉 บันทึกข้อมูลและประมวลผลกำไรสุทธิประจำวันลงในระบบเรียบร้อยแล้ว!")
             st.rerun()
 
 with track_col2:
-    st.markdown("##### 📊 กราฟวิเคราะห์แนวโน้มผลผลิตและผลกำไร (Production Trends & Profit Multi-Axis Dashboard)")
-    if not st.session_state.tracker_data.empty:
-        # สร้างกราฟวิเคราะห์แนวโน้ม (Trend Analytics Interactive Graphs)
-        fig = go.Figure()
+    st.markdown("##### 📈 กราฟเส้นแนวโน้มผลผลิตและกำไรของฟาร์ม (Production Trends & Profit Analytics Charts)")
+    if not df_track.empty:
+        # แสดงตารางประวัติข้อมูล
+        st.dataframe(df_track, use_container_width=True, hide_index=True)
         
-        # แกนหลัก: อัตราการไข่ (%)
-        fig.add_trace(go.Bar(
-            x=st.session_state.tracker_data["วันที่"],
-            y=st.session_state.tracker_data["อัตราการไข่ (%)"],
-            name="อัตราการไข่ (%) (Laying Rate)",
-            marker_color="#2563eb",
-            opacity=0.6,
-            yaxis="y1"
-        ))
+        # 🛠️ ใช้ go.Figure ร่วมกับ make_subplots สำหรับทำกราฟเปรียบเทียบแบบ 2 แกนวาย (Dual Y-Axis) 
+        # วิธีนี้ปลอดภัยจากการระเบิดและแสดงผลเปรียบเทียบเชิงลึกได้ตามที่ฟาร์มต้องการ
+        from plotly.subplots import make_subplots
         
-        # แกนรองที่ 2: กำไรสุทธิประจำวัน (บาท)
-        fig.add_trace(go.Scatter(
-            x=st.session_state.tracker_data["วันที่"],
-            y=st.session_state.tracker_data["กำไรสุทธิวันนี้ (บาท)"],
-            name="กำไรสุทธิวันนี้ (บาท) (Daily Net Profit)",
-            mode="lines+markers+text",
-            text=st.session_state.tracker_data["กำไรสุทธิวันนี้ (บาท)"],
-            textposition="top center",
-            line=dict(color="#10b981", width=3),
-            yaxis="y2"
-        ))
+        fig_dual = make_subplots(specs=[[{"secondary_y": True}]])
         
-        # ปรับแต่ง Layout ให้รองรับ Multi-Axis และสวยงามสไตล์ Modern BI
-        fig.update_layout(
-            title="กราฟวิเคราะห์เปรียบเทียบ อัตราการไข่ และ ผลกำไรสุทธิประจำวัน",
-            xaxis=dict(title="วันที่จัดเก็บสถิติ (Date)"),
-            yaxis=dict(
-                title="อัตราการไข่ (%) (Laying Rate)",
-                titlefont=dict(color="#2563eb"),
-                tickfont=dict(color="#2563eb"),
-                range=[0, 100]
-            ),
-            yaxis2=dict(
-                title="กำไรสุทธิวันนี้ (บาท) (Net Profit)",
-                titlefont=dict(color="#10b981"),
-                tickfont=dict(color="#10b981"),
-                overlaying="y",
-                side="right"
-            ),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            margin=dict(l=40, r=40, t=80, b=40),
-            hovermode="x unified"
+        # เพิ่มเส้นกราฟอัตราการไข่ (แกนซ้าย)
+        fig_dual.add_trace(
+            go.Scatter(x=df_track["วันที่"], y=df_track["อัตราการไข่ (%)"], name="อัตราการไข่ (%)", mode='lines+markers', line=dict(color='#0284c7', width=3)),
+            secondary_y=False,
         )
         
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # กราฟที่สอง: ติดตามเกรดขนาดไข่และอัตราการแตกบุบ
-        fig_grades = px.line(
-            st.session_state.tracker_data,
-            x="วันที่",
-            y=["ไข่เบอร์ 0-1 (%)", "ไข่เบอร์ 2-3 (%)", "ไข่เบอร์ 4-5 (%)"],
-            title="กราฟสัดส่วนแนวโน้มขนาดไข่ประจำวัน (Daily Egg Grade Distribution Trends)",
-            markers=True
+        # เพิ่มเส้นกราฟกำไรสุทธิ (แกนขวา)
+        fig_dual.add_trace(
+            go.Scatter(x=df_track["วันที่"], y=df_track["กำไรสุทธิวันนี้ (บาท)"], name="กำไรสุทธิวันนี้ (บาท)", mode='lines+markers', line=dict(color='#16a34a', width=3)),
+            secondary_y=True,
         )
-        fig_grades.update_layout(yaxis_title="สัดส่วนเปอร์เซ็นต์เกรดไข่ (%)", legend_title="เกรดไข่")
-        st.plotly_chart(fig_grades, use_container_width=True)
+        
+        # กำหนดรายละเอียดหัวข้อและป้ายกำกับแกน
+        fig_dual.update_layout(
+            title_text="📊 วิเคราะห์เปรียบเทียบอัตราการไข่ และ ผลกำไรสุทธิรายวัน",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        
+        fig_dual.update_xaxes(title_text="วันที่บันทึก (Date)")
+        fig_dual.update_yaxes(title_text="<b>อัตราการไข่</b> (%)", color='#0284c7', secondary_y=False)
+        fig_dual.update_yaxes(title_text="<b>กำไรสุทธิ</b> (บาท)", color='#16a34a', secondary_y=True)
+        
+        st.plotly_chart(fig_dual, use_container_width=True)
+        
+        # เพิ่มเติม: กราฟแท่งแสดงอัตราไข่บุบแตกประจำวัน
+        fig_crack = px.bar(df_track, x="วันที่", y="อัตราไข่บุบแตก (%)", 
+                            title="💥 แนวโน้มอัตราไข่บุบแตกหน้าฟาร์ม (Daily Broken Egg Rates Trend)",
+                            text_auto='.1f', color_discrete_sequence=['#ef4444'])
+        st.plotly_chart(fig_crack, use_container_width=True)
+        
     else:
-        st.info("ยังไม่มีข้อมูลสำหรับประมวลผลกราฟวิเคราะห์ กรุณากรอกข้อมูลและกดบันทึกที่แผงด้านซ้ายก่อน")
-
-st.markdown("---")
-st.caption("⚡ Smart Layer Feed Solution Engine 2026 — พัฒนาและเชื่อมโยงระบบคำนวณสูตรอาหาร ปศุสัตว์แม่นยำ และโมเดลบัญชีต้นทุน-ผลกำไรฟาร์มอย่างครบวงจร")
+        st.info("💡 ยังไม่มีข้อมูลสถิติในระบบ กรุณากรอกข้อมูลและบันทึกสถิติที่แผงควบคุมฝั่งซ้าย")
