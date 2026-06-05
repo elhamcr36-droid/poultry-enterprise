@@ -8,38 +8,41 @@ from datetime import datetime
 # ==========================================
 # 🔱 1. ตั้งค่าคอนฟิกแอปพลิเคชันและหน้าจอ (Application Configuration)
 # ==========================================
-st.set_page_config(page_title="Smart Layer Feed - ระบบคำนวณอาหารไก่ไข่อัจฉริยะ", layout="wide")
+st.set_page_config(
+    page_title="Smart Layer Feed - ระบบคำนวณอาหารไก่ไข่อัจฉริยะ", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# เมนูด้านข้างสำหรับการเชื่อมต่อระบบคลาวด์ (Sidebar for Cloud Connection)
+# [ปรับปรุง] แถบข้างซ้ายเหลือไว้เฉพาะการเชื่อมต่อ Cloud เท่านั้น เมนูนำทางถูกย้ายออกไปแล้วตามภาพ edited-image.png
 st.sidebar.markdown("### ☁️ การเชื่อมต่อคลาวด์ระดับองค์กร")
 SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-project.supabase.co").strip()
 SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
 
 # ==========================================
-# 🧭 ระบบปุ่มกดเปลี่ยนหน้าแยก (Navigation / Router System)
+# 🧭 🔥 [ย้ายมาจาก Sidebar] ระบบปุ่มนำทางขนาดใหญ่แนวนอนด้านบนสุด (Top Tabs Navigation)
 # ==========================================
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🗺️ เมนูนำทางเลือกหน้าจอ")
+st.markdown("# 🐔 Smart Layer Feed")
+st.markdown("### ระบบคำนวณสูตรอาหารและบริหารจัดการฟาร์มไก่ไข่อัจฉริยะ")
 
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "🏠 หน้าแรก & ตั้งค่าสายพันธุ์"
-
-page = st.sidebar.radio(
-    "ไปที่หน้าจอ:",
-    ["🏠 หน้าแรก & ตั้งค่าสายพันธุ์", "🧠 คำนวณสูตรอาหาร (AI Optimizer)", "📦 แผนการจัดซื้อวัตถุดิบ", "📈 สถิติผลผลิต & บัญชีฟาร์ม"],
-    key="navigation_radio_v9"
-)
-st.session_state.current_page = page
+# สร้างปุ่มกดขนาดใหญ่ด้านบนสุดเพื่อสลับหน้าจอแทนเมนูเดิมในวงกลมแดงของภาพ edited-image.png
+page_tabs = st.tabs([
+    "🏠 หน้าแรก & ตั้งค่าสายพันธุ์", 
+    "🧠 คำนวณสูตรอาหาร (AI Optimizer)", 
+    "📦 แผนการจัดซื้อวัตถุดิบ", 
+    "📈 สถิติผลผลิต & บัญชีฟาร์ม"
+])
 
 # ==========================================
 # 📋 2. ฐานข้อมูลส่วนประกอบและโภชนาการมาตรฐาน (Database Initialization)
 # ==========================================
 STAGE_NUTRITION_TARGETS = {
-    "starter": {"name": "ลูกไก่ไข่ 0 - 6 Sัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42, "fiber": 4.0, "fat": 3.5},
+    "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42, "fiber": 4.0, "fat": 3.5},
     "grower": {"name": "ไก่รุ่นไข่ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32, "fiber": 4.5, "fat": 3.0},
     "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต 16 สัปดาห์ขึ้นไป (Laying)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38, "fiber": 4.0, "fat": 3.5}
 }
 
+# ตั้งค่าสถานะวัตถุดิบเริ่มต้นเข้าสู่ Session State
 if "ingredient_data" not in st.session_state:
     st.session_state.ingredient_data = {
         "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18, "moisture": 12.0, "fiber": 2.2, "fat": 3.8, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
@@ -51,7 +54,6 @@ if "ingredient_data" not in st.session_state:
         "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
     }
 
-# 🔥 ขยายฐานข้อมูลสายพันธุ์แบบจุใจ (6 กลุ่ม 22 สายพันธุ์)
 BREED_PROFILES = {
     "1. กลุ่มไฮบริดสีน้ำตาลพาณิชย์ (Commercial Brown Hybrids)": {
         "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนความร้อนเมืองไทยได้ดีเยี่ยม"},
@@ -96,15 +98,11 @@ LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
 # ==========================================
 if "selected_group" not in st.session_state: 
     st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
-
-# บังคับรีเซ็ตกลุ่ม หากตรวจพบชื่อกลุ่มแบบเก่าค้างอยู่ในเบราว์เซอร์ผู้ใช้ ป้องกัน KeyError
 if st.session_state.selected_group not in BREED_PROFILES:
     st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
 
 if "selected_breed_key" not in st.session_state: 
     st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
-
-# ตรวจสอบและบังคับรีเซ็ตสายพันธุ์ย่อยให้สัมพันธ์กันกับกลุ่ม
 if st.session_state.selected_breed_key not in BREED_PROFILES[st.session_state.selected_group]:
     st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
 
@@ -116,10 +114,7 @@ if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 if "use_phytase" not in st.session_state: st.session_state.use_phytase = True
 
-# ดึงข้อมูลโปรไฟล์สายพันธุ์ที่ตรวจสอบเรียบร้อยแล้ว
-breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
-
-# ฟังก์ชันคำนวณโภชนาการปัจจุบัน
+# ฟังก์ชันคำนวณคุณค่าทางอาหารและต้นทุนปัจจุบันตามจริง
 def calculate_current_formulation():
     nut_calc = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0, "fiber": 0.0, "fat": 0.0}
     cost = 0.0
@@ -144,18 +139,29 @@ def calculate_current_formulation():
 current_nutrition, current_formula_cost, total_moisture, total_risk_score = calculate_current_formulation()
 
 # ==========================================
-# 🏠 หน้าที่ 1: หน้าแรก & ตั้งค่าสายพันธุ์
+# 📥 4. ส่วนแสดงผลเนื้อหาแต่ละหน้าจอ (Tabs Logic Processing)
 # ==========================================
-if st.session_state.current_page == "🏠 หน้าแรก & ตั้งค่าสายพันธุ์":
-    st.markdown("## 🏠 หน้าแรก: ข้อมูลสายพันธุ์และสภาวะแวดล้อมฟาร์ม")
+
+# --- [แท็บที่ 1]: หน้าแรก & ตั้งค่าสายพันธุ์ ---
+with page_tabs[0]:
+    st.markdown("## 🏠 ข้อมูลสายพันธุ์หลักและสภาพแวดล้อมฟาร์ม")
     
     c_group, c_breed = st.columns(2)
     with c_group:
-        st.session_state.selected_group = st.selectbox("เลือกกลุ่มสายพันธุ์ไก่ไข่:", list(BREED_PROFILES.keys()), index=list(BREED_PROFILES.keys()).index(st.session_state.selected_group))
+        st.session_state.selected_group = st.selectbox(
+            "เลือกกลุ่มสายพันธุ์ไก่ไข่:", 
+            list(BREED_PROFILES.keys()), 
+            index=list(BREED_PROFILES.keys()).index(st.session_state.selected_group)
+        )
     with c_breed:
         breed_options = BREED_PROFILES[st.session_state.selected_group]
         default_index = list(breed_options.keys()).index(st.session_state.selected_breed_key) if st.session_state.selected_breed_key in breed_options else 0
-        st.session_state.selected_breed_key = st.selectbox("สายพันธุ์หลักในโรงเรือน:", options=list(breed_options.keys()), index=default_index, format_func=lambda x: breed_options[x]["name"])
+        st.session_state.selected_breed_key = st.selectbox(
+            "สายพันธุ์หลักในโรงเรือน:", 
+            options=list(breed_options.keys()), 
+            index=default_index, 
+            format_func=lambda x: breed_options[x]["name"]
+        )
     
     breed_info = breed_options[st.session_state.selected_breed_key]
     cloud_status_text = "พร้อมใช้งาน / เชื่อมต่อระบบจริง (Online)" if "your-project" not in SUPABASE_URL and SUPABASE_KEY != "your-anon-key" else "โหมดทำงานแบบออฟไลน์ชั่วคราว (Offline Mode)"
@@ -172,26 +178,34 @@ if st.session_state.current_page == "🏠 หน้าแรก & ตั้ง�
     st.markdown("### ⛅ การจัดการอายุและสภาพแวดล้อม")
     c_age, c_weather = st.columns(2)
     with c_age:
-        st.session_state.current_key = st.selectbox("เลือกช่วงอายุ/โปรไฟล์ของไก่:", options=list(STAGE_NUTRITION_TARGETS.keys()), index=list(STAGE_NUTRITION_TARGETS.keys()).index(st.session_state.current_key), format_func=lambda x: STAGE_NUTRITION_TARGETS[x]["name"])
+        st.session_state.current_key = st.selectbox(
+            "เลือกช่วงอายุ/โปรไฟล์ของไก่:", 
+            options=list(STAGE_NUTRITION_TARGETS.keys()), 
+            index=list(STAGE_NUTRITION_TARGETS.keys()).index(st.session_state.current_key), 
+            format_func=lambda x: STAGE_NUTRITION_TARGETS[x]["name"]
+        )
     with c_weather:
         weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
-        st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิในโรงเรือนวันนี้:", weather_list, index=weather_list.index(st.session_state.weather_env), horizontal=True)
+        st.session_state.weather_env = st.radio(
+            "สภาพอากาศและอุณหภูมิในโรงเรือนวันนี้:", 
+            weather_list, 
+            index=weather_list.index(st.session_state.weather_env), 
+            horizontal=True
+        )
 
     st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
     st.session_state.chicken_count = st.number_input("จำนวนไก่ในฟาร์มทั้งหมด (ตัว):", min_value=1, value=st.session_state.chicken_count, step=100)
     
-    # ดึงข้อมูลการกินตามจริงของสายพันธุ์นั้นๆ มาคูณสัดส่วนน้ำ
     base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
     calc_water = st.session_state.chicken_count * base_water
     if "ร้อนจัด" in st.session_state.weather_env:
         calc_water *= 1.20
-        st.error("🔥 อากาศร้อนจัด! แนะนำให้เตรียมน้ำดื่มเพิ่มขึ้นอีก 20% เพื่อแก้ปัญหาความร้อน (Heat Stress)")
+        st.error("🔥 อากาศร้อนจัด! แนะนำให้เตรียมน้ำดื่มเพิ่มขึ้นอีก 20% เพื่อแก้ปัญหาความเครียดจากความร้อน (Heat Stress)")
     st.metric("ปริมาณน้ำที่ฝูงไก่ต้องกินต่อวันรวม", f"{calc_water:,.1f} ลิตร (Liters)")
 
-# ==========================================
-# 🧠 หน้าที่ 2: คำนวณสูตรอาหาร (AI Optimizer)
-# ==========================================
-elif st.session_state.current_page == "🧠 คำนวณสูตรอาหาร (AI Optimizer)":
+
+# --- [แท็บที่ 2]: คำนวณสูตรอาหาร (AI Optimizer) ---
+with page_tabs[1]:
     st.markdown("## 🧠 ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์")
     
     target = STAGE_NUTRITION_TARGETS[st.session_state.current_key]
@@ -207,9 +221,13 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
         cols = st.columns(len(st.session_state.ingredient_data.keys()))
         for idx, name in enumerate(st.session_state.ingredient_data.keys()):
             with cols[idx]:
-                st.session_state.ingredient_data[name]["price"] = st.number_input(f"{name}", min_value=0.0, value=float(st.session_state.ingredient_data[name]["price"]), step=0.5, key=f"p_{name}")
+                st.session_state.ingredient_data[name]["price"] = st.number_input(
+                    f"{name}", min_value=0.0, 
+                    value=float(st.session_state.ingredient_data[name]["price"]), 
+                    step=0.5, key=f"p_{name}"
+                )
 
-    st.session_state.use_phytase = st.checkbox("🧪 ใส่เอนไซม์ไฟเตส (ลดเป้าหมายฟอสฟอรัสลง 0.10% อัตโนมัติ)", value=st.session_state.use_phytase)
+    st.session_state.use_phytase = st.checkbox("🧪 ใส่เอนไซม์ไฟเตส (ลดเป้าหมายฟอสฟอรัสลง 0.10% อัตโนมัติ)", value=st.session_state.use_phytase, key="phytase_toggle")
     if st.session_state.use_phytase:
         adjusted_target["phos"] = max(0.30, adjusted_target["phos"] - 0.10)
 
@@ -220,7 +238,6 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["price"] / 100.0) for name in st.session_state.ingredient_data.keys()])
         prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0
         
-        # เพิ่มขอบเขตบนเพื่อความปลอดภัยเชิงสัตวบาล (Animal Health Safety Bound)
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["protein"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["protein"]
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["protein"] / 100.0) for name in st.session_state.ingredient_data.keys()]) <= adjusted_target["protein"] + 3.0
         
@@ -244,7 +261,7 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
     with creator_left:
         st.markdown("#### 🔧 1. สไลเดอร์ปรับสัดส่วนผสมด้วยมือ / เพิ่มวัตถุดิบเสริม")
         with st.expander("➕ เพิ่มสารอาหารเสริม/วัตถุดิบตัวใหม่เข้าระบบ"):
-            with st.form("add_ing_form_v8"):
+            with st.form("add_ing_form_v10"):
                 new_name = st.text_input("ชื่อวัตถุดิบใหม่:")
                 n_p = st.number_input("ราคา (บาท/กก.):", value=15.0)
                 n_pro = st.number_input("โปรตีน (%):", value=15.0)
@@ -291,10 +308,9 @@ elif st.session_state.current_page == "🧠 คำนวณสูตรอาห
             
         st.metric("💰 ต้นทุนสูตรผสมอาหารปัจจุบันของคุณ", f"{current_formula_cost:.2f} บาท / กิโลกรัม")
 
-# ==========================================
-# 📦 หน้าที่ 3: แผนการจัดซื้อวัตถุดิบ
-# ==========================================
-elif st.session_state.current_page == "📦 แผนการจัดซื้อวัตถุดิบ":
+
+# --- [แท็บที่ 3]: แผนการจัดซื้อวัตถุดิบ ---
+with page_tabs[2]:
     st.markdown("## 📦 แผนจัดซื้อวัตถุดิบอาหารสัตว์และควบคุมความเสี่ยง")
     
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
@@ -323,14 +339,13 @@ elif st.session_state.current_page == "📦 แผนการจัดซื้
     st.markdown("---")
     st.markdown("#### 🛡️ การบริหารจัดการความปลอดภัยทางชีวภาพ (Biosecurity Control)")
     if total_risk_score >= 2.0:
-        st.error(f"⚠️ ดัชนีสารพิษเชื้อรารวมอยู่ที่ {total_risk_score:.2f} (เสี่ยงสูง) แนะนำให้สั่งสารจับสารพิษเชื้อรา (Toxin Binder) ผสมเพิ่มจำนวน {2.0 * (total_feed_needed_kg/1000.0):,.1f} กก. เข้าไปในเครื่องผสมอาหารด้วย")
+        st.error(f"⚠️ ดัชนีสารพิษเชื้อรารวมอยู่ที่ {total_risk_score:.2f} (เสี่ยงสูง) แนะนำให้สั่งสารจับสารพิษเชื้อรา (Toxin Binder) ผสมเพิ่มจำนวน {2.0 * (total_feed_needed_kg/1000.0):,.1f} กก. เข้าไปในเครื่องผสมอาหารด้วยเพื่อความปลอดภัย")
     else:
-        st.success("🟢 วัตถุดิบในสูตรมีความปลอดภัยจากสารพิษเชื้อราสูง จัดเก็บได้ตามเกณฑ์มาตรฐาน")
+        st.success("🟢 วัตถุดิบในสูตรมีความปลอดภัยจากสารพิษเชื้อราสูง จัดเก็บได้ตามเกณฑ์มาตรฐานโรงงาน")
 
-# ==========================================
-# 📈 หน้าที่ 4: สถิติผลผลิต & บัญชีฟาร์ม
-# ==========================================
-elif st.session_state.current_page == "📈 สถิติผลผลิต & บัญชีฟาร์ม":
+
+# --- [แท็บที่ 4]: สถิติผลผลิต & บัญชีฟาร์ม ---
+with page_tabs[3]:
     st.markdown("## 📈 สมุดจดบันทึกสถิติและวิเคราะห์ผลกำไรฟาร์ม")
     
     if "tracker_data" not in st.session_state:
@@ -342,7 +357,6 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
         
     df_track = st.session_state.tracker_data.copy()
     
-    # คำนวณปริมาณอาหารและราคาที่กินจริง ณ ปัจจุบันตามสายพันธุ์ย่อย
     daily_feed_consumed_kg = (st.session_state.chicken_count * breed_info['default_feed']) / 1000.0
     daily_feed_cost = daily_feed_consumed_kg * current_formula_cost
     
@@ -362,7 +376,7 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
     
     with track_col1:
         st.markdown("##### 📝 จดบันทึกผลผลิตประจำวัน")
-        with st.form("daily_form_ledger"):
+        with st.form("daily_form_ledger_v10"):
             in_date = st.text_input("วันที่บันทึก (เช่น 05/06):", value=datetime.now().strftime("%d/%m"))
             lay_r = st.number_input("อัตราการไข่วันนี้ (%):", value=85.0)
             crack_r = st.number_input("อัตราไข่แตกเสียหาย (%):", value=1.5)
@@ -371,8 +385,7 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
             
             st.success(f"💰 ต้นทุนค่าอาหารวันนี้: {daily_feed_cost:,.2f} บาท")
             
-            # ระบบแนะนำกำไรอัตโนมัติ (Dynamic Revenue Estimation)
-            estimated_revenue = egg_w * 65.0  # ค่าเฉลี่ยราคารับซื้อแผงละประมาณ 115-125 บาท
+            estimated_revenue = egg_w * 65.0
             suggested_profit = max(0.0, estimated_revenue - daily_feed_cost)
             
             profit_today = st.number_input("คำนวณหรือกรอกกำไรสุทธิวันนี้ (บาท):", value=round(suggested_profit, 2))
@@ -403,4 +416,4 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
 # 🏁 ส่วนท้ายของแอปพลิเคชัน (Enterprise Footer)
 # ==========================================
 st.markdown("---")
-st.markdown(f"<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed v9.0 | ขยายฐานข้อมูลความแม่นยำสูง 6 กลุ่ม 22 สายพันธุ์ ปลอดภัยจากปัญหา KeyError ค้างถาวร</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed v10.0 | ย้ายระบบเลือกเมนูหน้าจอจาก Sidebar ไปเป็นปุ่มแท็บใหญ่แนวนอนสำเร็จ ไร้รอยต่อ</div>", unsafe_allow_html=True)
