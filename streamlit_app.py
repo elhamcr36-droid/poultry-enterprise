@@ -350,23 +350,38 @@ with page_tabs[1]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 3]: ระบบหลังบ้าน ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ระบบหลังบ้าน (Backoffice Management)")
     
-    st.markdown("### 💰 อัปเดตราคาวัตถุดิบประจำงวด (บาท/กิโลกรัม)")
-    all_ingredients = list(st.session_state.ingredient_data.keys())
-    chunk_size = 4
-    for i in range(0, len(all_ingredients), chunk_size):
-        chunk_slice = all_ingredients[i:i+chunk_size]
-        cols = st.columns(len(chunk_slice))
-        for idx, name in enumerate(chunk_slice):
-            with cols[idx]:
-                st.session_state.ingredient_data[name]["price"] = st.number_input(
-                    f"{name}", min_value=0.0, 
-                    value=float(st.session_state.ingredient_data[name]["price"]), 
-                    step=0.1, key=f"p_{name}"
+    st.markdown("### 💰 ตารางจัดการข้อมูลวัตถุดิบ (ราคา/โภชนาการ)")
+    st.markdown("คุณสามารถแก้ไขราคา, เพิ่มแถวใหม่ หรือลบวัตถุดิบออกได้จากตารางด้านล่างนี้:")
+    
+    # แปลง dictionary เป็น DataFrame เพื่อให้แสดงในตาราง editor
+    df_ingredients = pd.DataFrame.from_dict(st.session_state.ingredient_data, orient='index')
+    df_ingredients.index.name = 'ชื่อวัตถุดิบ'
+    df_ingredients = df_ingredients.reset_index()
+    
+    # ใช้ data_editor ให้แก้ไข เพิ่ม และลบข้อมูลได้
+    edited_df = st.data_editor(
+        df_ingredients, 
+        num_rows="dynamic", 
+        use_container_width=True,
+        column_config={
+            "ชื่อวัตถุดิบ": st.column_config.TextColumn("ชื่อวัตถุดิบ"),
+            "price": st.column_config.NumberColumn("ราคา (บาท/กก.)", format="%.2f"),
+        }
+    )
+    
+    # เมื่อมีการแก้ไข ให้เขียนข้อมูลกลับลงไปใน session_state
+    if st.button("💾 บันทึกการเปลี่ยนแปลงข้อมูลวัตถุดิบ"):
+        # แปลงกลับเป็น dictionary
+        new_data = edited_df.set_index('ชื่อวัตถุดิบ').to_dict(orient='index')
+        st.session_state.ingredient_data = new_data
+        st.success("บันทึกข้อมูลวัตถุดิบเรียบร้อยแล้ว!")
+        st.rerun()
+                
+    st.markdown("---")"
                 )
                 
     st.markdown("---")
