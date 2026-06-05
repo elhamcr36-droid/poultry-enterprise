@@ -185,7 +185,6 @@ with page_tabs[0]:
         breed_options = BREED_PROFILES[st.session_state.selected_group]
         st.session_state.selected_breed_key = st.selectbox("สายพันธุ์หลักในโรงเรือน:", options=list(breed_options.keys()), format_func=lambda x: breed_options[x]["name"])
     
-    # 📍 [เลื่อนขึ้นมาตั้งตรงนี้แล้วครับ] -> ตัวเลือกช่วงอายุ/โปรไฟล์ของไก่
     st.session_state.current_key = st.selectbox("🗓️ เลือกช่วงอายุ/โปรไฟล์ของไก่ (การจัดการอายุฝูงสัตว์):", options=list(STAGE_NUTRITION_TARGETS.keys()), format_func=lambda x: STAGE_NUTRITION_TARGETS[x]["name"])
     
     breed_info = breed_options[st.session_state.selected_breed_key]
@@ -350,40 +349,75 @@ with page_tabs[1]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+# --- [แท็บที่ 3]: ระบบหลังบ้าน ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 ระบบหลังบ้าน (Backoffice Management)")
-    
-    st.markdown("### 💰 ตารางจัดการข้อมูลวัตถุดิบ (ราคา/โภชนาการ)")
-    st.markdown("คุณสามารถแก้ไขราคา, เพิ่มแถวใหม่ หรือลบวัตถุดิบออกได้จากตารางด้านล่างนี้:")
-    
-    # แปลง dictionary เป็น DataFrame เพื่อให้แสดงในตาราง editor
-    df_ingredients = pd.DataFrame.from_dict(st.session_state.ingredient_data, orient='index')
-    df_ingredients.index.name = 'ชื่อวัตถุดิบ'
-    df_ingredients = df_ingredients.reset_index()
-    
-    # ใช้ data_editor ให้แก้ไข เพิ่ม และลบข้อมูลได้
-    edited_df = st.data_editor(
-        df_ingredients, 
-        num_rows="dynamic", 
-        use_container_width=True,
-        column_config={
-            "ชื่อวัตถุดิบ": st.column_config.TextColumn("ชื่อวัตถุดิบ"),
-            "price": st.column_config.NumberColumn("ราคา (บาท/กก.)", format="%.2f"),
-        }
-    )
-    
-    # เมื่อมีการแก้ไข ให้เขียนข้อมูลกลับลงไปใน session_state
-    if st.button("💾 บันทึกการเปลี่ยนแปลงข้อมูลวัตถุดิบ"):
-        # แปลงกลับเป็น dictionary
-        new_data = edited_df.set_index('ชื่อวัตถุดิบ').to_dict(orient='index')
-        st.session_state.ingredient_data = new_data
-        st.success("บันทึกข้อมูลวัตถุดิบเรียบร้อยแล้ว!")
-        st.rerun()
+    st.markdown("## 📦 ระบบหลังบ้าน & จัดการราคาวัตถุดิบ")
+    st.markdown("### 💰 อัปเดตราคาท้องตลาดประจำวันนี้")
+    st.markdown("ชาวบ้านหรือคนงานสามารถเดินเช็กราคาในตลาด แล้วมาแก้เฉพาะตัวเลขราคาตรงนี้ได้เลยครับ (ส่วนค่าสารอาหารระบบจะคำนวณให้เองอัตโนมัติเบื้องหลัง)")
     st.markdown("---")
-    st.markdown("### 📝 ใบประมาณการจัดซื้อและดาวน์โหลด PO")
+
+    # ดึงข้อมูลวัตถุดิบปัจจุบัน
+    current_ingredients = st.session_state.ingredient_data
+    
+    # แบ่งหน้าจอเป็น 2 ฝั่งเพื่อความสวยงามและไม่ยาวเกินไป
+    col_left, col_right = st.columns(2, gap="large")
+    
+    updated_prices = {}
+    
+    # นำรายชื่อวัตถุดิบมาแบ่งครึ่งแสดงผล
+    ing_names = list(current_ingredients.keys())
+    half_size = (len(ing_names) + 1) // 2
+    
+    # ฝั่งซ้าย: วัตถุดิบกลุ่มหลัก (คาร์โบไฮเดรต/รำ/มัน)
+    with col_left:
+        st.markdown("#### 🌾 กลุ่มวัตถุดิบหลัก / รำ / มันเส้น")
+        for name in ing_names[:half_size]:
+            old_price = current_ingredients[name]["price"]
+            updated_prices[name] = st.number_input(
+                f"💵 ราคา {name} (บาท ต่อ กิโลกรัม)", 
+                min_value=0.0, 
+                value=float(old_price), 
+                step=0.5, 
+                format="%.2f",
+                key=f"simple_price_{name}"
+            )
+
+    # ฝั่งขวา: วัตถุดิบกลุ่มโปรตีนและแร่ธาตุ
+    with col_right:
+        st.markdown("#### 🥩 กลุ่มโปรตีน / เปลือกหอย / วิตามิน")
+        for name in ing_names[half_size:]:
+            old_price = current_ingredients[name]["price"]
+            updated_prices[name] = st.number_input(
+                f"💵 ราคา {name} (บาท ต่อ กิโลกรัม)", 
+                min_value=0.0, 
+                value=float(old_price), 
+                step=0.5, 
+                format="%.2f",
+                key=f"simple_price_{name}"
+            )
+
+    st.markdown("---")
+    
+    # ปุ่มบันทึกขนาดใหญ่ กดง่ายๆ
+    if st.button("💾 ยืนยันบันทึกราคาทุกอย่าง (Save Prices)", type="primary", use_container_width=True):
+        # วนลูปอัปเดตเฉพาะราคา ค่าโภชนาการเดิมยังคงอยู่ครบถ้วน ป้องกันกรอกข้อมูลสูตรพัง
+        for name, new_price in updated_prices.items():
+            st.session_state.ingredient_data[name]["price"] = new_price
+        st.success("🎉 บันทึกราคาวัตถุดิบใหม่ลงระบบเรียบร้อยแล้ว! สามารถกลับไปกดคำนวณสูตรอาหารที่หน้าแรกได้เลย")
+        st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+    # --- ส่วนใบสั่งซื้อ สำหรับเอาไปยื่นร้านขายอาหารสัตว์ ---
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("## 📝 ใบสั่งซื้อวัตถุดิบสำหรับเดินไปเข้าร้านค้า")
+    
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
-    st.info(f"📊 ปริมาณอาหารรวมที่ต้องจัดซื้อจัดสำรองตามจำนวนสัตว์: **{total_feed_needed_kg/1000.0:,.2f} ตัน**")
+    
+    # แปลงหน่วยเป็นกิโลกรัม หรือ กระสอบ (กระสอบละ 30 กิโล) ให้ชาวบ้านมองภาพออกง่ายขึ้น
+    st.info(f"📊 สำหรับไก่จำนวน **{st.session_state.chicken_count:,} ตัว** ต้องใช้อาหารรวมทั้งหมด **{total_feed_needed_kg:,.1f} กิโลกรัม** (หรือประมาณ {total_feed_needed_kg/30:,.0f} กระสอบ)")
     
     budget_data = []
     for name, weight in st.session_state.optimized_weights.items():
@@ -391,18 +425,23 @@ with page_tabs[2]:
         if w_kg > 0:
             p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
             budget_data.append({
-                "วัตถุดิบ": name, "สัดส่วน (%)": f"{weight}%",
-                "ปริมาณที่ต้องซื้อ (กก.)": round(w_kg, 1),
-                "งบประมาณ (บาท)": round(w_kg * p_unit, 2)
+                "รายการวัตถุดิบที่ต้องซื้อ": name,
+                "สัดส่วนในสูตร": f"{weight}%",
+                "น้ำหนักรวมที่ต้องใช้ (กิโลกรัม)": f"{w_kg:,.1f} กก.",
+                "คิดเป็นจำนวนกระสอบ (30 กก.)": f"~ {round(w_kg / 30, 1)} กระสอบ",
+                "ประมาณการเงินที่ต้องเตรียม (บาท)": f"{round(w_kg * p_unit, 2):,} บาท"
             })
             
     df_budget = pd.DataFrame(budget_data)
     if not df_budget.empty:
+        # แสดงตารางภาษาไทยบ้านๆ ไม่มีชื่อคอลัมน์ภาษาอังกฤษให้งง
         st.dataframe(df_budget, use_container_width=True, hide_index=True)
+        
+        # ปุ่มดาวน์โหลด
         csv = df_budget.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 ดาวน์โหลดใบจัดซื้อระบบหลังบ้าน (Download PO CSV)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบ_BackOffice.csv", mime="text/csv")
+        st.download_button("📥 ดาวน์โหลดใบสั่งซื้อนี้ไปพิมพ์รายงาน (Download PO)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบหน้าฟาร์ม.csv", mime="text/csv")
     else:
-        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาปรับตั้งค่าสูตรอาหารที่แผงควบคุมก่อน")
+        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาไปกดปุ่ม 'สั่งคำนวณสูตรอาหาร' ที่หน้าแรกก่อนนะครับ")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
