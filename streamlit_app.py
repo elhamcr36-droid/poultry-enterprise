@@ -22,21 +22,21 @@ SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Supabase Ano
 # ==========================================
 
 STAGE_NUTRITION_TARGETS = {
-    "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42},
-    "grower": {"name": "ไก่รุ่นไข่ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32},
-    "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต 16 สัปดาห์ขึ้นไป (Laying)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38}
+    "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42, "fiber": 4.0, "fat": 3.5},
+    "grower": {"name": "ไก่รุ่นไข่ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32, "fiber": 4.5, "fat": 3.0},
+    "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต 16 สัปดาห์ขึ้นไป (Laying)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38, "fiber": 4.0, "fat": 3.5}
 }
 
-# ใช้ Session State เพื่อรองรับการอัปเดตราคาวัตถุดิบแบบ Dynamic
+# เพิ่มค่าสารอาหารพื้นฐาน fiber และ fat ในวัตถุดิบเริ่มต้น
 if "ingredient_data" not in st.session_state:
     st.session_state.ingredient_data = {
-        "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18, "moisture": 12.0, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
-        "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "amino": 0.65, "moisture": 11.5, "tox_risk": 1, "min_limit": 5.0, "max_limit": 40.0},
-        "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "amino": 0.22, "moisture": 10.5, "tox_risk": 3, "min_limit": 0.0, "max_limit": 30.0},
-        "ปลาป่น": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "amino": 0.95, "moisture": 10.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
-        "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "amino": 0.00, "moisture": 0.5, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
-        "ไดแคลเซียมฟอสเฟต": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "amino": 0.00, "moisture": 1.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 5.0},
-        "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
+        "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18, "moisture": 12.0, "fiber": 2.2, "fat": 3.8, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
+        "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "amino": 0.65, "moisture": 11.5, "fiber": 5.5, "fat": 1.5, "tox_risk": 1, "min_limit": 5.0, "max_limit": 40.0},
+        "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "amino": 0.22, "moisture": 10.5, "fiber": 12.0, "fat": 13.0, "tox_risk": 3, "min_limit": 0.0, "max_limit": 30.0},
+        "ปลาป่น": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "amino": 0.95, "moisture": 10.0, "fiber": 1.0, "fat": 8.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
+        "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "amino": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
+        "ไดแคลเซียมฟอสเฟต": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "amino": 0.00, "moisture": 1.0, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 5.0},
+        "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
     }
 
 BREED_PROFILES = {
@@ -143,7 +143,9 @@ adjusted_target = {
     "me": target["me"],
     "calcium": target["calcium"] * density_factor,
     "phos": target["phos"] * density_factor,
-    "amino": target["amino"] * density_factor
+    "amino": target["amino"] * density_factor,
+    "fiber": target.get("fiber", 4.0), # กำหนดค่าเป้าหมายมาตรฐาน
+    "fat": target.get("fat", 3.5)
 }
 st.markdown("---")
 
@@ -161,7 +163,7 @@ if st.button("⚡ สั่งปัญญาประดิษฐ์ประ�
     ingredient_vars = {}
     
     for name, data in st.session_state.ingredient_data.items():
-        ingredient_vars[name] = pulp.LpVariable(name, lowBound=data["min_limit"], upBound=data["max_limit"])
+        ingredient_vars[name] = pulp.LpVariable(name, lowBound=data.get("min_limit", 0.0), upBound=data.get("max_limit", 100.0))
         
     prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["price"] / 100.0) for name in st.session_state.ingredient_data.keys()])
     prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0, "TotalWeight"
@@ -182,11 +184,50 @@ if st.button("⚡ สั่งปัญญาประดิษฐ์ประ�
 st.markdown("---")
 
 # ==========================================
-# 🎛️ 6. พื้นที่ปรับแต่งสูตรอาหารด้วยมือ
+# 🎛️ 6. พื้นที่ปรับแต่งสูตรอาหารและเพิ่มวัตถุดิบด้วยมือ
 # ==========================================
 creator_left, creator_right = st.columns([1, 1], gap="large")
+
 with creator_left:
     st.markdown("### 🛠️ 3. แผงควบคุมและปรับแต่งสูตรสัดส่วนอาหารด้วยตนเอง")
+    
+    with st.expander("➕ เพิ่มวัตถุดิบ / สารอาหารเสริมตัวใหม่เข้าระบบ (Custom Ingredients)"):
+        st.caption("ป้อนข้อมูลสารอาหารเพื่อเพิ่มวัตถุดิบใหม่เข้าระบบจำลอง")
+        with st.form("add_new_ingredient_form", clear_on_submit=True):
+            new_ing_name = st.text_input("📝 ชื่อวัตถุดิบใหม่:", placeholder="เช่น กากเบียร์, สารเร่งไข่แดง").strip()
+            
+            f_col1, f_col2 = st.columns(2)
+            with f_col1:
+                new_ing_price = st.number_input("💰 ราคาวัตถุดิบ (บาท/กก.):", min_value=0.0, value=10.0, step=0.5)
+                new_ing_protein = st.number_input("🥩 ปริมาณโปรตีนในวัตถุดิบ (%):", min_value=0.0, value=0.0, step=0.1)
+                new_ing_me = st.number_input("⚡ พลังงานใช้ประโยชน์ได้ (ME กิโลแคลอรี/กก.):", min_value=0.0, value=0.0, step=50.0)
+                new_ing_fiber = st.number_input("🌾 ปริมาณกาก/เยื่อใย (%):", min_value=0.0, value=0.0, step=0.1)
+            with f_col2:
+                new_ing_calcium = st.number_input("🦴 ปริมาณแคลเซียม (%):", min_value=0.0, value=0.0, step=0.05)
+                new_ing_phos = st.number_input("🧪 ปริมาณฟอสฟอรัส (%):", min_value=0.0, value=0.0, step=0.05)
+                new_ing_amino = st.number_input("🧬 กรดอะมิโนจำเป็นรวม (%):", min_value=0.0, value=0.0, step=0.05)
+                new_ing_fat = st.number_input("🥑 ปริมาณไขมัน (%):", min_value=0.0, value=0.0, step=0.1)
+                
+            new_ing_moisture = st.number_input("💧 ความชื้น (%)", min_value=0.0, max_value=100.0, value=10.0, step=0.5)
+            new_ing_risk = st.slider("🍄 ระดับความเสี่ยงเชื้อรา/สารพิษตกค้าง (0 = ต่ำสุด, 5 = สูงสุด)", 0, 5, 0)
+            
+            if st.form_submit_button("📥 บันทึกวัตถุดิบนี้เข้าคลังชั่วคราว"):
+                if not new_ing_name:
+                    st.error("❌ กรุณากรอกชื่อวัตถุดิบก่อนบันทึก")
+                elif new_ing_name in st.session_state.ingredient_data:
+                    st.error("❌ วัตถุดิบชื่อนี้มีอยู่ในระบบแล้ว")
+                else:
+                    st.session_state.ingredient_data[new_ing_name] = {
+                        "price": new_ing_price, "protein": new_ing_protein, "me": new_ing_me,
+                        "calcium": new_ing_calcium, "phos": new_ing_phos, "amino": new_ing_amino,
+                        "moisture": new_ing_moisture, "fiber": new_ing_fiber, "fat": new_ing_fat,
+                        "tox_risk": new_ing_risk, "min_limit": 0.0, "max_limit": 100.0
+                    }
+                    st.session_state.optimized_weights[new_ing_name] = 0.0
+                    st.success(f"✨ เพิ่ม '{new_ing_name}' เข้าสู่ระบบเรียบร้อยแล้ว!")
+                    st.rerun()
+
+    st.write("🔧 **สไลเดอร์ปรับสัดส่วนการผสมจริงในฟาร์ม (%):**")
     user_weights = {}
     for name in st.session_state.ingredient_data.keys():
         val = float(st.session_state.optimized_weights.get(name, 0.0))
@@ -197,7 +238,8 @@ with creator_left:
     if not (99.9 <= sum_weights <= 100.1):
         st.warning("⚠️ **สัดส่วนรวมไม่เท่ากับ 100%** กรุณาปรับสไลเดอร์ให้ได้รวม 100% ถ้วนเพื่อให้ได้สูตรอาหารที่สมบูรณ์")
 
-current_nutrition = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0}
+# คำนวณสารอาหาร
+current_nutrition = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0, "fiber": 0.0, "fat": 0.0}
 total_moisture = 0.0
 total_cost = 0.0
 total_risk_score = 0.0
@@ -205,23 +247,61 @@ total_risk_score = 0.0
 for name, weight in user_weights.items():
     factor = weight / 100.0
     nutrients = st.session_state.ingredient_data[name]
-    current_nutrition["protein"] += nutrients["protein"] * factor
-    current_nutrition["me"] += nutrients["me"] * factor
-    current_nutrition["calcium"] += nutrients["calcium"] * factor
-    current_nutrition["phos"] += nutrients["phos"] * factor
-    current_nutrition["amino"] += nutrients["amino"] * factor
+    current_nutrition["protein"] += nutrients.get("protein", 0.0) * factor
+    current_nutrition["me"] += nutrients.get("me", 0.0) * factor
+    current_nutrition["calcium"] += nutrients.get("calcium", 0.0) * factor
+    current_nutrition["phos"] += nutrients.get("phos", 0.0) * factor
+    current_nutrition["amino"] += nutrients.get("amino", 0.0) * factor
+    current_nutrition["fiber"] += nutrients.get("fiber", 0.0) * factor
+    current_nutrition["fat"] += nutrients.get("fat", 0.0) * factor
     total_moisture += nutrients.get("moisture", 0.0) * factor
-    total_cost += nutrients["price"] * factor
+    total_cost += nutrients.get("price", 0.0) * factor
     total_risk_score += factor * nutrients.get("tox_risk", 0)
 
 with creator_right:
-    st.markdown("### 📊 หน้าจอติดตามระดับสารอาหารแบบเรียลไทม์")
-    for nutrient, key_name, unit in [("โปรตีน", "protein", "%"), ("พลังงาน (ME)", "me", "กิโลแคลอรี/กก."), ("แคลเซียม", "calcium", "%"), ("ฟอสฟอรัส", "phos", "%"), ("กรดอะมิโน", "amino", "%")]:
+    st.markdown("### 📊 หน้าจอติดตามระดับสารอาหารแบบเรียลไทม์ (Extended Dashboard)")
+    st.caption("ระบบตรวจสอบความเข้มข้นสารอาหารหลัก กรดอะมิโน กากใย ความชื้น และระดับสารพิษตกค้าง")
+    
+    # ส่วนที่ 1: สารอาหารหลักที่จำเป็นต้องตรวจสอบกับเกณฑ์เลี้ยงไก่
+    st.markdown("##### 🩺 สารอาหารหลักตามเกณฑ์มาตรฐาน:")
+    nutrient_list = [
+        ("🥩 โปรตีนรวม (Crude Protein)", "protein", "%"), 
+        ("⚡ พลังงานใช้ประโยชน์ได้ (ME)", "me", "kcal/kg"), 
+        ("🦴 แคลเซียม (Calcium)", "calcium", "%"), 
+        ("🧪 ฟอสฟอรัสที่เป็นประโยชน์", "phos", "%"), 
+        ("🧬 กรดอะมิโนจำเป็นรวม", "amino", "%"),
+        ("🌾 กาก / เยื่อใยรวม (Crude Fiber)", "fiber", "%"),
+        ("🥑 ไขมันรวม (Crude Fat)", "fat", "%")
+    ]
+    
+    for nutrient_title, key_name, unit in nutrient_list:
         cur = current_nutrition[key_name]
         req = adjusted_target[key_name]
-        st.write(f"**{nutrient}**: {cur:.2f} / {req:.2f} {unit}")
+        st.write(f"**{nutrient_title}**: {cur:.2f} / {req:.2f} {unit}")
         st.progress(min(max(cur / req, 0.0), 1.0) if req > 0 else 0.0)
+        
+    st.markdown("---")
+    
+    # ส่วนที่ 2: ดัชนีความปลอดภัยทางกายภาพและชีวภาพ (เพิ่มพิเศษ)
+    st.markdown("##### 🛡️ ความปลอดภัยและกายภาพของอาหาร:")
+    
+    # การแสดงผลความชื้น
+    if total_moisture > 12.0:
+        st.markdown(f"💧 **ความชื้นรวม (Moisture):** <span style='color:#ef4444; font-weight:bold;'>{total_moisture:.1f}% 🔴 เกณฑ์อันตรายเสี่ยงราขึ้น</span>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"💧 **ความชื้นรวม (Moisture):** <span style='color:#22c55e; font-weight:bold;'>{total_moisture:.1f}% 🟢 ปลอดภัยจัดเก็บได้นาน</span>", unsafe_allow_html=True)
+        
+    # การแสดงผลความเสี่ยงสารพิษเชื้อรา
+    if total_risk_score >= 2.5:
+        st.markdown(f"🍄 **ดัชนีความเสี่ยงเชื้อรา (Mycotoxin Risk):** <span style='color:#ef4444; font-weight:bold;'>{total_risk_score:.2f} / 5.00 🔴 เสี่ยงสูง (ต้องใช้ Toxin Binder)</span>", unsafe_allow_html=True)
+    elif total_risk_score >= 1.5:
+        st.markdown(f"🍄 **ดัชนีความเสี่ยงเชื้อรา (Mycotoxin Risk):** <span style='color:#eab308; font-weight:bold;'>{total_risk_score:.2f} / 5.00 🟡 ปานกลาง (ควรเฝ้าระวัง)</span>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"🍄 **ดัชนีความเสี่ยงเชื้อรา (Mycotoxin Risk):** <span style='color:#22c55e; font-weight:bold;'>{total_risk_score:.2f} / 5.00 🟢 ปลอดภัยมาก</span>", unsafe_allow_html=True)
+
+    st.markdown("---")
     st.metric(label="💰 ต้นทุนสูตรอาหารผสมเองเฉลี่ยฟาร์มของคุณ", value=f"{total_cost:.2f} บาท / กิโลกรัม")
+
 st.markdown("---")
 
 # ==========================================
@@ -263,14 +343,14 @@ total_phase_feed_needed_kg = chicken_count * LIFECYCLE_FEED_BUDGET[current_key]
 st.write(f"📦 ยอดสั่งซื้อและปริมาณวัตถุดิบรวมที่ต้องกักตุนเข้าคลังสำหรับฝูงนี้ตลอดเฟสปัจจุบัน: **{total_phase_feed_needed_kg/1000.0:,.2f} ตัน**")
 budget_data = []
 for name in st.session_state.ingredient_data.keys():
-    w_kg = (user_weights[name] / 100.0) * total_phase_feed_needed_kg
-    if w_kg > 0:
-        budget_data.append({"วัตถุดิบ": name, "สัดส่วนการผสม (%)": f"{user_weights[name]}%", "น้ำหนักรวมที่ต้องสั่งซื้อเข้าโกดัง (กก.)": round(w_kg, 1)})
+    if name in user_weights:
+        w_kg = (user_weights[name] / 100.0) * total_phase_feed_needed_kg
+        if w_kg > 0:
+            budget_data.append({"วัตถุดิบ": name, "สัดส่วนการผสม (%)": f"{user_weights[name]}%", "น้ำหนักรวมที่ต้องสั่งซื้อเข้าโกดัง (กก.)": round(w_kg, 1)})
 
 df_budget = pd.DataFrame(budget_data)
 st.dataframe(df_budget, use_container_width=True, hide_index=True)
 
-# ปุ่มดาวน์โหลดไฟล์ใบจัดซื้อ
 if not df_budget.empty:
     csv_budget = df_budget.to_csv(index=False).encode('utf-8-sig')
     st.download_button(
@@ -283,7 +363,7 @@ if not df_budget.empty:
 st.markdown("---")
 
 # ==========================================
-# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [🔧 ปรับเปลี่ยนระบบปฏิทินแบบ st.date_input]
+# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน
 # ==========================================
 st.markdown("### 📈 6. สมุดจดสถิติและกราฟวิเคราะห์ผลผลิตประจำวัน (เวอร์ชันอัปเกรดการคำนวณกำไร)")
 
@@ -296,7 +376,6 @@ if "tracker_data" not in st.session_state:
 
 df_track = st.session_state.tracker_data.copy()
 
-# คำนวณปริมาณอาหารและต้นทุนค่าอาหารต่อวันของฝูง
 daily_feed_consumed_kg = (chicken_count * breed_info['default_feed']) / 1000.0
 daily_feed_cost = daily_feed_consumed_kg * total_cost
 
@@ -336,14 +415,12 @@ st.markdown("---")
 track_col1, track_col2 = st.columns([4, 6], gap="large")
 
 with track_col1:
-    with st.form("supabase_sync_form_final_v6"):
+    with st.form("supabase_sync_form_final_v8"):
         st.markdown("##### 📝 สมุดบันทึกและจำแนกเกรดผลผลิต")
         
         f_c1, f_c2 = st.columns(2)
         with f_c1:
-            # 🛠️ จุดแก้ไขหลัก: เปลี่ยนจาก text_input เป็น date_input เพื่อให้กดคลิกเลือกวันได้จากปฏิทิน
             picked_date = st.date_input("เลือกวันที่บันทึกสถิติ:", datetime.now())
-            # แปลงวันที่ที่ดึงมาจากปฏิทินให้อยู่ในฟอร์แมต DD/MM (เช่น 04/06) เพื่อบันทึกเข้า DataFrame
             in_date = picked_date.strftime("%d/%m")
             
             lay_r = st.number_input("อัตราการไข่วันนี้ (%):", value=85.0, min_value=0.0, max_value=100.0, step=0.1)
