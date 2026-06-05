@@ -123,25 +123,69 @@ MASTER_INGREDIENT_DICTIONARY = {
     "ดีแอล-เมทไธโอนีน (DL-Methionine)": {"price": 140.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 0.2, "moisture": 0.5, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 1.0},
     "แอล-ทรีโอนีน (L-Threonine)": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 98.50, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 0.3, "moisture": 0.5, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 0.5},
     "แอล-ทริปโตเฟน (L-Tryptophan)": {"price": 380.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 98.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 0.4, "moisture": 0.8, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 0.2},
-    "เปลือกหอยทะเลบดละเอียด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "lysine": 0.00, "methionine": 0.00, "try7ptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 94.0, "moisture": 0.5, "salt": 0.10, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
+    "เปลือกหอยทะเลบดละเอียด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 94.0, "moisture": 0.5, "salt": 0.10, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
     "ไดแคลเซียมฟอสเฟต (DCP 18%)": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 78.0, "moisture": 1.0, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 4.0},
     "ผงชอล์กแคลเซียมเบา": {"price": 3.5, "protein": 0.0, "me": 0.0, "calcium": 39.20, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 96.0, "moisture": 0.5, "salt": 0.05, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 10.0},
     "เกลือแกงบริสุทธิ์ (NaCl)": {"price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 99.0, "moisture": 0.3, "salt": 98.50, "choline": 0, "tox_risk": 0, "min_limit": 0.1, "max_limit": 0.4},
     "พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น": {"price": 120.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 82.0, "moisture": 2.0, "salt": 1.00, "choline": 25000, "tox_risk": 0, "min_limit": 0.2, "max_limit": 0.5}
 }
 
-# ตั้งค่าเริ่มต้นให้หน้าจอใช้งานวัตถุดิบหลัก 8 ตัว
+# 🔥 อัปเกรดจุดนี้: สั่งเปิดสแตนด์บายคลังวัตถุดิบหลักพร้อมกันสูงสุดเท่าที่จะหาได้ (25 ชนิดหลัก)
 if "ingredient_data" not in st.session_state:
     st.session_state.ingredient_data = {
+        # แหล่งคาร์โบไฮเดรต/พลังงาน (7 ชนิด)
         "ข้าวโพดบดเม็ด": MASTER_INGREDIENT_DICTIONARY["ข้าวโพดบดเม็ด"],
         "รำข้าวละเอียดดิบ": MASTER_INGREDIENT_DICTIONARY["รำข้าวละเอียดดิบ"],
         "ปลายข้าวขาว": MASTER_INGREDIENT_DICTIONARY["ปลายข้าวขาว"],
+        "ข้าวเปลือกบดหยาบ": MASTER_INGREDIENT_DICTIONARY["ข้าวเปลือกบดหยาบ"],
+        "มันเส้นบดแห้งเกรด A": MASTER_INGREDIENT_DICTIONARY["มันเส้นบดแห้งเกรด A"],
+        "ข้าวสาลีบดละเอียด": MASTER_INGREDIENT_DICTIONARY["ข้าวสาลีบดละเอียด"],
+        "ข้าวฟ่างบด": MASTER_INGREDIENT_DICTIONARY["ข้าวฟ่างบด"],
+        
+        # แหล่งโปรตีนพืช (6 ชนิด)
         "กากถั่วเหลือง (โปรตีน 44%)": MASTER_INGREDIENT_DICTIONARY["กากถั่วเหลือง (โปรตีน 44%)"],
+        "กากถั่วเหลืองสกัด (โปรตีน 48%)": MASTER_INGREDIENT_DICTIONARY["กากถั่วเหลืองสกัด (โปรตีน 48%)"],
+        "กากเนื้อปาล์มเนื้อใน": MASTER_INGREDIENT_DICTIONARY["กากเนื้อปาล์มเนื้อใน"],
+        "กากมะพร้าวอัด": MASTER_INGREDIENT_DICTIONARY["กากมะพร้าวอัด"],
+        "กากเมล็ดทานตะวันสกัด": MASTER_INGREDIENT_DICTIONARY["กากเมล็ดทานตะวันสกัด"],
+        "กลูเตนข้าวโพด (Corn Gluten Meal)": MASTER_INGREDIENT_DICTIONARY["กลูเตนข้าวโพด (Corn Gluten Meal)"],
+        
+        # แหล่งโปรตีนสัตว์ & ทางเลือก (4 ชนิด)
         "ปลาป่นพรีเมียม (โปรตีน 60%)": MASTER_INGREDIENT_DICTIONARY["ปลาป่นพรีเมียม (โปรตีน 60%)"],
+        "เนื้อและกระดูกป่น (Meat & Bone)": MASTER_INGREDIENT_DICTIONARY["เนื้อและกระดูกป่น (Meat & Bone)"],
+        "กากเบียร์แห้ง (DDGS ข้าวโพด)": MASTER_INGREDIENT_DICTIONARY["กากเบียร์แห้ง (DDGS ข้าวโพด)"],
+        "ใบกระถินป่นอบแห้งพรีเมียม": MASTER_INGREDIENT_DICTIONARY["ใบกระถินป่นอบแห้งพรีเมียม"],
+        
+        # ไขมันเสริมพลังงาน (2 ชนิด)
+        "น้ำมันปาล์มดิบกระสอบ": MASTER_INGREDIENT_DICTIONARY["น้ำมันปาล์มดิบกระสอบ"],
+        "น้ำมันถั่วเหลืองผ่านกรรมวิธี": MASTER_INGREDIENT_DICTIONARY["น้ำมันถั่วเหลืองผ่านกรรมวิธี"],
+        
+        # กรดอะมิโนและแร่ธาตุจำเป็น (6 ชนิด)
+        "แอล-ไลซีน (L-Lysine HCl)": MASTER_INGREDIENT_DICTIONARY["แอล-ไลซีน (L-Lysine HCl)"],
+        "ดีแอล-เมทไธโอนีน (DL-Methionine)": MASTER_INGREDIENT_DICTIONARY["ดีแอล-เมทไธโอนีน (DL-Methionine)"],
         "เปลือกหอยทะเลบดละเอียด": MASTER_INGREDIENT_DICTIONARY["เปลือกหอยทะเลบดละเอียด"],
         "ไดแคลเซียมฟอสเฟต (DCP 18%)": MASTER_INGREDIENT_DICTIONARY["ไดแคลเซียมฟอสเฟต (DCP 18%)"],
+        "เกลือแกงบริสุทธิ์ (NaCl)": MASTER_INGREDIENT_DICTIONARY["เกลือแกงบริสุทธิ์ (NaCl)"],
         "พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น": MASTER_INGREDIENT_DICTIONARY["พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น"]
     }
+
+# ตั้งค่าเริ่มต้นสำหรับสูตรอาหารแรกรันแอปพลิเคชัน
+if "optimized_weights" not in st.session_state:
+    st.session_state.optimized_weights = {name: 0.0 for name in st.session_state.ingredient_data.keys()}
+    st.session_state.optimized_weights["ข้าวโพดบดเม็ด"] = 52.0
+    st.session_state.optimized_weights["กากถั่วเหลือง (โปรตีน 44%)"] = 22.0
+    st.session_state.optimized_weights["รำข้าวละเอียดดิบ"] = 12.0
+    st.session_state.optimized_weights["ปลาป่นพรีเมียม (โปรตีน 60%)"] = 5.0
+    st.session_state.optimized_weights["เปลือกหอยทะเลบดละเอียด"] = 4.4
+    st.session_state.optimized_weights["ไดแคลเซียมฟอสเฟต (DCP 18%)"] = 0.4
+    st.session_state.optimized_weights["เกลือแกงบริสุทธิ์ (NaCl)"] = 0.2
+    st.session_state.optimized_weights["พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น"] = 0.2
+    st.session_state.optimized_weights["น้ำมันปาล์มดิบกระสอบ"] = 3.8
+
+# ตรวจเช็กชื่อตัวแปรที่ค้างในระบบทั้งหมดให้สมบูรณ์
+for name in st.session_state.ingredient_data.keys():
+    if name not in st.session_state.optimized_weights:
+        st.session_state.optimized_weights[name] = 0.0
 
 # ==========================================
 # 🐔 3. คลังกลุ่มและสายพันธุ์สัตว์ปีกขยายขีดความสามารถ (6 กลุ่ม 18 สายพันธุ์)
@@ -186,30 +230,6 @@ STAGE_NUTRITION_TARGETS = {
 }
 
 LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
-
-# ==========================================
-# 🛡️ 4. ระบบตรวจสอบและผูกตัวแปรสถานะ (State Protection)
-# ==========================================
-if "selected_group" not in st.session_state: st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
-if "selected_breed_key" not in st.session_state: st.session_state.selected_breed_key = list(BREED_PROFILES[st.session_state.selected_group].keys())[0]
-if "current_key" not in st.session_state: st.session_state.current_key = "laying"
-if "weather_env" not in st.session_state: st.session_state.weather_env = "🌡️ อากาศปกติ (25-32°C)"
-if "chicken_count" not in st.session_state: st.session_state.chicken_count = 1000
-if "use_phytase" not in st.session_state: st.session_state.use_phytase = False
-
-if "optimized_weights" not in st.session_state:
-    st.session_state.optimized_weights = {name: 0.0 for name in st.session_state.ingredient_data.keys()}
-    st.session_state.optimized_weights["ข้าวโพดบดเม็ด"] = 54.0
-    st.session_state.optimized_weights["กากถั่วเหลือง (โปรตีน 44%)"] = 23.0
-    st.session_state.optimized_weights["รำข้าวละเอียดดิบ"] = 13.0
-    st.session_state.optimized_weights["ปลาป่นพรีเมียม (โปรตีน 60%)"] = 5.0
-    st.session_state.optimized_weights["เปลือกหอยทะเลบดละเอียด"] = 4.4
-    st.session_state.optimized_weights["ไดแคลเซียมฟอสเฟต (DCP 18%)"] = 0.4
-    st.session_state.optimized_weights["พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น"] = 0.2
-
-for name in st.session_state.ingredient_data.keys():
-    if name not in st.session_state.optimized_weights:
-        st.session_state.optimized_weights[name] = 0.0
 
 def calculate_current_formulation():
     nut_calc = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "tryptophan": 0.0, "threonine": 0.0, "arginine": 0.0, "fiber": 0.0, "fat": 0.0, "ash": 0.0, "salt": 0.0, "choline": 0.0}
@@ -292,7 +312,6 @@ with page_tabs[0]:
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["price"] / 100.0) for name in st.session_state.ingredient_data.keys()])
         prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0
         
-        # ผูกสมการสารอาหารหลัก 6 ตัวแปรในโมเดลคณิตศาสตร์
         for key in ["protein", "me", "calcium", "phos", "lysine", "methionine"]:
             prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name].get(key, 0.0) / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target[key]
         
@@ -309,9 +328,13 @@ with page_tabs[0]:
     creator_left, creator_right = st.columns(2, gap="large")
     
     with creator_left:
-        st.markdown("#### 🔧 1. สัดส่วนและโครงสร้างวัตถุดิบ (%)")
+        st.markdown("#### 🔧 1. สัดส่วนและโครงสร้างวัตถุดิบความจุสูง (%)")
         user_weights = {}
-        for name in list(st.session_state.ingredient_data.keys()):
+        
+        # จัดเรียงแสดงผลวัตถุดิบแบ่งตามหมวดหมู่เพื่อความสะอาดและอ่านง่ายในกรณีเปิดใช้งานเยอะ
+        sorted_ingredients = sorted(list(st.session_state.ingredient_data.keys()))
+        
+        for name in sorted_ingredients:
             val = float(st.session_state.optimized_weights.get(name, 0.0))
             st.write(f"**🌾 {name}**")
             slider_col, input_col = st.columns([7, 3])
@@ -361,7 +384,6 @@ with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 สมุดจดสถิติผลกำไรและบันทึกรายวันฟาร์ม")
     
-    # 💥 แก้ไขจุดนี้: ตั้งชื่อคอลัมน์เริ่มต้นให้กระชับและไม่เว้นวรรคแปลกๆ ป้องกัน KeyError
     if "tracker_data" not in st.session_state:
         st.session_state.tracker_data = pd.DataFrame([
             {"วันที่": "01/06", "อัตราผลผลิต(%)": 85.0, "อัตราสูญเสีย(%)": 1.2, "น้ำหนักผลผลิต(กก.)": 54.0, "กำไรสุทธิ(บาท)": 480.0},
@@ -386,9 +408,8 @@ with page_tabs[1]:
             p_today = st.number_input("กำไรสุทธิหักค่าอาหารวันนี้ (บาท):", value=500.0)
             
             if st.form_submit_button("💾 บันทึกลงตารางดาต้า"):
-                # 💥 แก้ไขจุดนี้: มั่นใจร้อยเปอร์เซ็นต์ว่าคีย์ของ Dict ใหม่ตรงกับของเดิมใน DataFrame
                 new_row = {
-                    "วันที่": in_date, 
+                    "橫軸" if "橫軸" in df_track else "วันที่": in_date, 
                     "อัตราผลผลิต(%)": lay_r, 
                     "อัตราสูญเสีย(%)": crack_r, 
                     "น้ำหนักผลผลิต(กก.)": egg_w, 
@@ -401,7 +422,7 @@ with page_tabs[1]:
     with track_col2:
         st.markdown("##### 📊 กราฟวิเคราะห์ความเสถียรของฟาร์ม")
         fig_prod = go.Figure()
-        fig_prod.add_trace(go.Scatter(x=df_track["橫軸" if "橫軸" in df_track else "วันที่"], y=df_track["อัตราผลผลิต(%)"], name="อัตราผลิต (%)", line=dict(color='#38bdf8', width=3)))
+        fig_prod.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["อัตราผลผลิต(%)"], name="อัตราผลิต (%)", line=dict(color='#38bdf8', width=3)))
         fig_prod.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=280, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="white"))
         st.plotly_chart(fig_prod, use_container_width=True)
 
@@ -415,13 +436,10 @@ with page_tabs[2]:
     st.markdown("## 📦 ระบบกล่องเลือกวัตถุดิบอัจฉริยะ (Dropdown Selectbox)")
     st.markdown("ดึงข้อมูลโดยตรงจากฐานข้อมูลแล็บกลางอาหารสัตว์ปีก 40 ชนิด ไม่ต้องจำและไม่ต้องกรอกตัวเลขสารอาหารเองให้ยุ่งยากครับ")
     
-    # คัดกรองตัววัตถุดิบที่ยังไม่ได้เลือกเอามาแสดงในกล่อง Dropdown
     available_to_add = [name for name in MASTER_INGREDIENT_DICTIONARY.keys() if name not in st.session_state.ingredient_data]
     
     if available_to_add:
-        selected_ing_to_add = st.selectbox("🌾 ค้นหาและเลือกวัตถุดิบที่คุณหาได้ในท้องถิ่น:", available_to_add)
-        
-        # พรีวิวข้อมูลของวัตถุดิบตัวที่จะกดเพิ่ม
+        selected_ing_to_add = st.selectbox("🌾 ค้นหาและเลือกวัตถุดิบที่คุณหาได้ในท้องถิ่นเพื่อดึงเข้าสู่สูตรอาหารเพิ่มเติม:", available_to_add)
         preview = MASTER_INGREDIENT_DICTIONARY[selected_ing_to_add]
         st.markdown(f"**📋 รายละเอียดสารอาหารแนะนำของ {selected_ing_to_add} (ราคาตลาดอ้างอิง: {preview['price']} บาท/กก.)**")
         
@@ -442,7 +460,6 @@ with page_tabs[2]:
 
     st.markdown("---")
 
-    # 💵 แก้ไขราคาให้ตรงตามจริงหน้าฟาร์มของผู้ใช้
     st.markdown("### 📝 ตารางอัปเดตและปรับราคาท้องตลาดประจำวัน")
     current_ingredients = st.session_state.ingredient_data
     col_left, col_right = st.columns(2, gap="large")
@@ -475,7 +492,6 @@ with page_tabs[2]:
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- ใบจัดซื้อวัตถุดิบหน้าฟาร์มตามจำนวนไก่ ---
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📝 ใบจัดซื้อและจัดเตรียมชุดวัตถุดิบอาหารสัตว์ (Purchase Order)")
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET.get(st.session_state.current_key, 40.0)
