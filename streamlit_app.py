@@ -123,7 +123,7 @@ MASTER_INGREDIENT_DICTIONARY = {
     "ดีแอล-เมทไธโอนีน (DL-Methionine)": {"price": 140.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 0.2, "moisture": 0.5, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 1.0},
     "แอล-ทรีโอนีน (L-Threonine)": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 98.50, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 0.3, "moisture": 0.5, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 0.5},
     "แอล-ทริปโตเฟน (L-Tryptophan)": {"price": 380.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 98.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 0.4, "moisture": 0.8, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 0.2},
-    "เปลือกหอยทะเลบดละเอียด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 94.0, "moisture": 0.5, "salt": 0.10, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
+    "เปลือกหอยทะเลบดละเอียด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "lysine": 0.00, "methionine": 0.00, "try7ptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 94.0, "moisture": 0.5, "salt": 0.10, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
     "ไดแคลเซียมฟอสเฟต (DCP 18%)": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 78.0, "moisture": 1.0, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 4.0},
     "ผงชอล์กแคลเซียมเบา": {"price": 3.5, "protein": 0.0, "me": 0.0, "calcium": 39.20, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 96.0, "moisture": 0.5, "salt": 0.05, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 10.0},
     "เกลือแกงบริสุทธิ์ (NaCl)": {"price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 99.0, "moisture": 0.3, "salt": 98.50, "choline": 0, "tox_risk": 0, "min_limit": 0.1, "max_limit": 0.4},
@@ -165,7 +165,7 @@ BREED_PROFILES = {
     "4. กลุ่มไก่ชนไทยเชิงพาณิชย์ (Thai Gamecocks / Fighting Cocks)": {
         "Pradu Hang Dam": {"name": "ประดู่หางดำ (Pradu Hang Dam)", "egg_color": "💛 ครีมอมเหลือง", "bg_color": "#111827", "text_color": "#ffffff", "default_feed": 120, "desc": "ราชาไก่ชนไทย กระดูกใหญ่ โครงสร้างแกร่ง ต้องการโปรตีนและกรดอะมิโนสร้างกล้ามเนื้อ"},
         "Khieo Phari": {"name": "เขียวพาลี / เขียวเลา", "egg_color": "💛 ครีม", "bg_color": "#064e3b", "text_color": "#ffffff", "default_feed": 118, "desc": "สายพันธุ์ดุดัน ว่องไว ปราดเปรียว เน้นสูตรอาหารที่ไม่สะสมไขมันส่วนเกิน"},
-        " เหลืองหางขาว": {"name": "เหลืองหางขาว (ไก่พระนเรศวร)", "egg_color": "💛 ครีมขาว", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 122, "desc": "ไก่ชนมงคลตามตำราโบราณ ตัวใหญ่ ยาว ทรงสง่างาม แข็งแกร่ง"}
+        "เหลืองหางขาว": {"name": "เหลืองหางขาว (ไก่พระนเรศวร)", "egg_color": "💛 ครีมขาว", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 122, "desc": "ไก่ชนมงคลตามตำราโบราณ ตัวใหญ่ ยาว ทรงสง่างาม แข็งแกร่ง"}
     },
     "5. กลุ่มไก่พื้นเมืองไทย & ไก่สามสาย (Thai Native & Crossbred)": {
         "Kai Dang Srithep": {"name": "ไก่แดงศรีเทพ", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#7f1d1d", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่พื้นเมืองปรับปรุงพันธุ์ เนื้อแน่น ไข่ดกกว่าพื้นเมืองเดิม ทนโรคระบาดได้ดีมาก"},
@@ -360,16 +360,18 @@ with page_tabs[0]:
 with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 สมุดจดสถิติผลกำไรและบันทึกรายวันฟาร์ม")
+    
+    # 💥 แก้ไขจุดนี้: ตั้งชื่อคอลัมน์เริ่มต้นให้กระชับและไม่เว้นวรรคแปลกๆ ป้องกัน KeyError
     if "tracker_data" not in st.session_state:
         st.session_state.tracker_data = pd.DataFrame([
-            {"วันที่": "01/06", "อัตราการไข่/อัตราโต (%)": 85.0, "อัตราสูญเสียแตกหัก (%)": 1.2, "น้ำหนักรวมผลผลิต (กก.)": 54.0, "ผลกำไรสุทธิฟาร์ม (บาท)": 480.0},
-            {"วันที่": "02/06", "อัตราการไข่/อัตราโต (%)": 86.2, "อัตราสูญเสียแตกหัก (%)": 1.0, "น้ำหนักรวมผลผลิต (กก.)": 55.5, "ผลกำไรสุทธิฟาร์ม (บาท)": 510.0},
+            {"วันที่": "01/06", "อัตราผลผลิต(%)": 85.0, "อัตราสูญเสีย(%)": 1.2, "น้ำหนักผลผลิต(กก.)": 54.0, "กำไรสุทธิ(บาท)": 480.0},
+            {"วันที่": "02/06", "อัตราผลผลิต(%)": 86.2, "อัตราสูญเสีย(%)": 1.0, "น้ำหนักผลผลิต(กก.)": 55.5, "กำไรสุทธิ(บาท)": 510.0},
         ])
     
     df_track = st.session_state.tracker_data.copy()
     m1, m2 = st.columns(2)
-    m1.metric("🥚 อัตราการให้ผลผลิตเฉลี่ย", f"{df_track['อัตราการไข่/อัตราโต (%)'].mean():.1f} %")
-    m2.metric("💵 กำไรสุทธิสะสมรวม", f"{df_track['ผลกำไรสุทธิฟาร์ม (บาท)'].sum():,.1f} บาท")
+    m1.metric("🥚 อัตราการให้ผลผลิตเฉลี่ย", f"{df_track['อัตราผลผลิต(%)'].mean():.1f} %")
+    m2.metric("💵 กำไรสุทธิสะสมรวม", f"{df_track['กำไรสุทธิ(บาท)'].sum():,.1f} บาท")
     
     st.markdown("---")
     track_col1, track_col2 = st.columns([4, 6], gap="large")
@@ -384,7 +386,14 @@ with page_tabs[1]:
             p_today = st.number_input("กำไรสุทธิหักค่าอาหารวันนี้ (บาท):", value=500.0)
             
             if st.form_submit_button("💾 บันทึกลงตารางดาต้า"):
-                new_row = {"วันที่": in_date, "อัตราการไข่/อัตราโต (%)": lay_r, "อัตราสูญเสียแตกหัก (%)": crack_r, "น้ำหนักรวมผลผลิต (กก.)": egg_w, "ผลกำไรสุทธิฟาร์ม (บาท)": p_today}
+                # 💥 แก้ไขจุดนี้: มั่นใจร้อยเปอร์เซ็นต์ว่าคีย์ของ Dict ใหม่ตรงกับของเดิมใน DataFrame
+                new_row = {
+                    "วันที่": in_date, 
+                    "อัตราผลผลิต(%)": lay_r, 
+                    "อัตราสูญเสีย(%)": crack_r, 
+                    "น้ำหนักผลผลิต(กก.)": egg_w, 
+                    "กำไรสุทธิ(บาท)": p_today
+                }
                 st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, pd.DataFrame([new_row])], ignore_index=True)
                 st.success("บันทึกเสร็จสิ้น!")
                 st.rerun()
@@ -392,7 +401,7 @@ with page_tabs[1]:
     with track_col2:
         st.markdown("##### 📊 กราฟวิเคราะห์ความเสถียรของฟาร์ม")
         fig_prod = go.Figure()
-        fig_prod.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["อัตราการไข่/อัตราโต (%)"], name="อัตราผลิต (%)", line=dict(color='#38bdf8', width=3)))
+        fig_prod.add_trace(go.Scatter(x=df_track["橫軸" if "橫軸" in df_track else "วันที่"], y=df_track["อัตราผลผลิต(%)"], name="อัตราผลิต (%)", line=dict(color='#38bdf8', width=3)))
         fig_prod.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=280, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="white"))
         st.plotly_chart(fig_prod, use_container_width=True)
 
