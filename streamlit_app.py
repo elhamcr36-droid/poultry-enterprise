@@ -76,25 +76,60 @@ page_tabs = st.tabs([
 ])
 
 # ==========================================
-# 📋 2. ฐานข้อมูลคุณค่าทางโภชนาการขยายขีดความสามารถ (11 สารอาหาร)
+# 📋 2. คลังฐานข้อมูลวัตถุดิบขนาดใหญ่ (25 วัตถุดิบยอดนิยมในไทย)
 # ==========================================
+MASTER_INGREDIENT_DICTIONARY = {
+    "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "tryptophan": 0.07, "threonine": 0.29, "moisture": 12.0, "fiber": 2.2, "fat": 3.8, "ash": 1.3, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
+    "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "lysine": 0.54, "methionine": 0.22, "tryptophan": 0.12, "threonine": 0.43, "moisture": 10.5, "fiber": 12.0, "fat": 13.0, "ash": 7.8, "tox_risk": 3, "min_limit": 0.0, "max_limit": 30.0},
+    "ปลายข้าว": {"price": 14.5, "protein": 8.0, "me": 3360.0, "calcium": 0.04, "phos": 0.10, "lysine": 0.22, "methionine": 0.15, "tryptophan": 0.08, "threonine": 0.26, "moisture": 12.0, "fiber": 1.0, "fat": 1.5, "ash": 0.5, "tox_risk": 1, "min_limit": 0.0, "max_limit": 40.0},
+    "กากถั่วเหลือง (44%)": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "lysine": 2.70, "methionine": 0.62, "tryptophan": 0.61, "threonine": 1.72, "moisture": 11.5, "fiber": 5.5, "fat": 1.5, "ash": 6.0, "tox_risk": 1, "min_limit": 5.0, "max_limit": 40.0},
+    "ปลาป่น (โปรตีน 60%)": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "tryptophan": 0.60, "threonine": 2.40, "moisture": 10.0, "fiber": 1.0, "fat": 8.0, "ash": 15.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
+    "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 0.0, "ash": 92.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
+    "ไดแคลเซียมฟอสเฟต (DCP)": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 1.0, "fiber": 0.0, "fat": 0.0, "ash": 80.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 5.0},
+    "พรีมิกซ์ไก่ไข่ (วิตามินรวม)": {"price": 120.0, "protein": 0.0, "me": 0.0, "calcium": 4.00, "phos": 1.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 2.0, "fiber": 0.0, "fat": 0.0, "ash": 75.0, "tox_risk": 0, "min_limit": 0.2, "max_limit": 0.5},
+    
+    # วัตถุดิบเพิ่มเติมกลุ่มคาร์โบไฮเดรต & พลังงาน
+    "ข้าวเปลือกบด": {"price": 10.5, "protein": 8.0, "me": 2650.0, "calcium": 0.08, "phos": 0.30, "lysine": 0.25, "methionine": 0.16, "tryptophan": 0.09, "threonine": 0.28, "moisture": 11.5, "fiber": 9.0, "fat": 2.0, "ash": 4.5, "tox_risk": 2, "min_limit": 0.0, "max_limit": 30.0},
+    "มันเส้นบดละเอียด": {"price": 9.5, "protein": 2.2, "me": 3000.0, "calcium": 0.18, "phos": 0.09, "lysine": 0.05, "methionine": 0.03, "tryptophan": 0.02, "threonine": 0.07, "moisture": 12.5, "fiber": 3.5, "fat": 0.5, "ash": 2.2, "tox_risk": 2, "min_limit": 0.0, "max_limit": 20.0},
+    "ข้าวบาร์เลย์": {"price": 15.0, "protein": 11.5, "me": 2770.0, "calcium": 0.06, "phos": 0.35, "lysine": 0.42, "methionine": 0.20, "tryptophan": 0.14, "threonine": 0.39, "moisture": 11.0, "fiber": 5.0, "fat": 1.9, "ash": 2.6, "tox_risk": 1, "min_limit": 0.0, "max_limit": 25.0},
+    "น้ำมันปาล์มดิบ": {"price": 34.0, "protein": 0.0, "me": 8400.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 99.0, "ash": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 4.0},
+    "น้ำมันถั่วเหลือง": {"price": 42.0, "protein": 0.0, "me": 8800.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 0.2, "fiber": 0.0, "fat": 99.8, "ash": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 3.0},
+    
+    # วัตถุดิบเพิ่มเติมกลุ่มโปรตีนพืช & พลอยได้
+    "กากถั่วเหลืองอบ (48%)": {"price": 20.0, "protein": 48.0, "me": 2450.0, "calcium": 0.28, "phos": 0.65, "lysine": 3.00, "methionine": 0.67, "tryptophan": 0.65, "threonine": 1.85, "moisture": 11.0, "fiber": 4.0, "fat": 1.5, "ash": 6.2, "tox_risk": 1, "min_limit": 0.0, "max_limit": 40.0},
+    "กากเนื้อปาล์มสกัด (เนล)": {"price": 7.5, "protein": 15.0, "me": 1750.0, "calcium": 0.31, "phos": 0.62, "lysine": 0.52, "methionine": 0.29, "tryptophan": 0.16, "threonine": 0.54, "moisture": 10.0, "fiber": 15.0, "fat": 7.2, "ash": 4.5, "tox_risk": 2, "min_limit": 0.0, "max_limit": 10.0},
+    "กากถั่วลิสง": {"price": 16.0, "protein": 45.0, "me": 2610.0, "calcium": 0.20, "phos": 0.55, "lysine": 1.60, "methionine": 0.52, "tryptophan": 0.48, "threonine": 1.20, "moisture": 9.5, "fiber": 6.0, "fat": 1.8, "ash": 5.5, "tox_risk": 4, "min_limit": 0.0, "max_limit": 10.0},
+    "กากเมล็ดทานตะวัน": {"price": 12.0, "protein": 32.0, "me": 1900.0, "calcium": 0.40, "phos": 0.90, "lysine": 1.10, "methionine": 0.70, "tryptophan": 0.40, "threonine": 1.15, "moisture": 10.0, "fiber": 19.0, "fat": 2.5, "ash": 6.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 12.0},
+    "กากเบียร์แห้ง (DDGS)": {"price": 11.5, "protein": 27.0, "me": 2200.0, "calcium": 0.20, "phos": 0.75, "lysine": 0.80, "methionine": 0.55, "tryptophan": 0.25, "threonine": 1.00, "moisture": 10.0, "fiber": 9.0, "fat": 8.0, "ash": 5.0, "tox_risk": 2, "min_limit": 0.0, "max_limit": 15.0},
+    "ใบกระถินป่นอบแห้ง": {"price": 9.0, "protein": 22.0, "me": 1200.0, "calcium": 1.80, "phos": 0.25, "lysine": 1.05, "methionine": 0.32, "tryptophan": 0.28, "threonine": 0.85, "moisture": 9.0, "fiber": 14.0, "fat": 4.5, "ash": 11.0, "tox_risk": 3, "min_limit": 0.0, "max_limit": 5.0},
+    "ยีสต์แห้งเลี้ยงสัตว์": {"price": 45.0, "protein": 45.0, "me": 2600.0, "calcium": 0.15, "phos": 1.40, "lysine": 3.40, "methionine": 0.75, "tryptophan": 0.55, "threonine": 2.10, "moisture": 8.0, "fiber": 2.5, "fat": 1.5, "ash": 7.5, "tox_risk": 1, "min_limit": 0.0, "max_limit": 5.0},
+    "ถั่วเขียวป่น": {"price": 18.0, "protein": 24.0, "me": 2950.0, "calcium": 0.12, "phos": 0.40, "lysine": 1.65, "methionine": 0.28, "tryptophan": 0.23, "threonine": 0.88, "moisture": 11.0, "fiber": 4.5, "fat": 1.2, "ash": 3.8, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
+    
+    # สารเติมแต่ง & กรดอะมิโนบริสุทธิ์
+    "แอล-ไลซีน (L-Lysine)": {"price": 85.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 78.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 1.0, "fiber": 0.0, "fat": 0.0, "ash": 0.5, "tox_risk": 0, "min_limit": 0.0, "max_limit": 1.0},
+    "ดีแอล-เมทไธโอนีน": {"price": 140.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 0.0, "ash": 0.2, "tox_risk": 0, "min_limit": 0.0, "max_limit": 1.0},
+    "เกลือแกง (NaCl)": {"price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 1.0, "fiber": 0.0, "fat": 0.0, "ash": 98.0, "tox_risk": 0, "min_limit": 0.1, "max_limit": 0.4},
+    "ผงชอล์ก (แคลเซียมคาร์บอเนต)": {"price": 3.5, "protein": 0.0, "me": 0.0, "calcium": 39.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 0.0, "ash": 95.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 10.0}
+}
+
+# กำหนดวัตถุดิบเริ่มต้นที่จะให้แสดงในหน้าแรกตั้งแต่เปิดแอป
+if "ingredient_data" not in st.session_state:
+    st.session_state.ingredient_data = {
+        "ข้าวโพดบด": MASTER_INGREDIENT_DICTIONARY["ข้าวโพดบด"],
+        "รำละเอียด": MASTER_INGREDIENT_DICTIONARY["รำละเอียด"],
+        "ปลายข้าว": MASTER_INGREDIENT_DICTIONARY["ปลายข้าว"],
+        "กากถั่วเหลือง (44%)": MASTER_INGREDIENT_DICTIONARY["กากถั่วเหลือง (44%)"],
+        "ปลาป่น (โปรตีน 60%)": MASTER_INGREDIENT_DICTIONARY["ปลาป่น (โปรตีน 60%)"],
+        "เปลือกหอยบด": MASTER_INGREDIENT_DICTIONARY["เปลือกหอยบด"],
+        "ไดแคลเซียมฟอสเฟต (DCP)": MASTER_INGREDIENT_DICTIONARY["ไดแคลเซียมฟอสเฟต (DCP)"],
+        "พรีมิกซ์ไก่ไข่ (วิตามินรวม)": MASTER_INGREDIENT_DICTIONARY["พรีมิกซ์ไก่ไข่ (วิตามินรวม)"]
+    }
+
 STAGE_NUTRITION_TARGETS = {
     "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "lysine": 1.10, "methionine": 0.45, "tryptophan": 0.20, "threonine": 0.74, "fiber": 4.0, "fat": 3.5, "ash": 7.0},
     "grower": {"name": "ไก่รุ่นไข่ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "lysine": 0.85, "methionine": 0.38, "tryptophan": 0.16, "threonine": 0.60, "fiber": 4.5, "fat": 3.0, "ash": 7.5},
     "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต 16 สัปดาห์ขึ้นไป (Laying)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "tryptophan": 0.19, "threonine": 0.65, "fiber": 4.0, "fat": 3.5, "ash": 8.0}
 }
-
-if "ingredient_data" not in st.session_state:
-    st.session_state.ingredient_data = {
-        "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "tryptophan": 0.07, "threonine": 0.29, "moisture": 12.0, "fiber": 2.2, "fat": 3.8, "ash": 1.3, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
-        "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "lysine": 0.54, "methionine": 0.22, "tryptophan": 0.12, "threonine": 0.43, "moisture": 10.5, "fiber": 12.0, "fat": 13.0, "ash": 7.8, "tox_risk": 3, "min_limit": 0.0, "max_limit": 30.0},
-        "ปลายข้าว": {"price": 14.5, "protein": 8.0, "me": 3360.0, "calcium": 0.04, "phos": 0.10, "lysine": 0.22, "methionine": 0.15, "tryptophan": 0.08, "threonine": 0.26, "moisture": 12.0, "fiber": 1.0, "fat": 1.5, "ash": 0.5, "tox_risk": 1, "min_limit": 0.0, "max_limit": 40.0},
-        "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "lysine": 2.70, "methionine": 0.62, "tryptophan": 0.61, "threonine": 1.72, "moisture": 11.5, "fiber": 5.5, "fat": 1.5, "ash": 6.0, "tox_risk": 1, "min_limit": 5.0, "max_limit": 40.0},
-        "ปลาป่น": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "tryptophan": 0.60, "threonine": 2.40, "moisture": 10.0, "fiber": 1.0, "fat": 8.0, "ash": 15.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
-        "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 0.0, "ash": 92.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
-        "ไดแคลเซียมฟอสเฟต": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 1.0, "fiber": 0.0, "fat": 0.0, "ash": 80.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 5.0},
-        "พรีมิกซ์ไก่ไข่ (วิตามิน)": {"price": 120.0, "protein": 0.0, "me": 0.0, "calcium": 4.00, "phos": 1.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "moisture": 2.0, "fiber": 0.0, "fat": 0.0, "ash": 75.0, "tox_risk": 0, "min_limit": 0.2, "max_limit": 0.5}
-    }
 
 BREED_PROFILES = {
     "1. กลุ่มไฮบริดสีน้ำตาลพาณิชย์ (Commercial Brown Hybrids)": {
@@ -123,12 +158,12 @@ if "use_phytase" not in st.session_state: st.session_state.use_phytase = False
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {name: 0.0 for name in st.session_state.ingredient_data.keys()}
     st.session_state.optimized_weights["ข้าวโพดบด"] = 54.0
-    st.session_state.optimized_weights["กากถั่วเหลือง"] = 23.0
+    st.session_state.optimized_weights["กากถั่วเหลือง (44%)"] = 23.0
     st.session_state.optimized_weights["รำละเอียด"] = 13.0
-    st.session_state.optimized_weights["ปลาป่น"] = 5.0
+    st.session_state.optimized_weights["ปลาป่น (โปรตีน 60%)"] = 5.0
     st.session_state.optimized_weights["เปลือกหอยบด"] = 4.4
-    st.session_state.optimized_weights["ไดแคลเซียมฟอสเฟต"] = 0.4
-    st.session_state.optimized_weights["พรีมิกซ์ไก่ไข่ (วิตามิน)"] = 0.2
+    st.session_state.optimized_weights["ไดแคลเซียมฟอสเฟต (DCP)"] = 0.4
+    st.session_state.optimized_weights["พรีมิกซ์ไก่ไข่ (วิตามินรวม)"] = 0.2
 
 for name in st.session_state.ingredient_data.keys():
     if name not in st.session_state.optimized_weights:
@@ -201,7 +236,7 @@ with page_tabs[0]:
     target = STAGE_NUTRITION_TARGETS[st.session_state.current_key]
     density_factor = 1.08 if "ร้อนจัด" in st.session_state.weather_env else (0.95 if "หนาว" in st.session_state.weather_env else 1.0)
     adjusted_target = {k: v * density_factor for k, v in target.items() if k != "name" and k != "me"}
-    adjusted_target["me"] = target["me"]  # พลังงานไม่ต้องคูณตัวคูณความหนาแน่นตัวเลขตรงๆ
+    adjusted_target["me"] = target["me"]
 
     st.session_state.use_phytase = st.checkbox("🧪 ใส่เอนไซม์ไฟเตส (ลดเป้าหมายฟอสฟอรัสลง 0.10% อัตโนมัติ)", value=st.session_state.use_phytase)
     if st.session_state.use_phytase:
@@ -214,7 +249,6 @@ with page_tabs[0]:
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["price"] / 100.0) for name in st.session_state.ingredient_data.keys()])
         prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0
         
-        # ป้อนข้อจำกัดของโภชนาการหลักเข้า AI Solver
         for key in ["protein", "me", "calcium", "phos", "lysine", "methionine"]:
             prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name].get(key, 0.0) / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target[key]
         
@@ -252,7 +286,7 @@ with page_tabs[0]:
             st.warning("⚠️ สัดส่วนรวมยังไม่ครบ 100% กรุณาปรับให้อยู่ในเกณฑ์พอดี")
 
     with creator_right:
-        st.markdown("#### 🩺 2. ระดับสารอาหารจริงเทียบกับเป้าหมาย (ขยายขีดความสามารถ)")
+        st.markdown("#### 🩺 2. ระดับสารอาหารจริงเทียบกับเป้าหมาย")
         nutrient_display = [
             ("🥩 โปรตีนรวม (Crude Protein)", "protein", "%"),
             ("⚡ พลังงานใช้ประโยชน์ได้ (ME)", "me", "kcal/kg"),
@@ -329,63 +363,43 @@ with page_tabs[1]:
 # --- [แท็บที่ 3]: ระบบหลังบ้าน ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 ระบบหลังบ้าน & จัดการราคาวัตถุดิบ")
+    st.markdown("## 📦 ระบบหลังบ้าน & จัดการคลังวัตถุดิบอาหารสัตว์")
     
-    # ➕ 1. กล่องเปล่าๆ สำหรับให้ชาวบ้านป้อนชื่อ ราคา และสารอาหารทั้งหมดครบชุด
-    st.markdown("### ➕ เพิ่มวัตถุดิบและฐานข้อมูลสารอาหารใหม่")
-    st.markdown("หากพบวัตถุดิบท้องถิ่นชิ้นใหม่ สามารถป้อนราคาและระบุค่าสารอาหาร (ถ้ามีผลแล็บ) เพื่อนำไปเข้าสูตร AI ได้อย่างแม่นยำครับ")
+    # ➕ 1. ระบบกล่องเลือกวัตถุดิบอัจฉริยะ (Dropdown Selectbox) ดึงข้อมูลอัตโนมัติ
+    st.markdown("### 📥 เลือกเพิ่มวัตถุดิบจากคลังมาตรฐานปศุสัตว์ไทย (25 ชนิด)")
+    st.markdown("เลือกชื่อวัตถุดิบที่ต้องการจากกล่องด้านล่าง ระบบจะดึงค่าสารอาหารที่คำนวณตามแล็บมาตรฐานมาให้ทันทีโดยไม่ต้องจำตัวเลขครับ")
     
-    with st.form("advanced_add_ingredient_form", clear_on_submit=True):
-        st.markdown("##### 📌 ข้อมูลพื้นฐานวัตถุดิบ")
-        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
-        with f_col1:
-            n_name = st.text_input("🌾 ชื่อวัตถุดิบ:", placeholder="เช่น กากมะพร้าว, รำหมัก...")
-        with f_col2:
-            n_price = st.number_input("💵 ราคา (บาท/กก.):", min_value=0.0, value=10.0, step=0.1)
-        with f_col3:
-            n_moist = st.number_input("💧 ความชื้น (%):", min_value=0.0, max_value=100.0, value=11.0, step=0.1)
-        with f_col4:
-            n_risk = st.number_input("⚠️ ระดับความเสี่ยงรา (0-5):", min_value=0, max_value=5, value=0, step=1)
-            
-        st.markdown("##### 🥩 คุณค่าทางอาหารและกรดอะมิโนสำคัญ (%)")
-        a_col1, a_col2, a_col3, a_col4 = st.columns(4)
-        with a_col1:
-            n_prot = st.number_input("🥩 โปรตีน (%):", min_value=0.0, value=0.0, step=0.1)
-            n_lys = st.number_input("🧪 ไลซีน (%):", min_value=0.0, value=0.0, step=0.01)
-            n_fat = st.number_input("🌽 ไขมัน (%):", min_value=0.0, value=0.0, step=0.1)
-        with a_col2:
-            n_me = st.number_input("⚡ พลังงาน (kcal/kg):", min_value=0.0, value=0.0, step=50.0)
-            n_met = st.number_input("🧪 เมทไธโอนีน (%):", min_value=0.0, value=0.0, step=0.01)
-            n_fib = st.number_input("🌾 กากใย (%):", min_value=0.0, value=0.0, step=0.1)
-        with a_col3:
-            n_ca = st.number_input("🦴 แคลเซียม (%):", min_value=0.0, value=0.0, step=0.05)
-            n_tryp = st.number_input("🧬 ทริปโตเฟน (%):", min_value=0.0, value=0.0, step=0.01)
-            n_ash = st.number_input("🌋 เถ้าถ่าน (%):", min_value=0.0, value=0.0, step=0.1)
-        with a_col4:
-            n_phos = st.number_input("🧪 ฟอสฟอรัส (%):", min_value=0.0, value=0.0, step=0.05)
-            n_thre = st.number_input("🧬 ทรีโอนีน (%):", min_value=0.0, value=0.0, step=0.01)
-            
-        submit_advanced = st.form_submit_button("✨ ยืนยันเพิ่มวัตถุดิบนี้เข้าสู่คลังฐานข้อมูลใหญ่", use_container_width=True)
+    # กรองเอาเฉพาะวัตถุดิบในฐานข้อมูลหลักที่ยังไม่มีในสูตรปัจจุบัน เพื่อไม่ให้เพิ่มซ้ำซ้อน
+    available_to_add = [name for name in MASTER_INGREDIENT_DICTIONARY.keys() if name not in st.session_state.ingredient_data]
+    
+    if available_to_add:
+        selected_ing_to_add = st.selectbox("🌾 เลือกวัตถุดิบที่ต้องการเพิ่มเข้าฟาร์มของคุณ:", available_to_add)
         
-        if submit_advanced and n_name:
-            n_name_clean = n_name.strip()
-            if n_name_clean in st.session_state.ingredient_data:
-                st.warning(f"⚠️ มีชื่อ '{n_name_clean}' อยู่ในคลังแล้วครับ")
-            else:
-                st.session_state.ingredient_data[n_name_clean] = {
-                    "price": n_price, "protein": n_prot, "me": n_me, "calcium": n_ca, "phos": n_phos,
-                    "lysine": n_lys, "methionine": n_met, "tryptophan": n_tryp, "threonine": n_thre,
-                    "moisture": n_moist, "fiber": n_fib, "fat": n_fat, "ash": n_ash, "tox_risk": n_risk,
-                    "min_limit": 0.0, "max_limit": 100.0
-                }
-                st.session_state.optimized_weights[n_name_clean] = 0.0
-                st.success(f"🎉 บันทึกระบบสารอาหารของ '{n_name_clean}' เรียบร้อยแล้ว สไลเดอร์และช่องกรอกราคาจะปรากฏขึ้นพร้อมทำงาน!")
-                st.rerun()
+        # แสดงตารางคุณค่าสารอาหารตัวที่จะเพิ่มให้ผู้ใช้ดูก่อนกดบันทึก
+        preview_data = MASTER_INGREDIENT_DICTIONARY[selected_ing_to_add]
+        st.markdown(f"**📋 ข้อมูลโภชนาการพรีวิวของ {selected_ing_to_add} (ราคาแนะนำ: {preview_data['price']} บาท/กก.)**")
+        
+        df_preview = pd.DataFrame([{
+            "ราคา (บาท)": preview_data["price"], "โปรตีน (%)": preview_data["protein"], "พลังงาน (kcal)": preview_data["me"],
+            "แคลเซียม (%)": preview_data["calcium"], "ฟอสฟอรัส (%)": preview_data["phos"], "ไลซีน (%)": preview_data["lysine"],
+            "เมทไธโอนีน (%)": preview_data["methionine"], "กากใย (%)": preview_data["fiber"], "ความชื้น (%)": preview_data["moisture"]
+        }])
+        st.dataframe(df_preview, use_container_width=True, hide_index=True)
+        
+        if st.button(f"✨ กดเพิ่ม '{selected_ing_to_add}' เข้าสู่สูตรอาหารหน้าแรก", type="primary"):
+            st.session_state.ingredient_data[selected_ing_to_add] = MASTER_INGREDIENT_DICTIONARY[selected_ing_to_add]
+            st.session_state.optimized_weights[selected_ing_to_add] = 0.0  # ตั้งค่าสัดส่วนเริ่มต้นเป็น 0%
+            st.success(f"🎉 เพิ่ม '{selected_ing_to_add}' เรียบร้อย! ระบบเปิดสไลเดอร์และช่องป้อนตัวเลขที่หน้าแรกให้ทำงานทันที")
+            st.rerun()
+    else:
+        st.info("💡 คุณได้เพิ่มวัตถุดิบครบทั้ง 25 ชนิดที่มีในฐานข้อมูลหลักเข้าสู่ระบบเรียบร้อยแล้ว!")
 
     st.markdown("---")
 
-    # 💵 2. แสดงกล่องแก้ไขราคาส่วนตัววัตถุดิบทั้งหมด
-    st.markdown("### 📝 รายการวัตถุดิบและราคาปัจจุบันในระบบ")
+    # 💵 2. ตารางแสดงและปรับราคาท้องถิ่น
+    st.markdown("### 📝 รายการวัตถุดิบและราคาปัจจุบันในฟาร์มของคุณ")
+    st.markdown("สามารถเดินเช็กราคาท้องตลาด แล้วแก้ไขตัวเลขราคาของแต่ละตัวด้านล่างนี้ให้ตรงกับหน้าฟาร์มจริงได้เลยครับ")
+    
     current_ingredients = st.session_state.ingredient_data
     col_left, col_right = st.columns(2, gap="large")
     updated_prices = {}
@@ -395,18 +409,29 @@ with page_tabs[2]:
     with col_left:
         for name in ing_names[:half_size]:
             old_price = current_ingredients[name]["price"]
-            updated_prices[name] = st.number_input(f"💵 ราคา {name} (บาท/กก.)", min_value=0.0, value=float(old_price), step=0.5, format="%.2f", key=f"bk_price_{name}")
+            updated_prices[name] = st.number_input(f"💵 ราคา {name} (บาท/กก.)", min_value=0.0, value=float(old_price), step=0.1, format="%.2f", key=f"bk_price_{name}")
     with col_right:
         for name in ing_names[half_size:]:
             old_price = current_ingredients[name]["price"]
-            updated_prices[name] = st.number_input(f"💵 ราคา {name} (บาท/กก.)", min_value=0.0, value=float(old_price), step=0.5, format="%.2f", key=f"bk_price_{name}")
+            updated_prices[name] = st.number_input(f"💵 ราคา {name} (บาท/กก.)", min_value=0.0, value=float(old_price), step=0.1, format="%.2f", key=f"bk_price_{name}")
 
     st.markdown("---")
-    if st.button("💾 ยืนยันบันทึกราคาทุกอย่าง (Save Prices)", type="primary", use_container_width=True):
-        for name, new_p in updated_prices.items():
-            st.session_state.ingredient_data[name]["price"] = new_p
-        st.success("🎉 อัปเดตราคาทั้งหมดเรียบร้อยแล้ว!")
-        st.rerun()
+    
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button("💾 ยืนยันบันทึกราคาทุกอย่าง (Save Prices)", type="primary", use_container_width=True):
+            for name, new_p in updated_prices.items():
+                st.session_state.ingredient_data[name]["price"] = new_p
+            st.success("🎉 อัปเดตราคาทั้งหมดเรียบร้อยแล้ว!")
+            st.rerun()
+            
+    with col_btn2:
+        if st.button("🔄 รีเซ็ตคลังกลับค่าเริ่มต้นโรงงาน", use_container_width=True):
+            if "ingredient_data" in st.session_state: del st.session_state["ingredient_data"]
+            if "optimized_weights" in st.session_state: del st.session_state["optimized_weights"]
+            st.success("รีเซ็ตระบบเรียบร้อย")
+            st.rerun()
+            
     st.markdown("</div>", unsafe_allow_html=True)
 
     # --- ส่วนใบสั่งซื้อ ---
@@ -439,4 +464,4 @@ with page_tabs[2]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ระบบเพิ่มวัตถุดิบและฐานข้อมูลสารอาหารความละเอียดสูงเปิดทำงานเต็มรูปแบบ</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ระบบกล่องเลือกวัตถุดิบและฐานข้อมูลสารอาหาร 25 ชนิดเสร็จสมบูรณ์</div>", unsafe_allow_html=True)
