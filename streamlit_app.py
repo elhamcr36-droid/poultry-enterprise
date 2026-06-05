@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import pulp
 import requests
 from io import BytesIO
+from datetime import datetime
 
 # ==========================================
 # 🔱 1. ตั้งค่าคอนฟิกแอปพลิเคชันและหน้าจอ
@@ -282,11 +283,10 @@ if not df_budget.empty:
 st.markdown("---")
 
 # ==========================================
-# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [🔧 แก้ไข KeyError ตรงโครงสร้างเริ่มต้น]
+# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [🔧 ปรับเปลี่ยนระบบปฏิทินแบบ st.date_input]
 # ==========================================
 st.markdown("### 📈 6. สมุดจดสถิติและกราฟวิเคราะห์ผลผลิตประจำวัน (เวอร์ชันอัปเกรดการคำนวณกำไร)")
 
-# 🛠️ จุดแก้ไขหลัก: แก้ไขให้ชื่อคีย์ตรงกับระบบประมวลผล FCR ป้องกัน KeyError
 if "tracker_data" not in st.session_state:
     st.session_state.tracker_data = pd.DataFrame([
         {"วันที่": "01/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 82.0, "อัตราไข่บุบแตก (%)": 4.5, "น้ำหนักไข่รวม (กก.)": 52.0, "ไข่เบอร์ 0-1 (%)": 20.0, "ไข่เบอร์ 2-3 (%)": 55.0, "ไข่เบอร์ 4-5 (%)": 25.0, "ตาย/คัดทิ้ง (ตัว)": 0, "กำไรสุทธิวันนี้ (บาท)": 420.0, "หมายเหตุ": "ปกติ"},
@@ -336,12 +336,16 @@ st.markdown("---")
 track_col1, track_col2 = st.columns([4, 6], gap="large")
 
 with track_col1:
-    with st.form("supabase_sync_form_final_v5"):
+    with st.form("supabase_sync_form_final_v6"):
         st.markdown("##### 📝 สมุดบันทึกและจำแนกเกรดผลผลิต")
         
         f_c1, f_c2 = st.columns(2)
         with f_c1:
-            in_date = st.text_input("วันที่บันทึก (เช่น 04/06):", value="04/06")
+            # 🛠️ จุดแก้ไขหลัก: เปลี่ยนจาก text_input เป็น date_input เพื่อให้กดคลิกเลือกวันได้จากปฏิทิน
+            picked_date = st.date_input("เลือกวันที่บันทึกสถิติ:", datetime.now())
+            # แปลงวันที่ที่ดึงมาจากปฏิทินให้อยู่ในฟอร์แมต DD/MM (เช่น 04/06) เพื่อบันทึกเข้า DataFrame
+            in_date = picked_date.strftime("%d/%m")
+            
             lay_r = st.number_input("อัตราการไข่วันนี้ (%):", value=85.0, min_value=0.0, max_value=100.0, step=0.1)
             egg_weight_total = st.number_input("น้ำหนักไข่รวมวันนี้ (กก.):", value=53.0, min_value=1.0, max_value=5000.0, step=0.5)
         with f_c2:
