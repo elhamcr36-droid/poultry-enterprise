@@ -260,16 +260,37 @@ with page_tabs[0]:
     
     with creator_left:
         st.markdown("#### 🔧 1. ปรับสัดส่วนวัตถุดิบด้วยมือ (%)")
+        st.markdown("*สามารถเลื่อนสไลเดอร์ หรือกรอกตัวเลขที่ต้องการลงในช่องขวามือตรงๆ ได้เลยครับ*")
+        
         user_weights = {}
+        # วนลูปสร้างหน้าตาแบบสไลเดอร์คู่กับกล่องกรอกตัวเลข เพื่อให้ชาวบ้านพิมพ์เองได้ง่ายๆ
         for name in list(st.session_state.ingredient_data.keys()):
             val = float(st.session_state.optimized_weights.get(name, 0.0))
-            user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, val, step=0.1, key=f"form_sl_{name}")
+            
+            # แบ่งพื้นที่เป็นแถว: ชื่อวัตถุดิบนำหน้า ตามด้วยสไลเดอร์และกล่องข้อความ
+            st.write(f"**🌾 {name}**")
+            slider_col, input_col = st.columns([7, 3])
+            
+            with slider_col:
+                s_val = st.slider(
+                    f"ปรับสัดส่วน {name}", 0.0, 100.0, val, step=0.1, 
+                    label_visibility="collapsed", key=f"sl_bar_{name}"
+                )
+            with input_col:
+                i_val = st.number_input(
+                    f"ระบุตัวเลข {name}", min_value=0.0, max_value=100.0, value=s_val, step=0.1, 
+                    format="%.1f", label_visibility="collapsed", key=f"num_in_{name}"
+                )
+            
+            # ตรวจจับว่าถ้าฝั่งไหนขยับ ให้ดึงค่านั้นไปใช้งาน
+            user_weights[name] = i_val
+            
         st.session_state.optimized_weights = user_weights
 
         total_sum = sum(user_weights.values())
         st.markdown(f"**🔢 น้ำหนักรวมสูตรตอนนี้:** `{total_sum:.1f}%` (เป้าหมายคือ 100%)")
         if not (99.9 <= total_sum <= 100.1):
-            st.warning("⚠️ สัดส่วนรวมยังไม่ครบ 100%")
+            st.warning("⚠️ สัดส่วนรวมยังไม่ครบ 100% กรุณาปรับเพิ่มหรือลดวัตถุดิบให้รวมได้ 100.0% พอดี")
 
     with creator_right:
         st.markdown("#### 🩺 2. ระดับสารอาหารจริงเทียบกับเป้าหมาย")
@@ -360,7 +381,7 @@ with page_tabs[2]:
     st.markdown("ชาวบ้านหรือคนงานสามารถเดินเช็กราคาในตลาด แล้วมาแก้เฉพาะตัวเลขราคาตรงนี้ได้เลยครับ")
     st.markdown("---")
 
-    # ➕ 1. ระบบเพิ่มวัตถุดิบใหม่ด้วยตัวเอง (กล่องที่ชาวบ้านสามารถกดเพิ่มเองเรื่อยๆ)
+    # ➕ 1. ระบบเพิ่มวัตถุดิบใหม่ด้วยตัวเอง
     st.markdown("### ➕ เพิ่มวัตถุดิบใหม่เข้าฟาร์ม")
     st.markdown("หากมีวัตถุดิบใหม่นอกเหนือจากรายการด้านล่าง สามารถพิมพ์ชื่อและราคาตั้งต้นเพื่อเพิ่มลงระบบได้เลยครับ")
     
@@ -378,7 +399,6 @@ with page_tabs[2]:
             if new_name_clean in st.session_state.ingredient_data:
                 st.warning(f"⚠️ มีวัตถุดิบชื่อ '{new_name_clean}' อยู่ในระบบแล้วครับ")
             else:
-                # บันทึกสารอาหารเบื้องต้นเป็น 0 เพื่อให้ชาวบ้านเน้นแก้ราคาเป็นหลัก
                 st.session_state.ingredient_data[new_name_clean] = {
                     "price": new_price, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, 
                     "amino": 0.00, "moisture": 10.0, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, 
@@ -428,7 +448,6 @@ with page_tabs[2]:
 
     st.markdown("---")
     
-    # ปุ่มเซฟราคาใหญ่ๆ สังเกตง่าย
     if st.button("💾 ยืนยันบันทึกราคาทุกอย่าง (Save Prices)", type="primary", use_container_width=True):
         for name, new_p in updated_prices.items():
             st.session_state.ingredient_data[name]["price"] = new_p
@@ -471,4 +490,4 @@ with page_tabs[2]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ระบบเพิ่มวัตถุดิบอัจฉริยะสไตล์บ้านๆ เปิดใช้งานแล้ว</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ปรับปรุงโมดูลผสมอาหารด้วยสไลเดอร์ควบคู่กล่องป้อนตัวเลขเสร็จสมบูรณ์</div>", unsafe_allow_html=True)
