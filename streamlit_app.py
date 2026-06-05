@@ -148,6 +148,11 @@ if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights["ไดแคลเซียมฟอสเฟต"] = 0.4
     st.session_state.optimized_weights["พรีมิกซ์ไก่ไข่ (วิตามิน)"] = 0.2
 
+# คอยตรวจสอบค่าน้ำหนักของวัตถุดิบที่เพิ่มใหม่ให้เป็น 0 เสมอเพื่อไม่ให้ค้างคา
+for name in st.session_state.ingredient_data.keys():
+    if name not in st.session_state.optimized_weights:
+        st.session_state.optimized_weights[name] = 0.0
+
 def calculate_current_formulation():
     nut_calc = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0, "fiber": 0.0, "fat": 0.0}
     cost, moisture, risk = 0.0, 0.0, 0.0
@@ -196,13 +201,11 @@ with page_tabs[0]:
     </div>
     """, unsafe_allow_html=True)
 
-    # 🌤️ โมดูลสภาพแวดล้อมและปริมาณน้ำดื่ม
     st.markdown("---")
     st.markdown("### ⛅ การจัดการสภาพแวดล้อมและอุณหภูมิโรงเรือน")
     weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
-    st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้ (ส่งผลต่อการกินน้ำและโภชนาการไก่):", weather_list, horizontal=True)
+    st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้:", weather_list, horizontal=True)
     
-    # คำนวณปริมาณน้ำดื่มเชื่อมโยง
     base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
     calc_water = st.session_state.chicken_count * base_water
     if "ร้อนจัด" in st.session_state.weather_env:
@@ -354,24 +357,51 @@ with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ระบบหลังบ้าน & จัดการราคาวัตถุดิบ")
     st.markdown("### 💰 อัปเดตราคาท้องตลาดประจำวันนี้")
-    st.markdown("ชาวบ้านหรือคนงานสามารถเดินเช็กราคาในตลาด แล้วมาแก้เฉพาะตัวเลขราคาตรงนี้ได้เลยครับ (ส่วนค่าสารอาหารระบบจะคำนวณให้เองอัตโนมัติเบื้องหลัง)")
+    st.markdown("ชาวบ้านหรือคนงานสามารถเดินเช็กราคาในตลาด แล้วมาแก้เฉพาะตัวเลขราคาตรงนี้ได้เลยครับ")
     st.markdown("---")
 
-    # ดึงข้อมูลวัตถุดิบปัจจุบัน
+    # ➕ 1. ระบบเพิ่มวัตถุดิบใหม่ด้วยตัวเอง (กล่องที่ชาวบ้านสามารถกดเพิ่มเองเรื่อยๆ)
+    st.markdown("### ➕ เพิ่มวัตถุดิบใหม่เข้าฟาร์ม")
+    st.markdown("หากมีวัตถุดิบใหม่นอกเหนือจากรายการด้านล่าง สามารถพิมพ์ชื่อและราคาตั้งต้นเพื่อเพิ่มลงระบบได้เลยครับ")
+    
+    with st.form("add_new_ingredient_form", clear_on_submit=True):
+        new_ing_col1, new_ing_col2 = st.columns(2)
+        with new_ing_col1:
+            new_name = st.text_input("🌾 ชื่อวัตถุดิบใหม่:", placeholder="เช่น ข้าวเปลือก, กากมะพร้าวดิบ...")
+        with new_ing_col2:
+            new_price = st.number_input("💵 ราคาตั้งต้น (บาท ต่อ กิโลกรัม):", min_value=0.0, value=10.0, step=0.5, format="%.2f")
+        
+        submit_new_ing = st.form_submit_button("✨ กดเพิ่มวัตถุดิบใหม่เข้าตารางด้านล่าง", use_container_width=True)
+        
+        if submit_new_ing and new_name:
+            new_name_clean = new_name.strip()
+            if new_name_clean in st.session_state.ingredient_data:
+                st.warning(f"⚠️ มีวัตถุดิบชื่อ '{new_name_clean}' อยู่ในระบบแล้วครับ")
+            else:
+                # บันทึกสารอาหารเบื้องต้นเป็น 0 เพื่อให้ชาวบ้านเน้นแก้ราคาเป็นหลัก
+                st.session_state.ingredient_data[new_name_clean] = {
+                    "price": new_price, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, 
+                    "amino": 0.00, "moisture": 10.0, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, 
+                    "min_limit": 0.0, "max_limit": 100.0
+                }
+                st.session_state.optimized_weights[new_name_clean] = 0.0
+                st.success(f"🎉 เพิ่ม '{new_name_clean}' เข้าสู่ระบบจัดการราคาเรียบร้อยแล้ว!")
+                st.rerun()
+
+    st.markdown("---")
+
+    # 💵 2. แสดงกล่องแก้ไขราคาแยกชิ้น สไตล์บ้านๆ ตามรูปภาพ
+    st.markdown("### 📝 รายการวัตถุดิบทั้งหมดที่มีในระบบ")
     current_ingredients = st.session_state.ingredient_data
     
-    # แบ่งหน้าจอเป็น 2 ฝั่งเพื่อความสวยงามและไม่ยาวเกินไป
     col_left, col_right = st.columns(2, gap="large")
-    
     updated_prices = {}
     
-    # นำรายชื่อวัตถุดิบมาแบ่งครึ่งแสดงผล
     ing_names = list(current_ingredients.keys())
     half_size = (len(ing_names) + 1) // 2
     
-    # ฝั่งซ้าย: วัตถุดิบกลุ่มหลัก (คาร์โบไฮเดรต/รำ/มัน)
+    # ฝั่งซ้าย
     with col_left:
-        st.markdown("#### 🌾 กลุ่มวัตถุดิบหลัก / รำ / มันเส้น")
         for name in ing_names[:half_size]:
             old_price = current_ingredients[name]["price"]
             updated_prices[name] = st.number_input(
@@ -383,9 +413,8 @@ with page_tabs[2]:
                 key=f"simple_price_{name}"
             )
 
-    # ฝั่งขวา: วัตถุดิบกลุ่มโปรตีนและแร่ธาตุ
+    # ฝั่งขวา
     with col_right:
-        st.markdown("#### 🥩 กลุ่มโปรตีน / เปลือกหอย / วิตามิน")
         for name in ing_names[half_size:]:
             old_price = current_ingredients[name]["price"]
             updated_prices[name] = st.number_input(
@@ -399,12 +428,11 @@ with page_tabs[2]:
 
     st.markdown("---")
     
-    # ปุ่มบันทึกขนาดใหญ่ กดง่ายๆ
+    # ปุ่มเซฟราคาใหญ่ๆ สังเกตง่าย
     if st.button("💾 ยืนยันบันทึกราคาทุกอย่าง (Save Prices)", type="primary", use_container_width=True):
-        # วนลูปอัปเดตเฉพาะราคา ค่าโภชนาการเดิมยังคงอยู่ครบถ้วน ป้องกันกรอกข้อมูลสูตรพัง
-        for name, new_price in updated_prices.items():
-            st.session_state.ingredient_data[name]["price"] = new_price
-        st.success("🎉 บันทึกราคาวัตถุดิบใหม่ลงระบบเรียบร้อยแล้ว! สามารถกลับไปกดคำนวณสูตรอาหารที่หน้าแรกได้เลย")
+        for name, new_p in updated_prices.items():
+            st.session_state.ingredient_data[name]["price"] = new_p
+        st.success("🎉 อัปเดตราคาทั้งหมดเรียบร้อยแล้ว! สามารถกลับไปกดคำนวณสูตรอาหารหรือปรับสไลเดอร์ที่หน้าแรกได้เลย")
         st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -415,8 +443,6 @@ with page_tabs[2]:
     st.markdown("## 📝 ใบสั่งซื้อวัตถุดิบสำหรับเดินไปเข้าร้านค้า")
     
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
-    
-    # แปลงหน่วยเป็นกิโลกรัม หรือ กระสอบ (กระสอบละ 30 กิโล) ให้ชาวบ้านมองภาพออกง่ายขึ้น
     st.info(f"📊 สำหรับไก่จำนวน **{st.session_state.chicken_count:,} ตัว** ต้องใช้อาหารรวมทั้งหมด **{total_feed_needed_kg:,.1f} กิโลกรัม** (หรือประมาณ {total_feed_needed_kg/30:,.0f} กระสอบ)")
     
     budget_data = []
@@ -434,18 +460,15 @@ with page_tabs[2]:
             
     df_budget = pd.DataFrame(budget_data)
     if not df_budget.empty:
-        # แสดงตารางภาษาไทยบ้านๆ ไม่มีชื่อคอลัมน์ภาษาอังกฤษให้งง
         st.dataframe(df_budget, use_container_width=True, hide_index=True)
-        
-        # ปุ่มดาวน์โหลด
         csv = df_budget.to_csv(index=False).encode('utf-8-sig')
         st.download_button("📥 ดาวน์โหลดใบสั่งซื้อนี้ไปพิมพ์รายงาน (Download PO)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบหน้าฟาร์ม.csv", mime="text/csv")
     else:
-        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาไปกดปุ่ม 'สั่งคำนวณสูตรอาหาร' ที่หน้าแรกก่อนนะครับ")
+        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาไปกดปุ่ม 'สั่งคำนวณสูตรอาหาร' หรือปรับเปอร์เซ็นต์ที่หน้าแรกก่อนนะครับ")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ย้ายโมดูลสภาพแวดล้อมและโปรไฟล์อายุขึ้นสู่ส่วนบนสำเร็จ</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ระบบเพิ่มวัตถุดิบอัจฉริยะสไตล์บ้านๆ เปิดใช้งานแล้ว</div>", unsafe_allow_html=True)
