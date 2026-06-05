@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# แถบข้างซ้ายเหลือไว้เฉพาะการเชื่อมต่อ Cloud เท่านั้น เมนูนำทางเดิมในวงกลมแดงถูกย้ายออกแล้วตามภาพ edited-image.png
+# แถบข้างซ้ายเหลือไว้เฉพาะการเชื่อมต่อ Cloud เท่านั้น
 st.sidebar.markdown("### ☁️ การเชื่อมต่อคลาวด์ระดับองค์กร")
 SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-project.supabase.co").strip()
 SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
@@ -120,10 +120,7 @@ if st.session_state.selected_breed_key not in BREED_PROFILES[st.session_state.se
 if "current_key" not in st.session_state: st.session_state.current_key = "laying"
 if "weather_env" not in st.session_state: st.session_state.weather_env = "🌡️ อากาศปกติ (25-32°C)"
 if "chicken_count" not in st.session_state: st.session_state.chicken_count = 1000
-
-# 🔥 [แก้ไขบั๊กล็อกอินแรกสุด] ป้องกัน AttributeError บังคับประกาศสถานะ use_phytase เป็น False ทันทีหากพึ่งเปิดแอป
-if "use_phytase" not in st.session_state: 
-    st.session_state.use_phytase = False
+if "use_phytase" not in st.session_state: st.session_state.use_phytase = False
 
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {name: 0.0 for name in st.session_state.ingredient_data.keys()}
@@ -225,7 +222,7 @@ with page_tabs[0]:
     st.metric("ปริมาณน้ำที่ฝูงไก่ต้องบริโภคต่อวันรวม", f"{calc_water:,.1f} ลิตร (Liters)")
 
 
-# --- [แท็บที่ 2]: คำนวณสูตรอาหาร (AI Optimizer ตัวเต็ม + กล่อง Responsive ราคางอกตามได้) ---
+# --- [แท็บที่ 2]: คำนวณสูตรอาหาร (AI Optimizer) ---
 with page_tabs[1]:
     st.markdown("## 🧠 ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์")
     
@@ -236,22 +233,6 @@ with page_tabs[1]:
         "calcium": target["calcium"] * density_factor, "phos": target["phos"] * density_factor,
         "amino": target["amino"] * density_factor, "fiber": target.get("fiber", 4.0), "fat": target.get("fat", 3.5)
     }
-
-    # 🔥 [แก้ไขส่วนในวงกลมแดงรูปภาพที่ 2] แสดงผลบล็อกราคารองรับแบบไดนามิก แถวละ 5 ช่องอัตโนมัติ ไม่จำกัดวัตถุดิบเดิมและวัตถุดิบใหม่
-    st.markdown("#### 💰 ⚙️ อัปเดตราคาวัตถุดิบหน้าฟาร์มปัจจุบัน (บาท/กิโลกรัม)")
-    all_ingredients = list(st.session_state.ingredient_data.keys())
-    
-    chunk_size = 5 
-    for i in range(0, len(all_ingredients), chunk_size):
-        chunk_slice = all_ingredients[i:i+chunk_size]
-        cols = st.columns(len(chunk_slice))
-        for idx, name in enumerate(chunk_slice):
-            with cols[idx]:
-                st.session_state.ingredient_data[name]["price"] = st.number_input(
-                    f"{name}", min_value=0.0, 
-                    value=float(st.session_state.ingredient_data[name]["price"]), 
-                    step=0.1, key=f"p_{name}"
-                )
 
     st.session_state.use_phytase = st.checkbox("🧪 ใส่เอนไซม์ไฟเตส (ลดเป้าหมายฟอสฟอรัสลง 0.10% อัตโนมัติ)", value=st.session_state.use_phytase)
     if st.session_state.use_phytase:
@@ -267,7 +248,7 @@ with page_tabs[1]:
         # Constraints นํ้าหนักรวมต้องได้ 100%
         prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0
         
-        # Constraints คุณค่าโภชนาการสัตว์ครบทุกมิติจากระบบเดิม
+        # Constraints คุณค่าโภชนาการสัตว์ครบทุกมิติ
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["protein"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["protein"]
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["me"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["me"]
         prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["calcium"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["calcium"]
@@ -289,7 +270,7 @@ with page_tabs[1]:
     with creator_left:
         st.markdown("#### 🔧 1. สไลเดอร์ปรับสัดส่วนผสมด้วยมือ / เพิ่มวัตถุดิบเสริม")
         
-        # ➕ ช่องไว้เพิ่มวัตถุดิบเองอิสระ (เพิ่มสารอาหารได้ครบถ้วนทุกลำดับ)
+        # ช่องไว้เพิ่มวัตถุดิบเองอิสระ
         with st.expander("➕ เพิ่มสารอาหารเสริม/วัตถุดิบตัวใหม่ที่คุณหาได้เอง"):
             with st.form("add_custom_ingredient_mega"):
                 new_name = st.text_input("ชื่อวัตถุดิบใหม่ (เช่น รำหยาบ, ใบกระถินบด, ข้าวเปลือก):")
@@ -308,7 +289,7 @@ with page_tabs[1]:
                             "amino": 0.2, "moisture": 11.0, "fiber": n_fib, "fat": n_fat, "tox_risk": 1, "min_limit": 0.0, "max_limit": 30.0
                         }
                         st.session_state.optimized_weights[new_name] = 0.0
-                        st.success(f"เพิ่ม '{new_name}' เรียบร้อย ช่องกรอกราคาแถวด้านบนจะเปิดรองรับทันที!")
+                        st.success(f"เพิ่ม '{new_name}' เรียบร้อย สามารถไปอัปเดตราคาในหน้าแผนการจัดซื้อได้ทันที!")
                         st.rerun()
 
         user_weights = {}
@@ -348,9 +329,29 @@ with page_tabs[1]:
         st.metric("💰 ต้นทุนสูตรผสมอาหารปัจจุบันของคุณ", f"{current_formula_cost:.2f} บาท / กิโลกรัม")
 
 
-# --- [แท็บที่ 3]: แผนการจัดซื้อวัตถุดิบ (ตัวเต็มดั้งเดิม) ---
+# --- [แท็บที่ 3]: แผนการจัดซื้อวัตถุดิบ (ย้ายกล่องอัปเดตราคามาไว้ที่นี่เรียบร้อย) ---
 with page_tabs[2]:
     st.markdown("## 📦 แผนจัดซื้อวัตถุดิบอาหารสัตว์และควบคุมความเสี่ยง")
+    
+    # 🌟 [ย้ายมาไว้จุดนี้สำเร็จ] แสดงผลบล็อกราคารองรับแบบไดนามิก แถวละ 5 ช่องอัตโนมัติ
+    st.markdown("### 💰 ⚙️ อัปเดตราคาวัตถุดิบหน้าฟาร์มปัจจุบัน (บาท/กิโลกรัม)")
+    all_ingredients = list(st.session_state.ingredient_data.keys())
+    
+    chunk_size = 5 
+    for i in range(0, len(all_ingredients), chunk_size):
+        chunk_slice = all_ingredients[i:i+chunk_size]
+        cols = st.columns(len(chunk_slice))
+        for idx, name in enumerate(chunk_slice):
+            with cols[idx]:
+                st.session_state.ingredient_data[name]["price"] = st.number_input(
+                    f"{name}", min_value=0.0, 
+                    value=float(st.session_state.ingredient_data[name]["price"]), 
+                    step=0.1, key=f"p_{name}"
+                )
+                
+    st.markdown("---")
+    st.markdown("### 📝 ใบประมาณการจัดซื้อและปริมาณที่ต้องเตรียม")
+    
     total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
     st.info(f"📊 ปริมาณอาหารรวมที่ฟาร์มคุณต้องเตรียมจัดสำรองรอบนี้: **{total_feed_needed_kg/1000.0:,.2f} ตัน** (ประเมินจากฝูงสัตว์ {st.session_state.chicken_count:,} ตัว)")
     
@@ -371,7 +372,7 @@ with page_tabs[2]:
         csv = df_budget.to_csv(index=False).encode('utf-8-sig')
         st.download_button("📥 ดาวน์โหลดใบจัดซื้อวัตถุดิบอาหารสัตว์ (Download PO CSV)", data=csv, file_name="ใบจัดซื้อวัตถุดิบ_SmartLayer.csv", mime="text/csv")
     else:
-        st.info("💡 สัดส่วนอาหารยังเป็น 0% กรุณาตั้งค่าอาหารที่หน้า AI Optimizer ก่อน")
+        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาตั้งค่าอาหารหรือรันระบบ AI ที่หน้า AI Optimizer ก่อนเพื่อคำนวณแผนจัดซื้อ")
 
     st.markdown("---")
     st.markdown("#### 🛡️ การบริหารจัดการความปลอดภัยทางชีวภาพ (Biosecurity Control)")
@@ -381,7 +382,7 @@ with page_tabs[2]:
         st.success("🟢 วัตถุดิบในสูตรมีความปลอดภัยจากสารพิษเชื้อราสูง จัดเก็บได้ตามมาตรฐาน")
 
 
-# --- [แท็บที่ 4]: สถิติผลผลิต & บัญชีฟาร์ม (คำนวณ FCR ตัวเต็มย้อนหลัง) ---
+# --- [แท็บที่ 4]: สถิติผลผลิต & บัญชีฟาร์ม ---
 with page_tabs[3]:
     st.markdown("## 📈 สมุดจดบันทึกสถิติและวิเคราะห์ผลกำไรฟาร์ม")
     if "tracker_data" not in st.session_state:
@@ -391,10 +392,10 @@ with page_tabs[3]:
         ])
     
     df_track = st.session_state.tracker_data.copy()
+    breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
     daily_feed_consumed_kg = (st.session_state.chicken_count * breed_info['default_feed']) / 1000.0
     daily_feed_cost = daily_feed_consumed_kg * current_formula_cost
     
-    # คำนวณ FCR และตัวชี้วัดรายวันย้อนหลัง
     df_track["FCR"] = (daily_feed_consumed_kg / df_track["น้ำหนักไข่รวม (กก.)"]).round(2)
     
     avg_lay = df_track["อัตราการไข่ (%)"].mean()
@@ -450,4 +451,4 @@ with page_tabs[3]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed | แก้ไขปัญหา AttributeError สำหรับสถานะเริ่มต้นครบถ้วนเสร็จสมบูรณ์</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed | ย้ายส่วนจัดการราคาไปที่หน้าแผนจัดจัดซื้อเรียบร้อยสมบูรณ์</div>", unsafe_allow_html=True)
