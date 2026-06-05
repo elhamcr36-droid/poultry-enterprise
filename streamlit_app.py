@@ -4,7 +4,9 @@ import plotly.express as px
 import pulp
 import requests
 
-# 🔱 1. ตั้งค่าแอปพลิเคชันและธีมเริ่มต้น
+# ==========================================
+# 🔱 1. ตั้งค่าคอนฟิกแอปพลิเคชันและหน้าจอ
+# ==========================================
 st.set_page_config(page_title="Smart Layer Feed - ระบบคำนวณอาหารไก่ไข่อัจฉริยะ", layout="wide")
 
 # เมนูด้านข้างสำหรับการเชื่อมต่อระบบคลาวด์
@@ -44,7 +46,7 @@ BREED_PROFILES = {
     "2. กลุ่มสายพันธุ์แท้ (Pure Breeds)": {
         "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่สีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด ทนฝน เหมาะสำหรับเลี้ยงปล่อยธรรมชาติ (Free-range)"},
         "White Leghorn": {"name": "เลกฮอร์นขาว (White Leghorn)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ตัวเล็ก ขนขาว ปราดเปรียว บินเก่ง ให้ไข่เปลือกสีขาวสะอาด ดกมากเกือบเท่าไก่ไฮบริด"},
-        "Barred Plymouth Rock": {"name": "บาร์พลีมัทร็อค (Barred Plymouth Rock)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#64748b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายเสือตัวใหญ่ แข็งแรง ทนทาน นอกจากไข่ดีแล้ว เนื้อยังอร่อยด้วย (กึ่งเนื้อกึ่งไข่)"},
+        "Barred Plymouth Rock": {"name": "บาร์พลีมัทร็оค (Barred Plymouth Rock)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#64748b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายเสือตัวใหญ่ แข็งแรง ทนทาน นอกจากไข่ดีแล้ว เนื้อยังอร่อยด้วย (กึ่งเนื้อกึ่งไข่)"},
         "Australorp": {"name": "ออสตราลอป (Australorp)", "egg_color": "🤎 น้ำตาลครีมนวล", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ดำเหลือบเขียวมะกอก เชื่องมาก ตัวอวบอ้วนทนทานสูง ผลผลิตไข่สม่ำเสมอ"},
         "Sussex": {"name": "ซัสเซกส์ (Sussex)", "egg_color": "🩷 ชมพูอมน้ำตาลอ่อน", "bg_color": "#f1f5f9", "text_color": "#0f172a", "default_feed": 118, "desc": "โดยเฉพาะพันธุ์ Light Sussex (ตัวขาวคอดำ) น่ารัก นิสัยดี ให้ไข่สีสวยงามนุ่มนวล"}
     },
@@ -252,7 +254,7 @@ st.dataframe(pd.DataFrame(budget_data), use_container_width=True, hide_index=Tru
 st.markdown("---")
 
 # ==========================================
-# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [เวอร์ชันแก้ปัญหากลืนสี + อัปเกรดวิเคราะห์วิกฤต]
+# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [เวอร์ชันเสถียร แก้ไขบั๊กเรียบร้อย]
 # ==========================================
 st.markdown("### 📈 6. สมุดจดสถิติและกราฟวิเคราะห์ผลผลิตประจำวัน")
 
@@ -283,13 +285,13 @@ with m_alert:
     elif last_crack > 4.0:
         st.warning("⚠️ เตือนภัย: อัตราไข่แตกสูงเกิน 4%! แคลเซียมในอาหารอาจไม่พอ")
     else:
-        st.success("✅ สถานะฝูงไก่: ผลผลิตอยู่ในเกณฑ์สมบูรณ์และปลอดภัยดี")
+        st.success("✅ Status ฝูงไก่: ผลผลิตอยู่ในเกณฑ์สมบูรณ์และปลอดภัยดี")
 
 st.markdown("---")
 
 track_col1, track_col2 = st.columns([4, 6], gap="large")
 with track_col1:
-    with st.form("supabase_sync_form_final"):
+    with st.form("supabase_sync_form_final_v3"):
         st.markdown("##### 📝 กรอกรายงานหลังเดินตรวจเล้า")
         in_date = st.text_input("วันที่บันทึก (เช่น 04/06):", value="04/06")
         f_name = st.text_input("วันนี้ใช้สูตรอาหารชื่ออะไร:", value="สูตร AI แนะนำ")
@@ -340,15 +342,25 @@ with track_col1:
             st.rerun()
 
 with track_col2:
-    # 🎨 บังคับใช้ธีม "plotly_dark" และปรับสีพื้นหลังโปร่งใสเพื่อให้ข้อความเด้งชัดเจนในธีมมืด
+    # 🎯 ใช้ custom_data มารับค่าสูตรอาหารและหมายเหตุ เพื่อความเสถียรในการทำงานร่วมกับ Wide-form Data
     fig = px.line(
         st.session_state.tracker_data, 
         x="วันที่", 
         y=["อัตราการไข่ (%)", "อัตราไข่บุบแตก (%)"], 
         markers=True, 
         template="plotly_dark",
-        hover_data=["สูตรอาหาร", "หมายเหตุ"],
+        custom_data=["สูตรอาหาร", "หมายเหตุ"],
         title="📈 กราฟเปรียบเทียบผลผลิตและอัตราไข่แตกประจำวัน"
+    )
+    
+    # ดึงค่าจาก custom_data มาจัดรูปแบบกล่องข้อความ Hover ให้สวยงามและอ่านง่ายในธีมมืด
+    fig.update_traces(
+        hovertemplate="<br>".join([
+            "<b>วันที่:</b> %{x}",
+            "<b>เปอร์เซ็นต์:</b> %{y}%",
+            "<b>🥣 สูตรอาหาร:</b> %{customdata[0]}",
+            "<b>📌 หมายเหตุ:</b> %{customdata[1]}"
+        ])
     )
     
     fig.update_layout(
