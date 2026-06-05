@@ -11,13 +11,17 @@ from datetime import datetime
 st.set_page_config(
     page_title="Mega Feed & Breed Studio - ระบบคำนวณอาหารและจัดการสายพันธุ์สัตว์ปีกอัจฉริยะ", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # ปิด Sidebar ตั้งแต่เริ่มต้น
 )
 
 # 🎨 มหาเวทย์ CSS ล็อกพื้นหลังและปรับปรุง UI สไตล์พรีเมียม อ่านง่าย 100%
 st.markdown(
     """
     <style>
+    /* ซ่อนปุ่มเปิด-ปิด Sidebar ของ Streamlit ออกไปเลย */
+    [data-testid="collapsedControl"] {
+        display: none;
+    }
     .stApp {
         background-image: linear-gradient(rgba(0, 0, 0, 0.70), rgba(0, 0, 0, 0.70)), 
                           url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
@@ -59,12 +63,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.sidebar.markdown("### ☁️ การเชื่อมต่อคลาวด์และฐานข้อมูลหลัก")
-SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-mega-project.supabase.co").strip()
-SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
-
 st.markdown("# 🐔 Mega Feed & Breed Studio")
 st.markdown("### ระบบปัญญาประดิษฐ์คำนวณสูตรอาหาร โภชนาการขั้นสูง และบริหารคลังสายพันธุ์สัตว์ปีกแห่งประเทศไทย")
+
+# ☁️ ย้ายส่วนเชื่อมต่อฐานข้อมูลจาก Sidebar มาไว้ใน Expander หน้าหลัก (พับเก็บได้ ไม่รกหน้าจอ)
+with st.expander("☁️ การเชื่อมต่อคลาวด์และฐานข้อมูลหลัก (Supabase Configuration)"):
+    c_db1, c_db2 = st.columns(2)
+    with c_db1:
+        SUPABASE_URL = st.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-mega-project.supabase.co").strip()
+    with c_db2:
+        SUPABASE_KEY = st.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
 
 page_tabs = st.tabs([
     "🏠 ห้องปฏิบัติการสูตรอาหาร & เลือกสายพันธุ์", 
@@ -329,7 +337,6 @@ with page_tabs[0]:
         st.markdown("#### 🔧 1. สัดส่วนและโครงสร้างวัตถุดิบความจุสูง (%)")
         user_weights = {}
         
-        # 👑 [จัดเรียงลำดับใหม่]: เรียงคีย์ตามปริมาณมากที่สุดไปน้อยที่สุด (Descending Order)
         sorted_by_weight = sorted(
             st.session_state.ingredient_data.keys(), 
             key=lambda x: st.session_state.optimized_weights.get(x, 0.0), 
@@ -339,7 +346,6 @@ with page_tabs[0]:
         for name in sorted_by_weight:
             val = float(st.session_state.optimized_weights.get(name, 0.0))
             
-            # ไฮไลต์ตัวหนังสือหากมีการผสมจริงในสูตร
             if val > 0:
                 st.write(f"**🔥 {name} ({val}%)**")
             else:
@@ -377,7 +383,7 @@ with page_tabs[0]:
             ("🌾 กากใยรวม (Crude Fiber)", "fiber", "%"),
             ("🌽 ไขมันรวม (Crude Fat)", "fat", "%"),
             ("🌋 เถ้ารวมและแร่ธาตุ (Ash)", "ash", "%"),
-            ("🧂 ปริมาณเกลือแกง (Salt/NaCl)", "salt", "%"),
+            ("🧂 ปรียานเกลือแกง (Salt/NaCl)", "salt", "%"),
             ("🧠 โคลีนคลอไรด์ (Choline)", "choline", "mg/kg")
         ]
         for label, key_name, unit in nutrient_display:
@@ -393,7 +399,6 @@ with page_tabs[0]:
 
 # --- [แท็บที่ 2]: บันทึกสถิติฟาร์ม & ใบจัดซื้อ (Purchase Order) ---
 with page_tabs[1]:
-    # --- ส่วนเดิม: สถิติผลกำไรรายวัน ---
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 สมุดจดสถิติผลกำไรและบันทึกรายวันฟาร์ม")
     
@@ -438,7 +443,7 @@ with page_tabs[1]:
     st.dataframe(df_track, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 🔄 --- ส่วนที่ย้ายมาใหม่: ใบจัดซื้อและวางแผนงบประมาณ (Purchase Order) ---
+    # --- ใบจัดซื้อและวางแผนงบประมาณ (Purchase Order) ---
     st.markdown("<div class='content-card' style='border-top: 5px solid #38bdf8;'>", unsafe_allow_html=True)
     st.markdown("## 📝 ใบจัดซื้อและจัดเตรียมชุดวัตถุดิบอาหารสัตว์ (Purchase Order)")
     
@@ -449,7 +454,6 @@ with page_tabs[1]:
     budget_data = []
     total_cost_summary = 0.0
     
-    # ดึงค่าตามลำดับจัดเรียงตามสัดส่วนความหนาแน่นสารอาหาร (จากมากไปน้อย)
     sorted_budget_keys = sorted(
         st.session_state.optimized_weights.items(), 
         key=lambda x: x[1], 
@@ -476,7 +480,6 @@ with page_tabs[1]:
     if not df_budget.empty:
         st.dataframe(df_budget, use_container_width=True, hide_index=True)
         
-        # แสดงยอดสรุปงบเงินรวมให้เห็นเด่นชัด
         st.markdown(f"""
         <div style='text-align: right; padding: 15px; background-color: rgba(56, 189, 248, 0.15); border-radius: 8px; margin-top: 10px;'>
             <h4 style='margin:0; color:#38bdf8 !important;'>💵 ยอดงบประมาณจัดซื้อวัตถุดิบอาหารรวมทั้งสิ้น: {total_cost_summary:,.2f} บาท</h4>
@@ -491,7 +494,7 @@ with page_tabs[1]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 3]: ศูนย์จัดการคลังวัตถุดิบ (เหลือเฉพาะระบบค้นหาและอัปเดตราคา) ---
+# --- [แท็บที่ 3]: ศูนย์จัดการคลังวัตถุดิบ ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ระบบกล่องเลือกวัตถุดิบอัจฉริยะ (Dropdown Selectbox)")
@@ -556,4 +559,4 @@ with page_tabs[2]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Mega Feed & Breed Studio | ระบบจัดเรียงสูตรและวางบิลจัดซื้ออัจฉริยะทำงานสมบูรณ์แบบ</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Mega Feed & Breed Studio | ถอด Sidebar ออกเรียบร้อย หน้าต่างกว้างอ่านง่ายขึ้น 100%</div>", unsafe_allow_html=True)
