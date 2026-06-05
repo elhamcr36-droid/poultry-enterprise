@@ -14,6 +14,33 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# 🎨 เพิ่ม Custom CSS สำหรับภาพพื้นหลังธีมฟาร์มไก่ไข่และไข่ไก่ (Beautiful Farm Background)
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-image: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), 
+                          url("https://images.unsplash.com/photo-1587411768638-ec7bf4d15f1c?q=80&w=1920");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+    /* ปรับแต่งกล่อง Tab และ Container ให้มีความโปร่งแสงดูโมเดิร์นเข้ากับพื้นหลัง */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(255, 255, 255, 0.7);
+        padding: 10px;
+        border-radius: 10px;
+        backdrop-filter: blur(5px);
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # แถบข้างซ้ายเหลือไว้เฉพาะการเชื่อมต่อ Cloud เท่านั้น
 st.sidebar.markdown("### ☁️ การเชื่อมต่อคลาวด์ระดับองค์กร")
 SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-project.supabase.co").strip()
@@ -329,11 +356,10 @@ with page_tabs[1]:
         st.metric("💰 ต้นทุนสูตรผสมอาหารปัจจุบันของคุณ", f"{current_formula_cost:.2f} บาท / กิโลกรัม")
 
 
-# --- [แท็บที่ 3]: แผนการจัดซื้อวัตถุดิบ (ย้ายกล่องอัปเดตราคามาไว้ที่นี่เรียบร้อย) ---
+# --- [แท็บที่ 3]: แผนการจัดซื้อวัตถุดิบ ---
 with page_tabs[2]:
     st.markdown("## 📦 แผนจัดซื้อวัตถุดิบอาหารสัตว์และควบคุมความเสี่ยง")
     
-    # 🌟 [ย้ายมาไว้จุดนี้สำเร็จ] แสดงผลบล็อกราคารองรับแบบไดนามิก แถวละ 5 ช่องอัตโนมัติ
     st.markdown("### 💰 ⚙️ อัปเดตราคาวัตถุดิบหน้าฟาร์มปัจจุบัน (บาท/กิโลกรัม)")
     all_ingredients = list(st.session_state.ingredient_data.keys())
     
@@ -451,4 +477,4 @@ with page_tabs[3]:
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed | ย้ายส่วนจัดการราคาไปที่หน้าแผนจัดจัดซื้อเรียบร้อยสมบูรณ์</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed | อัปเดตเพิ่มภาพพื้นหลังฟาร์มไข่ไก่เรียบร้อยสมบูรณ์</div>", unsafe_allow_html=True)
