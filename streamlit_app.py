@@ -115,7 +115,7 @@ MASTER_INGREDIENT_DICTIONARY = {
     
     # --- กลุ่มที่ 5: ไขมันและน้ำมันพลังงานเข้มข้น (Concentrated Fats) ---
     "น้ำมันปาล์มดิบกระสอบ": {"price": 34.0, "protein": 0.0, "me": 8400.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 99.0, "ash": 0.0, "moisture": 0.5, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 4.0},
-    "น้ำมันถั่วเหลืองผ่านกรรมวิธี": {"price": 42.0, "protein": 0.0, "me": 8800.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 99.8, "ash": 0.0, "moisture": 0.2, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 3.0},
+    "น้ำมันถั่วเหลืองผ่านกรรมวิธี": {"price": 42.0, "protein": 0.0, "me": 8800.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 99.8, "ash": 0.2, "moisture": 0.2, "salt": 0.00, "choline": 0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 3.0},
     "ไขมันวัวเกรดอาหารสัตว์": {"price": 29.0, "protein": 0.0, "me": 8200.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 98.5, "ash": 0.2, "moisture": 0.8, "salt": 0.00, "choline": 0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 3.0},
     
     # --- กลุ่มที่ 6: กรดอะมิโนบริสุทธิ์ แร่ธาตุ และวิตามิน (Amino Acids, Minerals & Additives) ---
@@ -130,7 +130,13 @@ MASTER_INGREDIENT_DICTIONARY = {
     "พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น": {"price": 120.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 82.0, "moisture": 2.0, "salt": 1.00, "choline": 25000, "tox_risk": 0, "min_limit": 0.2, "max_limit": 0.5}
 }
 
-# 🔥 อัปเกรดจุดนี้: สั่งเปิดสแตนด์บายคลังวัตถุดิบหลักพร้อมกันสูงสุดเท่าที่จะหาได้ (25 ชนิดหลัก)
+# 🛠️ [จุดแก้ไขหลัก]: ตรวจเช็คและจองพื้นที่ใน Session State เพื่อป้องกัน AttributeError
+if "chicken_count" not in st.session_state:
+    st.session_state.chicken_count = 100  # กำหนดจำนวนสัตว์ปีกเริ่มต้นในระบบ
+
+if "use_phytase" not in st.session_state:
+    st.session_state.use_phytase = False
+
 if "ingredient_data" not in st.session_state:
     st.session_state.ingredient_data = {
         # แหล่งคาร์โบไฮเดรต/พลังงาน (7 ชนิด)
@@ -169,7 +175,6 @@ if "ingredient_data" not in st.session_state:
         "พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น": MASTER_INGREDIENT_DICTIONARY["พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น"]
     }
 
-# ตั้งค่าเริ่มต้นสำหรับสูตรอาหารแรกรันแอปพลิเคชัน
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {name: 0.0 for name in st.session_state.ingredient_data.keys()}
     st.session_state.optimized_weights["ข้าวโพดบดเม็ด"] = 52.0
@@ -182,7 +187,6 @@ if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights["พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น"] = 0.2
     st.session_state.optimized_weights["น้ำมันปาล์มดิบกระสอบ"] = 3.8
 
-# ตรวจเช็กชื่อตัวแปรที่ค้างในระบบทั้งหมดให้สมบูรณ์
 for name in st.session_state.ingredient_data.keys():
     if name not in st.session_state.optimized_weights:
         st.session_state.optimized_weights[name] = 0.0
@@ -209,7 +213,7 @@ BREED_PROFILES = {
     "4. กลุ่มไก่ชนไทยเชิงพาณิชย์ (Thai Gamecocks / Fighting Cocks)": {
         "Pradu Hang Dam": {"name": "ประดู่หางดำ (Pradu Hang Dam)", "egg_color": "💛 ครีมอมเหลือง", "bg_color": "#111827", "text_color": "#ffffff", "default_feed": 120, "desc": "ราชาไก่ชนไทย กระดูกใหญ่ โครงสร้างแกร่ง ต้องการโปรตีนและกรดอะมิโนสร้างกล้ามเนื้อ"},
         "Khieo Phari": {"name": "เขียวพาลี / เขียวเลา", "egg_color": "💛 ครีม", "bg_color": "#064e3b", "text_color": "#ffffff", "default_feed": 118, "desc": "สายพันธุ์ดุดัน ว่องไว ปราดเปรียว เน้นสูตรอาหารที่ไม่สะสมไขมันส่วนเกิน"},
-        "เหลืองหางขาว": {"name": "เหลืองหางขาว (ไก่พระนเรศวร)", "egg_color": "💛 ครีมขาว", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 122, "desc": "ไก่ชนมงคลตามตำราโบราณ ตัวใหญ่ ยาว ทรงสง่างาม แข็งแกร่ง"}
+        "เหลืองหางขาว": {"name": "เหลืองหางขาว (ไก่พระนเรศวร)", "egg_color": "💛 ครีมขาว", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 122, "desc": "ไก่ชนมมงคลตามตำราโบราณ ตัวใหญ่ ยาว ทรงสง่างาม แข็งแกร่ง"}
     },
     "5. กลุ่มไก่พื้นเมืองไทย & ไก่สามสาย (Thai Native & Crossbred)": {
         "Kai Dang Srithep": {"name": "ไก่แดงศรีเทพ", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#7f1d1d", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่พื้นเมืองปรับปรุงพันธุ์ เนื้อแน่น ไข่ดกกว่าพื้นเมืองเดิม ทนโรคระบาดได้ดีมาก"},
@@ -409,7 +413,7 @@ with page_tabs[1]:
             
             if st.form_submit_button("💾 บันทึกลงตารางดาต้า"):
                 new_row = {
-                    "橫軸" if "橫軸" in df_track else "วันที่": in_date, 
+                    "วันที่": in_date, 
                     "อัตราผลผลิต(%)": lay_r, 
                     "อัตราสูญเสีย(%)": crack_r, 
                     "น้ำหนักผลผลิต(กก.)": egg_w, 
