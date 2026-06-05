@@ -15,136 +15,66 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CUSTOM CSS (ปรับขนาดการ์ดขาวลดลง และเพิ่มระยะห่างไม่ให้ชิดเกินไป)
+# 2. CUSTOM CSS & STYLES
 # ==========================================
 def add_custom_styles():
     st.markdown(
         """
         <style>
-        /* พื้นหลังหลักสีน้ำเงินไล่เฉดสไตล์ฟาร์มอัจฉริยะ */
         .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
             background: linear-gradient(180deg, #4b749f 0%, #243b55 100%) !important;
             background-attachment: fixed !important;
         }
-        
-        /* หัวข้อระบบด้านบนสุด */
         .app-main-title {
-            color: #ffffff !important;
-            font-size: 38px !important;
-            font-weight: bold !important;
-            text-align: center;
-            margin-top: 40px;
-            margin-bottom: 0px;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #ffffff !important; font-size: 38px !important; font-weight: bold !important;
+            text-align: center; margin-top: 40px; margin-bottom: 0px;
             text-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
         }
         .app-sub-title {
-            color: #ffcc00 !important; 
-            font-size: 24px !important;
-            font-weight: bold !important;
-            text-align: center;
-            margin-top: 5px;
-            margin-bottom: 30px;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #ffcc00 !important; font-size: 24px !important; font-weight: bold !important;
+            text-align: center; margin-top: 5px; margin-bottom: 30px;
             text-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
         }
-        
-        /* ปรับขนาดกล่องการ์ดสีขาวให้ลดลง (Compact Size) และเพิ่ม Padding ป้องกันชิดขอบ */
         .auth-container {
-            max-width: 400px;
-            margin: 0 auto;
-            background-color: #ffffff !important;
-            padding: 40px 30px 40px 30px;
-            border-radius: 28px; 
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
-            text-align: center;
+            max-width: 400px; margin: 0 auto; background-color: #ffffff !important;
+            padding: 40px 30px; border-radius: 28px; box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25); text-align: center;
         }
-        
-        /* วงกลมไอคอน */
         .avatar-container {
-            width: 85px;
-            height: 85px;
-            background-color: #fff9f0;
-            border-radius: 50%;
-            margin: 0 auto 20px auto;
-            border: 3px solid #ffdfb4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 85px; height: 85px; background-color: #fff9f0; border-radius: 50%;
+            margin: 0 auto 20px auto; border: 3px solid #ffdfb4; display: flex; align-items: center; justify-content: center;
         }
-        .avatar-container span {
-            font-size: 42px;
-        }
-        
-        /* ช่องกรอกข้อมูลภายในกล่อง (เพิ่ม margin-bottom เพื่อไม่ให้เบียดกันชิดเกินไป) */
-        .auth-container .stTextInput {
-            margin-bottom: 12px !important;
-        }
+        .avatar-container span { font-size: 42px; }
+        .auth-container .stTextInput { margin-bottom: 12px !important; }
         .auth-container .stTextInput input {
-            border-radius: 12px !important;
-            border: 1px solid #d3e2f2 !important;
-            padding: 12px 15px !important;
-            background-color: #eef5fc !important;
-            color: #333333 !important;
-            font-size: 16px !important;
+            border-radius: 12px !important; border: 1px solid #d3e2f2 !important;
+            padding: 12px 15px !important; background-color: #eef5fc !important; color: #333333 !important;
         }
-        
-        /* ปุ่มเข้าสู่ระบบแบบ Gradient */
         .auth-container div.stButton > button {
             background: linear-gradient(90deg, #4a76a8 0%, #3b5998 100%) !important;
-            color: #ffffff !important;
-            border-radius: 12px !important;
-            padding: 12px 20px !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-            border: none !important;
-            width: 100% !important;
-            box-shadow: 0 4px 15px rgba(59, 89, 152, 0.2) !important;
-            margin-top: 15px;
+            color: #ffffff !important; border-radius: 12px !important; padding: 12px 20px !important;
+            font-size: 16px !important; font-weight: bold !important; width: 100% !important; margin-top: 15px;
         }
-        .auth-container div.stButton > button:hover {
-            background: linear-gradient(90deg, #3b5998 0%, #243b55 100%) !important;
-            transform: translateY(-1px);
-        }
-        
-        /* ปุ่มลิงก์สลับหน้าด้านล่าง */
-        .footer-links {
-            text-align: center;
-            margin-top: 25px;
-        }
-        .footer-links div.stButton > button {
-            background: transparent !important;
-            color: rgba(255, 255, 255, 0.9) !important;
-            border: none !important;
-            font-size: 14px !important;
-            font-weight: normal !important;
-            padding: 5px 10px !important;
-            width: auto !important;
-            box-shadow: none !important;
-        }
-        .footer-links div.stButton > button:hover {
-            color: #ffcc00 !important;
-            text-decoration: underline !important;
-            background: transparent !important;
-        }
-        
-        /* สไตล์หน้าแดชบอร์ดภายในระบบ */
+        /* Dashboard Card styling */
         div[data-testid="stGridColumn"] > div {
             background-color: rgba(255, 255, 255, 0.95) !important; 
-            padding: 25px;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 25px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         div[data-testid="stMetric"] {
-            background-color: #f8fafc !important;
-            padding: 15px;
-            border-radius: 12px;
-            border-left: 5px solid #3b5998;
-            border: 1px solid #e2e8f0;
+            background-color: #f8fafc !important; padding: 15px; border-radius: 12px;
+            border-left: 5px solid #3b5998; border: 1px solid #e2e8f0;
         }
         [data-testid="stMetricValue"] { font-weight: bold; color: #3b5998 !important; }
         [data-testid="stMetricLabel"] { color: #64748b !important; }
+        
+        /* Profile Active Button */
+        div.profile-box {
+            padding: 15px; border-radius: 12px; text-align: center; background-color: #f0f4f8;
+            border: 2px solid #cbd5e1; cursor: pointer; transition: 0.3s;
+        }
+        div.profile-box-active {
+            padding: 15px; border-radius: 12px; text-align: center; background-color: #eff6ff;
+            border: 2px solid #3b82f6; box-shadow: 0 0 10px rgba(59,130,246,0.3);
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -160,328 +90,258 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def is_password_strong(password):
-    if len(password) < 8:
-        return False, "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร"
-    if not re.search("[a-z]", password):
-        return False, "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษตัวพิมพ์เล็ก (a-z)"
-    if not re.search("[A-Z]", password):
-        return False, "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษตัวพิมพ์ใหญ่ (A-Z)"
-    if not re.search("[0-9]", password):
-        return False, "รหัสผ่านต้องมีตัวเลข (0-9)"
+    if len(password) < 8: return False, "รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร"
+    if not re.search("[a-z]", password): return False, "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษตัวพิมพ์เล็ก (a-z)"
+    if not re.search("[A-Z]", password): return False, "รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษตัวพิมพ์ใหญ่ (A-Z)"
+    if not re.search("[0-9]", password): return False, "รหัสผ่านต้องมีตัวเลข (0-9)"
     return True, "รหัสผ่านปลอดภัยตามมาตรฐาน"
 
-if "auth_page" not in st.session_state:
-    st.session_state.auth_page = "login"
-if "user" not in st.session_state:
-    st.session_state.user = None
-if "is_admin" not in st.session_state:
-    st.session_state.is_admin = False
+if "auth_page" not in st.session_state: st.session_state.auth_page = "login"
+if "user" not in st.session_state: st.session_state.user = None
+if "is_admin" not in st.session_state: st.session_state.is_admin = False
 
 # ==========================================
-# 4. HARDCODED DATA (คลังข้อมูลสารอาหารไก่ไข่)
+# 4. DATA DICTIONARIES (ฐานข้อมูลสารอาหารแนะนำและวัตถุดิบ)
 # ==========================================
-raw_ingredients = [
-    ('พลังงาน', 'ข้าวโพด', 'Corn'), ('พลังงาน', 'ปลายข้าว', 'Broken Rice'), ('พลังงาน', 'รำละเอียด', 'Rice Bran'),
-    ('โปรตีนจากพืช', 'กากถั่วเหลือง', 'Soybean Meal'), ('โปรตีนจากสัตว์', 'ปลาป่น', 'Fish Meal'),
-    ('แร่ธาตุ', 'หินปูนบด', 'Limestone'), ('แร่ธาตุ', 'เปลือกหอยบด', 'Ground Oyster Shell'),
-    ('กรดอะมิโน', 'ดีแอล-เมไทโอนีน', 'DL-Methionine'), ('กรดอะมิโน', 'แอล-ไลซีน เอชซีแอล', 'L-Lysine HCl')
-]
+# เกณฑ์ความต้องการโภชนาการจำแนกตามช่วงอายุ (Animal Profile Targets)
+STAGE_NUTRITION_TARGETS = {
+    "starter": {
+        "title": "ลูกไก่ (แรกเกิด - 6 สัปดาห์)",
+        "desc": "🐥 เน้นโปรตีนสูงเพื่อสร้างกล้ามเนื้อและโครงสร้างหลัก",
+        "protein": 18.5, "me": 2850.0, "calcium": 1.00, "phos": 0.45, "amino": 0.40
+    },
+    "grower": {
+        "title": "ไก่สาวรุ่น (6 - 12 สัปดาห์)",
+        "desc": "🐓 คุมน้ำหนักตัว ไม่ให้อ้วนเกินไปก่อนเริ่มไข่",
+        "protein": 15.5, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32
+    },
+    "laying": {
+        "title": "ไก่ระยะให้ผลผลิตไข่",
+        "desc": "🥚 เน้นแคลเซียมสูงมาก เพื่อความแข็งแรงของเปลือกไข่",
+        "protein": 17.5, "me": 2800.0, "calcium": 4.00, "phos": 0.45, "amino": 0.38
+    }
+}
 
-df_ingredients = pd.DataFrame(raw_ingredients, columns=['category', 'name_th', 'name_en'])
-df_ingredients['name'] = df_ingredients['name_th'] + " (" + df_ingredients['name_en'] + ")"
+# ฐานข้อมูลสารอาหารในวัตถุดิบ (ต่อ 1 กิโลกรัม)
+INGREDIENT_DATA = {
+    "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18},
+    "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "amino": 0.65},
+    "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "amino": 0.22},
+    "ปลาป่น": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "amino": 0.95},
+    "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "amino": 0.00},
+    "ไดแคลเซียมฟอสเฟต": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "amino": 0.00},
+    "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00}
+}
 
-df_ingredients['price_per_kg'] = [13.5, 14.0, 11.0, 18.5, 32.0, 3.5, 4.0, 95.0, 80.0]
-df_ingredients['protein_pct'] = [8.5, 8.0, 12.0, 44.0, 60.0, 0.0, 0.0, 0.0, 0.0]
-df_ingredients['me_kcal_per_kg'] = [3300.0, 3200.0, 2400.0, 2420.0, 2850.0, 0.0, 0.0, 0.0, 0.0]
-df_ingredients['max_limit_pct'] = [60.0, 40.0, 25.0, 35.0, 10.0, 10.0, 10.0, 1.0, 1.0]
-
-raw_breeds = [
-    ('สายพันธุ์เชิงพาณิชย์', 'ไฮไลน์ บราวน์', 'Hy-Line Brown'), 
-    ('สายพันธุ์เชิงพาณิชย์', 'โลห์มันน์ บราวน์', 'Lohmann Brown'), 
-    ('สายพันธุ์เชิงพาณิชย์', 'ไอเอสเอ บราวน์', 'ISA Brown')
-]
-df_breeds_raw = pd.DataFrame(raw_breeds, columns=['category', 'name_th', 'name_en'])
-df_breeds_raw['display_name'] = df_breeds_raw['name_th'] + " (" + df_breeds_raw['name_en'] + ")"
-
-list_groups = sorted(df_breeds_raw['category'].unique().tolist())
-list_stages = [
-    "ช่วงอายุ แรกเกิด-6 สัปดาห์ (Starter 0-6 wk)",
-    "ช่วงอายุ 6-12 สัปดาห์ (Grower 6-12 wk)",
-    "ระยะไก่ไข่ให้ผลผลิต (Laying Period)"
-]
-
-if "calculated" not in st.session_state:
-    st.session_state.calculated = False
-    st.session_state.df_result = None
-    st.session_state.total_cost_100kg = 0.0
-
-def reset_calculation():
-    st.session_state.calculated = False
+if "selected_stage_key" not in st.session_state:
+    st.session_state.selected_stage_key = "laying"
 
 # ==========================================
-# 5. AUTHENTICATION INTERFACE (WITH ADMIN BYPASS)
+# 5. AUTHENTICATION INTERFACE
 # ==========================================
 if st.session_state.user is None and not st.session_state.is_admin:
-    
     st.markdown('<div class="app-main-title">Smart Layer Feed</div>', unsafe_allow_html=True)
     st.markdown('<div class="app-sub-title">ระบบคำนวณสูตรอาหารไก่ไข่อัจฉริยะ</div>', unsafe_allow_html=True)
-    
     _, center_col, _ = st.columns([1, 1.1, 1])
     
     with center_col:
-        # ------------------------------------------
-        # 🗂️ หน้าเข้าสู่ระบบ (LOGIN)
-        # ------------------------------------------
         if st.session_state.auth_page == "login":
-            st.markdown(
-                """
-                <div class="auth-container">
-                    <div class="avatar-container"><span>🥚</span></div>
-                    <div style="color:#555555; font-size:15px; margin-bottom:25px; font-weight:500;">
-                        ลงชื่อเข้าใช้ระบบเพื่อจัดการสูตรอาหารฟาร์ม
-                    </div>
-                """, 
-                unsafe_allow_html=True
-            )
-            
+            st.markdown('<div class="auth-container"><div class="avatar-container"><span>🥚</span></div><div style="color:#555555; font-size:15px; margin-bottom:25px; font-weight:500;">ลงชื่อเข้าใช้ระบบเพื่อจัดการสูตรอาหารฟาร์ม</div>', unsafe_allow_html=True)
             login_email = st.text_input("ชื่อผู้ใช้งาน", placeholder="ชื่อผู้ใช้งาน หรือ อีเมลฟาร์ม", key="input_login_email", label_visibility="collapsed")
             login_pass = st.text_input("รหัสผ่าน", placeholder="รหัสผ่าน", type="password", key="input_login_pass", label_visibility="collapsed")
             
             if st.button("ลงชื่อเข้าสู่ระบบฟาร์ม", use_container_width=True):
-                # ตรวจสอบสิทธิ์บัญชี Admin Bypass (222 / 222)
                 if login_email == "222" and login_pass == "222":
                     st.session_state.is_admin = True
-                    st.success("🎉 เข้าสู่ระบบในฐานะผู้ดูแลระบบ (Admin) สำเร็จ!")
+                    st.success("🎉 เข้าสู่ระบบสำเร็จ!")
                     st.rerun()
                 else:
-                    # ตรวจสอบผ่านระบบปกติของ Supabase Auth
                     try:
                         response = supabase.auth.sign_in_with_password({"email": login_email, "password": login_pass})
                         st.session_state.user = response.user
                         st.rerun()
-                    except Exception:
-                        st.error("❌ ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง")
-                    
+                    except Exception: st.error("❌ ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง")
             st.markdown("</div>", unsafe_allow_html=True)
             
-            # ลิงก์ใต้กล่องขาว
             st.markdown('<div class="footer-links">', unsafe_allow_html=True)
             f_col1, f_col2 = st.columns(2)
             with f_col1:
                 if st.button("ลืมรหัสผ่าน?", key="btn_go_forgot"):
-                    st.session_state.auth_page = "forgot"
-                    st.rerun()
+                    st.session_state.auth_page = "forgot"; st.rerun()
             with f_col2:
                 if st.button("สมัครสมาชิกฟาร์มใหม่", key="btn_go_reg"):
-                    st.session_state.auth_page = "register"
-                    st.rerun()
+                    st.session_state.auth_page = "register"; st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-
-        # ------------------------------------------
-        # 🗂️ หน้าสมัครสมาชิก (REGISTER)
-        # ------------------------------------------
-        elif st.session_state.auth_page == "register":
-            st.markdown(
-                """
-                <div class="auth-container">
-                    <div class="avatar-container"><span>🐔</span></div>
-                    <div style="color:#243b55; font-size:18px; margin-bottom:25px; font-weight:bold;">
-                        ลงทะเบียนเปิดบัญชีฟาร์มใหม่
-                    </div>
-                """, 
-                unsafe_allow_html=True
-            )
             
+        elif st.session_state.auth_page == "register":
+            st.markdown('<div class="auth-container"><div class="avatar-container"><span>🐔</span></div><div style="color:#243b55; font-size:18px; margin-bottom:25px; font-weight:bold;">ลงทะเบียนเปิดบัญชีฟาร์มใหม่</div>', unsafe_allow_html=True)
             reg_fn = st.text_input("ชื่อจริง", placeholder="ชื่อจริงผู้ดูแล", key="reg_fn", label_visibility="collapsed")
             reg_ln = st.text_input("นามสกุล", placeholder="นามสกุล", key="reg_ln", label_visibility="collapsed")
             reg_email = st.text_input("อีเมล", placeholder="ที่อยู่อีเมลสำหรับฟาร์ม", key="reg_email", label_visibility="collapsed")
-            reg_password = st.text_input("รหัสผ่าน", placeholder="ตั้งรหัสผ่านใหม่ (8 ตัวขึ้นไป)", type="password", key="reg_password", label_visibility="collapsed")
+            reg_password = st.text_input("รหัสผ่าน", placeholder="ตั้งรหัสผ่านใหม่", type="password", key="reg_password", label_visibility="collapsed")
             farm_name = st.text_input("ชื่อฟาร์ม", placeholder="ชื่อฟาร์มไก่ไข่ของคุณ", key="reg_farm", label_visibility="collapsed")
-            
-            if reg_password:
-                is_valid, msg = is_password_strong(reg_password)
-                if is_valid: st.success(f"🟢 {msg}")
-                else: st.warning(f"🟡 {msg}")
             
             if st.button("ลงทะเบียนบัญชีฟาร์ม", use_container_width=True):
                 is_valid, msg = is_password_strong(reg_password)
-                if not (reg_fn and reg_email and reg_password and farm_name):
-                    st.error("❌ กรุณากรอกข้อมูลให้ครบถ้วน")
-                elif not is_valid:
-                    st.error(f"❌ {msg}")
+                if not (reg_fn and reg_email and reg_password and farm_name): st.error("❌ กรุณากรอกข้อมูลให้ครบถ้วน")
+                elif not is_valid: st.error(f"❌ {msg}")
                 else:
                     try:
-                        supabase.auth.sign_up({
-                            "email": reg_email, "password": reg_password,
-                            "options": {"data": {"first_name": reg_fn, "last_name": reg_ln, "farm_name": farm_name}}
-                        })
-                        st.success("📩 ระบบส่งอีเมลยืนยันแล้ว! กรุณาตรวจสอบกล่องข้อความของคุณ")
-                    except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาด: {str(e)}")
-                        
+                        supabase.auth.sign_up({"email": reg_email, "password": reg_password, "options": {"data": {"first_name": reg_fn, "last_name": reg_ln, "farm_name": farm_name}}})
+                        st.success("📩 ตรวจสอบกล่องข้อความอีเมลของคุณเพื่อยืนยัน!")
+                    except Exception as e: st.error(f"เกิดข้อผิดพลาด: {str(e)}")
             st.markdown("</div>", unsafe_allow_html=True)
-            
-            st.markdown('<div class="footer-links">', unsafe_allow_html=True)
-            if st.button("⬅️ กลับไปยังหน้าเข้าสู่ระบบ", key="back_from_reg"):
-                st.session_state.auth_page = "login"
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # ------------------------------------------
-        # 🗂️ หน้าลืมรหัสผ่าน (FORGOT PASSWORD)
-        # ------------------------------------------
-        elif st.session_state.auth_page == "forgot":
-            st.markdown(
-                """
-                <div class="auth-container">
-                    <div class="avatar-container"><span>🔑</span></div>
-                    <div style="color:#243b55; font-size:18px; margin-bottom:15px; font-weight:bold;">
-                        กู้คืนรหัสผ่านฟาร์ม
-                    </div>
-                    <p style="color:#666; font-size:14px; margin-bottom:25px;">ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลของคุณ</p>
-                """, 
-                unsafe_allow_html=True
-            )
-            
-            reset_email = st.text_input("อีเมล", placeholder="กรอกอีเมลฟาร์มที่ใช้ลงทะเบียน", key="forgot_email", label_visibility="collapsed")
-            
-            if st.button("ส่งลิงก์รีเซ็ตรหัสผ่าน", use_container_width=True):
-                if reset_email:
-                    try:
-                        supabase.auth.reset_password_for_email(reset_email)
-                        st.success("📩 ลิงก์กู้คืนส่งไปยังอีเมลเรียบร้อยแล้ว!")
-                    except Exception as e:
-                        st.error(f"เกิดข้อผิดพลาด: {str(e)}")
-                else:
-                    st.error("❌ กรุณากรอกอีเมล")
-                    
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            st.markdown('<div class="footer-links">', unsafe_allow_html=True)
-            if st.button("⬅️ กลับไปยังหน้าเข้าสู่ระบบ", key="back_from_forgot"):
-                st.session_state.auth_page = "login"
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 6. MAIN SYSTEM DASHBOARD (เมื่อเข้าสู่ระบบสำเร็จ)
+# 6. MAIN SYSTEM DASHBOARD
 # ==========================================
 else:
-    # ดึง Metadata ตามประเภทการเข้าสู่ระบบ
     if st.session_state.is_admin:
-        user_name = "แอดมินฟาร์ม"
-        farm_title = "ระบบจัดการหลังบ้านสูงสุด"
+        user_name = "แอดมินฟาร์ม"; farm_title = "ระบบจัดการหลังบ้านสูงสุด"
     else:
         user_info = st.session_state.user.user_metadata
-        user_name = user_info.get("first_name", "ผู้เลี้ยง")
-        farm_title = user_info.get("farm_name", "สมาร์ทฟาร์ม")
+        user_name = user_info.get("first_name", "ผู้เลี้ยง"); farm_title = user_info.get("farm_name", "สมาร์ทฟาร์ม")
     
     st.markdown("<style>h1, h2, h3, h4, h5, h6, p, label { color: #ffffff !important; }</style>", unsafe_allow_html=True)
     
     header_col1, header_col2 = st.columns([8, 2])
     with header_col1:
-        st.title(f"🥚 ระบบคำนวณสารอาหารอัจฉริยะ - {farm_title}")
-        st.subheader(f"👋 ยินดีต้อนรับคุณ {user_name} (ผู้จัดการข้อมูลสูตรอาหาร)")
+        st.title(f"🥚 Smart Layer Feed - {farm_title}")
+        st.subheader(f"👋 ยินดีต้อนรับคุณ {user_name} (โหมดผสมและวิเคราะห์สูตรอาหาร Real-time)")
     with header_col2:
         st.write("")
         if st.button("🔒 ออกจากระบบ"):
-            if not st.session_state.is_admin:
-                supabase.auth.sign_out()
-            st.session_state.user = None
-            st.session_state.is_admin = False
-            st.rerun()
+            if not st.session_state.is_admin: supabase.auth.sign_out()
+            st.session_state.user = None; st.session_state.is_admin = False; st.rerun()
 
     st.markdown("---")
-    st.markdown("### 📋 แผงตั้งค่าสารอาหารตามช่วงอายุและสายพันธุ์ไก่ไข่")
+
+    # ------------------------------------------
+    # FEATURE 1: ANIMAL PROFILE (เลือกช่วงอายุไก่ผ่านปุ่มรูปภาพ/การ์ด)
+    # ------------------------------------------
+    st.markdown("### 🐔 1. Animal Profile (เลือกช่วงอายุไก่เป้าหมาย)")
+    p_col1, p_col2, p_col3 = st.columns(3)
     
-    input_col1, input_col2 = st.columns(2, gap="large")
-    with input_col1:
-        st.markdown("##### 🐔 ข้อมูลฝูงไก่เป้าหมาย")
-        selected_group = st.selectbox("เลือกกลุ่มสายพันธุ์ไก่ไข่", list_groups, index=0, on_change=reset_calculation)
-        filtered_breeds = sorted(df_breeds_raw[df_breeds_raw['category'] == selected_group]['display_name'].tolist())
-        selected_breed = st.selectbox("สายพันธุ์จำเพาะ", filtered_breeds, index=0, on_change=reset_calculation)
-        selected_stage = st.selectbox("ช่วงอายุ / ระยะการให้ผลผลิต", list_stages, index=0, on_change=reset_calculation)
-        
-        st.info("💡 **เกณฑ์โภชนาการแนะนำช่วงอายุแรกเกิด:**\n"
-                "- โปรตีน (Protein): ไม่ต่ำกว่า **18.0%**\n"
-                "- พลังงานใช้ประโยชน์ได้ (ME): ไม่ต่ำกว่า **2,800 kcal/กก.**")
+    with p_col1:
+        is_active = "profile-box-active" if st.session_state.selected_stage_key == "starter" else "profile-box"
+        st.markdown(f'<div class="{is_active}"><h3>🐥</h3><b>ลูกไก่</b><br><small>แรกเกิด - 6 สัปดาห์</small></div>', unsafe_allow_html=True)
+        if st.button("เลือกกลุ่มลูกไก่", use_container_width=True, key="set_starter"):
+            st.session_state.selected_stage_key = "starter"; st.rerun()
 
-    with input_col2:
-        st.markdown("##### 💰 ข้อมูลการเลี้ยงและราคาเป้าหมาย")
-        num_chickens = st.number_input("จำนวนไก่ไข่ทั้งหมดในโรงเรือน (ตัว)", min_value=1, value=500, on_change=reset_calculation)
-        feed_rate = st.slider("เป้าหมายปริมาณอาหารเฉลี่ยต่อตัว (กรัม/วัน)", min_value=50, max_value=150, value=115, on_change=reset_calculation)
-        egg_price = st.number_input("ราคาไข่ไก่ท้องตลาดเฉลี่ยคาดหวัง (บาท/ฟอง)", min_value=0.0, value=4.10, step=0.1, on_change=reset_calculation)
-        laying_rate = st.slider("อัตราการออกไข่ของฝูงเป้าหมาย (%)", min_value=0, max_value=100, value=85, on_change=reset_calculation)
+    with p_col2:
+        is_active = "profile-box-active" if st.session_state.selected_stage_key == "grower" else "profile-box"
+        st.markdown(f'<div class="{is_active}"><h3>🐓</h3><b>ไก่สาวรุ่น</b><br><small>6 - 12 สัปดาห์</small></div>', unsafe_allow_html=True)
+        if st.button("เลือกกลุ่มไก่สาว", use_container_width=True, key="set_grower"):
+            st.session_state.selected_stage_key = "grower"; st.rerun()
 
-    st.markdown("##")
+    with p_col3:
+        is_active = "profile-box-active" if st.session_state.selected_stage_key == "laying" else "profile-box"
+        st.markdown(f'<div class="{is_active}"><h3>🥚</h3><b>ไก่ระยะไข่</b><br><small>ให้ผลผลิตสูง</small></div>', unsafe_allow_html=True)
+        if st.button("เลือกกลุ่มไก่ระยะไข่", use_container_width=True, key="set_laying"):
+            st.session_state.selected_stage_key = "laying"; st.rerun()
 
-    # ส่วนประมวลผลโมเดล Linear Programming ด้วย PuLP
-    if st.button("🚀 เริ่มคำนวณและประมวลผลสูตรอาหารความคุ้มค่าสูงสุด", use_container_width=True, type="primary"):
-        if not df_ingredients.empty:
-            REQ_PROTEIN, REQ_ME = 18.0, 2800.0
-            
-            prob = pulp.LpProblem("Feed_Optimization", pulp.LpMinimize)
-            ingredients_list = df_ingredients['name'].tolist()
-            vars_dict = {name: pulp.LpVariable(f"Ing_{i}", lowBound=0) for i, name in enumerate(ingredients_list)}
-            
-            prob += pulp.lpSum([vars_dict[row['name']] * row['price_per_kg'] for _, row in df_ingredients.iterrows()])
-            prob += pulp.lpSum([vars_dict[i] for i in ingredients_list]) == 100.0
-            
-            for _, row in df_ingredients.iterrows():
-                prob += vars_dict[row['name']] <= row['max_limit_pct']
-            
-            prob += pulp.lpSum([vars_dict[row['name']] * row['protein_pct'] for _, row in df_ingredients.iterrows()]) >= (REQ_PROTEIN * 100)
-            prob += pulp.lpSum([vars_dict[row['name']] * row['me_kcal_per_kg'] for _, row in df_ingredients.iterrows()]) >= (REQ_ME * 100)
-            
-            prob.solve(pulp.PULP_CBC_CMD(msg=False))
-            
-            if pulp.LpStatus[prob.status] == "Optimal":
-                st.session_state.calculated = True
-                st.session_state.total_cost_100kg = pulp.value(prob.objective)
-                
-                result_list = []
-                for _, row in df_ingredients.iterrows():
-                    w = vars_dict[row['name']].varValue
-                    if w and w > 0.01:
-                        result_list.append({
-                            "วัตถุดิบอาหาร": row['name'], 
-                            "สัดส่วน (%)": round(w, 2), 
-                            "ปริมาณที่ใช้ (กก./100กก.)": round(w, 2),
-                            "ราคา (บาท)": round(w * row['price_per_kg'], 2)
-                        })
-                
-                st.session_state.df_result = pd.DataFrame(result_list)
-                st.success("🎉 ล็อกสัดส่วนและวิเคราะห์สูตรอาหารเรียบร้อยแล้ว!")
-            else:
-                st.error("❌ ไม่สามารถคำนวณสูตรอาหารตามเกณฑ์โภชนาการนี้ได้ กรุณาปรับเปลี่ยนวัตถุดิบ")
+    # โหลดค่าสารอาหารเป้าหมายตามช่วงอายุที่เลือก
+    current_key = st.session_state.selected_stage_key
+    target = STAGE_NUTRITION_TARGETS[current_key]
+    
+    st.info(f"📋 **กลุ่มที่เลือก:** {target['title']} | {target['desc']}")
 
     st.markdown("---")
-    st.markdown("### 📊 รายงานผลลัพธ์และอัตรากำไรของฟาร์ม")
 
-    if st.session_state.calculated and st.session_state.df_result is not None:
-        total_feed_day_kg = (num_chickens * feed_rate) / 1000
-        cost_per_day = total_feed_day_kg * (st.session_state.total_cost_100kg / 100)
-        expected_eggs_day = num_chickens * (laying_rate / 100)
-        revenue_per_day = expected_eggs_day * egg_price
-        net_profit_per_day = revenue_per_day - cost_per_day
-
-        m1, m2, m3, m4 = st.columns(4)
-        with m1: st.metric(label="📉 ต้นทุนค่าอาหาร / วัน", value=f"{cost_per_day:,.2f} ฿")
-        with m2: st.metric(label="📈 รายได้รวมไข่ไก่ / วัน", value=f"{revenue_per_day:,.2f} ฿")
-        with m3: st.metric(label="🏆 กำไรสุทธิประเมิน / วัน", value=f"{net_profit_per_day:,.2f} ฿")
-        with m4: st.metric(label="💰 ต้นทุนอาหารเฉลี่ย (ต่อกก.)", value=f"{st.session_state.total_cost_100kg / 100:.2f} ฿")
-
-        st.markdown("##")
-        report_left, report_right = st.columns([1.1, 0.9], gap="large")
+    # ------------------------------------------
+    # FEATURE 2 & 3: RECIPE CREATOR & NUTRITION ALERT (Real-time)
+    # ------------------------------------------
+    st.markdown("### 🎛️ 2. Recipe Creator & Nutrition Alert (จำลองการผสมสูตรอาหาร)")
+    
+    creator_left, creator_right = st.columns([4, 6], gap="large")
+    
+    # ฝั่งซ้าย: สไลเดอร์ปรับเปลี่ยนอัตราส่วนวัตถุดิบ (รวมกันต้องให้ได้ 100%)
+    with creator_left:
+        st.markdown("##### 🌽 สัดส่วนวัตถุดิบอาหารดิบ (%)")
+        w_corn = st.slider("ข้าวโพดบด", 0, 100, 55, key="slide_corn")
+        w_soy = st.slider("กากถั่วเหลือง", 0, 100, 25, key="slide_soy")
+        w_bran = st.slider("รำละเอียด", 0, 100, 10, key="slide_bran")
+        w_fish = st.slider("ปลาป่น (โปรตีนสัตว์)", 0, 100, 4, key="slide_fish")
+        w_shell = st.slider("เปลือกหอยบด (แคลเซียม)", 0, 100, 5, key="slide_shell")
+        w_dcp = st.slider("ไดแคลเซียมฟอสเฟต", 0, 100, 1, key="slide_dcp")
+        w_amino = st.slider("กรดอะมิโนสังเคราะห์", 0, 5, 0, key="slide_amino")
         
-        with report_left:
-            st.markdown("##### 🍩 แผนภูมิสัดส่วนสูตรอาหาร")
-            fig = px.pie(st.session_state.df_result, values='สัดส่วน (%)', names='วัตถุดิบอาหาร', hole=0.45)
-            fig.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=320, font=dict(color="black"), paper_bgcolor='rgba(255,255,255,0.95)')
-            st.plotly_chart(fig, use_container_width=True)
+        total_weight_pct = w_corn + w_soy + w_bran + w_fish + w_shell + w_dcp + w_amino
+        
+        if total_weight_pct == 100:
+            st.success(f"⚖️ สัดส่วนผสมครบถ้วน: {total_weight_pct}% พอดี")
+        else:
+            st.error(f"⚠️ สัดส่วนผสมรวมต้องเท่ากับ 100% (ขณะนี้รวมได้: {total_weight_pct}%)")
 
-        with report_right:
-            st.markdown("##### 📋 ตารางจัดซื้อและจัดสรรวัตถุดิบ (ผสมต่องวด 100 กิโลกรัม)")
-            st.dataframe(st.session_state.df_result, use_container_width=True, hide_index=True, height=320)
-    else:
-        st.info("💡 **ระบบพร้อมคำนวณ:** ตั้งค่าพารามิเตอร์ของฟาร์มด้านบน จากนั้นคลิกปุ่มประมวลผลเพื่อดูผลลัพธ์สูตรอาหารที่นี่ได้ทันทีครับ")
+    # คำนวณคุณค่าทางอาหารที่ได้ตามสูตรจริง ณ ปัจจุบัน
+    current_nutrition = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0}
+    weights = [w_corn, w_soy, w_bran, w_fish, w_shell, w_dcp, w_amino]
+    
+    for idx, (name, nutrients) in enumerate(INGREDIENT_DATA.items()):
+        factor = weights[idx] / 100.0
+        current_nutrition["protein"] += nutrients["protein"] * factor
+        current_nutrition["me"] += nutrients["me"] * factor
+        current_nutrition["calcium"] += nutrients["calcium"] * factor
+        current_nutrition["phos"] += nutrients["phos"] * factor
+        current_nutrition["amino"] += nutrients["amino"] * factor
+
+    # ฝั่งขวา: แถบวัดผลวิเคราะห์สารอาหารและการแจ้งเตือนสารอาหาร (Nutrition Alert)
+    with creator_right:
+        st.markdown("##### 📊 เกณฑ์สารอาหารที่ได้ vs ค่าแนะนำ")
+        
+        # ฟังก์ชันวาด Progress Bar แสดงค่าจริงเทียบเป้าหมาย
+        def render_nutrient_row(label, current, required, unit):
+            pct_of_target = min(1.0, current / required) if required > 0 else 1.0
+            st.write(f"**{label}**: {current:.2f} {unit} / เป้าหมายต่ำกว่าไม่ได้ {required:.2f} {unit}")
+            st.progress(pct_of_target)
+
+        render_nutrient_row("โปรตีน (Protein)", current_nutrition["protein"], target["protein"], "%")
+        render_nutrient_row("พลังงาน (ME)", current_nutrition["me"], target["me"], "kcal/กก.")
+        render_nutrient_row("แคลเซียม (Calcium)", current_nutrition["calcium"], target["calcium"], "%")
+        render_nutrient_row("ฟอสฟอรัส (Phosphorus)", current_nutrition["phos"], target["phos"], "%")
+        render_nutrient_row("กรดอะมิโนจำเป็น (Amino Acid)", current_nutrition["amino"], target["amino"], "%")
+        
+        st.markdown("##### 🚨 Nutrition Alert (วิเคราะห์ข้อผิดพลาด)")
+        
+        # ข้อความเตือนความผิดพลาดทางโภชนาการแบบ Real-time
+        alerts_triggered = False
+        
+        if current_nutrition["calcium"] < target["calcium"]:
+            st.markdown(f"🔴 **อันตราย! แคลเซียมต่ำเกินไป ({current_nutrition['calcium']:.2f}%)**: อาจทำให้แม่ไก่ดึงแคลเซียมจากกระดูกมาใช้ ส่งผลให้ไข่มีเปลือกบาง แตกหักง่าย หรือไก่เป็นอัมพาต")
+            alerts_triggered = True
+            
+        if w_fish > 8:
+            st.markdown(f"🟡 **คำเตือน! ใส่ปลาป่นมากเกินไป ({w_fish}%)**: การใส่ปลาป่นเกิน 8% จะสะสมสาร Trimethylamine ทำให้ไข่ไก่ส่งกลิ่นคาวปลา ตลาดไม่ต้องการ")
+            alerts_triggered = True
+            
+        if current_nutrition["protein"] < target["protein"]:
+            st.markdown(f"🔴 **โปรตีนไม่เพียงพอ**: ไก่จะให้ไข่ฟองเล็ก อัตราการไข่ลดลงอย่างรวดเร็ว")
+            alerts_triggered = True
+            
+        if not alerts_triggered and total_weight_pct == 100:
+            st.markdown("🟢 **สูตรอาหารสมบูรณ์แบบ** คุณค่าทางโภชนาการปลอดภัยและเหมาะสมสำหรับกลุ่มไก่เป้าหมายแล้ว")
+
+    st.markdown("---")
+
+    # ------------------------------------------
+    # FEATURE 4: BATCH & CHECKLIST (ใบสั่งชั่งและเครื่องมือหน้าเล้า)
+    # ------------------------------------------
+    st.markdown("### 📋 3. Batch & Checklist (ใบสั่งจัดเตรียมวัตถุดิบจริงหน้าเล้า)")
+    
+    batch_col1, batch_col2 = st.columns([4, 6], gap="large")
+    
+    with batch_col1:
+        st.markdown("##### 📦 ตั้งค่าจำนวนการผสม")
+        mix_volume_kg = st.number_input("ต้องการผสมอาหารต่องวดรวมทั้งหมดกี่กิโลกรัม (กก.)", min_value=1.0, value=50.0, step=5.0)
+        st.write(f"💡 ระบบจะทำการแปลงสัดส่วนอาหารเป็นน้ำหนักจริงชั่งจากฐานสูตรอาหารปัจจุบัน")
+
+    with batch_col2:
+        st.markdown(f"##### 📱 Mobile Checklist สำหรับตักส่วนผสมหน้าเล้า (เป้าหมาย {mix_volume_kg} กก.)")
+        st.caption("เกษตรกรสามารถถือมือถือเดินตักวัตถุดิบและกดติ๊กเลือกเมื่อตักลงถังผสมเสร็จสิ้น")
+        
+        # คำนวณและแปลงสัดส่วนน้ำหนักตามปริมาณรวมที่ตั้งค่าไว้
+        ingredient_names = list(INGREDIENT_DATA.keys())
+        for idx, name in enumerate(ingredient_names):
+            calc_weight = (weights[idx] / 100.0) * mix_volume_kg
+            if calc_weight > 0:
+                st.checkbox(f"⬜ ชั่ง **{name}** ➔ ปริมาณสุทธิ **{calc_weight:,.2f} กก.** (สัดส่วน {weights[idx]}%)", key=f"chk_{idx}")
