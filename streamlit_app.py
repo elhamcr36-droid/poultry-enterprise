@@ -31,15 +31,30 @@ INGREDIENT_DATA = {
     "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "tox_risk": 0, "min_limit": 0.1, "max_limit": 1.0}
 }
 
+# 🐔 อัปเดตฐานข้อมูลสายพันธุ์ทั้ง 4 กลุ่ม (Commercial, Pure Breeds, พัฒนาในไทย, ไข่สีแฟนซี)
 BREED_PROFILES = {
-    "Isa Brown": {"name": "Isa Brown (อีซ่า บราวน์)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "นิยมที่สุดในไทย ทนทาน เปลือกหนา ฟองใหญ่"},
-    "White Leghorn": {"name": "White Leghorn (ไวท์เลกฮอร์น)", "egg_color": "🤍 ขาว", "bg_color": "#e2e8f0", "text_color": "#1e293b", "default_feed": 105, "desc": "กินอาหารน้อยมาก ให้ไข่เปลือกขาวดกเป็นเลิศ"},
-    "Rhode Island Red": {"name": "Rhode Island Red (โรดไอแลนด์เรด)", "egg_color": "🤎 น้ำตาล", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "พันธุ์แท้โครงสร้างใหญ่ แข็งแรง กินเก่ง ไข่ดี"}
+    # 1. กลุ่มไฮบริด / ลูกผสมพาณิชย์
+    "Isa Brown": {"name": "Isa Brown (ไอซ่า บราวน์)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนร้อนดีเยี่ยม"},
+    "Hy-Line Brown": {"name": "Hy-Line Brown (ไฮไลน์ บราวน์)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "กินน้อยแต่ไข่นิ่ง อัตราผลิตสม่ำเสมอยาวนาน เปลือกแข็งแรงแตกยาก"},
+    "Lohmann Brown": {"name": "Lohmann Brown (โลห์แมน บราวน์)", "egg_color": "🤎 น้ำตาลสม่ำเสมอ", "bg_color": "#78350f", "text_color": "#ffffff", "default_feed": 114, "desc": "สายพันธุ์เยอรมัน ปรับตัวกับกรงตับและระบบปิดได้ดีเยี่ยม ไข่ฟองใหญ่เสมอกัน"},
+    
+    # 2. กลุ่มสายพันธุ์แท้
+    "White Leghorn": {"name": "White Leghorn (เลกฮอร์นขาว)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ตัวเล็ก ปราดเปรียว บินเก่ง ให้ไข่เปลือกขาวดกเกือบเท่าไก่ไฮบริด"},
+    "Rhode Island Red": {"name": "Rhode Island Red (โรดไอแลนด์เรด)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "พันธุ์แท้อึด ทนโรค ทนแดดฝน เหมาะสำหรับเลี้ยงปล่อยธรรมชาติ (Free-range)"},
+    "Australorp": {"name": "Australorp (ออสตราลอป)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ดำออสเตรเลีย เชื่องมาก อวบอ้วนทนทาน ระบบกึ่งเนื้อกึ่งไข่"},
+    
+    # 3. กลุ่มสายพันธุ์พัฒนาของไทย
+    "DLD Layer": {"name": "ไก่ไข่กรมปศุสัตว์", "egg_color": "🤎 น้ำตาล", "bg_color": "#047857", "text_color": "#ffffff", "default_feed": 110, "desc": "ลูกผสมโรด+บาร์ ทนโรคระบาดและสภาพอากาศร้อนชื้นของไทยดีเยี่ยม"},
+    "SUT Layer": {"name": "ไก่ไข่ มทส. (ม.เทคโนโลยีสุรนารี)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#065f46", "text_color": "#ffffff", "default_feed": 100, "desc": "ตัวเล็กกินอาหารน้อย เหมาะกับการเลี้ยงปล่อยในสวนปาล์ม สวนยาง หรือหลังบ้าน"},
+    
+    # 4. กลุ่มไข่สีแฟนซี
+    "Araucana": {"name": "Araucana / Ameraucana (อารอคาน่า)", "egg_color": "🩵 ฟ้า/เขียวพาสเทล", "bg_color": "#0ea5e9", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่มีเคราขนฟู ให้ไข่สีฟ้าพาสเทลแปลกตา ตลาดพรีเมียมอินทรีย์ต้องการสูง"},
+    "Marans": {"name": "Marans (มารันส์)", "egg_color": "🍫 ช็อกโกแลตเข้ม", "bg_color": "#451a03", "text_color": "#ffffff", "default_feed": 120, "desc": "ไก่ฝรั่งเศส ให้ไข่เปลือกสีเข้มเหมือนช็อกโกแลต สวยงามและราคาแพงมาก"}
 }
 
 LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
 
-# เตรียม Session State สำหรับเก็บค่าน้ำหนักสารอาหารเริ่มต้น
+# เตรียมหน่วยความจำชั่วคราวเริ่มต้น (Session State)
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 
@@ -56,7 +71,8 @@ breed_info = BREED_PROFILES[selected_breed_key]
 st.markdown(f"""
 <div style='background-color:{breed_info['bg_color']}; padding:15px; border-radius:10px; color:{breed_info['text_color']}; margin-bottom:15px;'>
     <b>🧬 สายพันธุ์ปัจจุบัน: {breed_info['name']}</b> | 🎨 สีเปลือกไข่: {breed_info['egg_color']} | 🥣 อัตรากินอาหาร: {breed_info['default_feed']} กรัม/วัน <br>
-    <small><b>📊 Supabase Real-time Cloud API Status:</b> Ready to Post Data via REST Gateway</small>
+    <p style='margin: 5px 0 0 0; font-size: 0.9em; opacity: 0.9;'>ℹ️ <i>{breed_info['desc']}</i></p>
+    <small style='display:block; margin-top:5px;'><b>📊 Supabase Real-time Cloud API Status:</b> Ready to Post Data via REST Gateway</small>
 </div>
 """, unsafe_allow_html=True)
 
@@ -122,7 +138,7 @@ if st.button("⚡ สั่งปัญญาประดิษฐ์ประ�
     status = prob.solve()
     
     if pulp.LpStatus[status] == "Optimal":
-        # อัปเดตทั้งตัวประมวลผลหลัก และบังคับค่าสไลเดอร์ใน Session State ให้เปลี่ยนตาม
+        # 🔄 ตรรกะ Two-way sync: บันทึกเข้าทั้งตัวประมวลผลและบังคับสไลเดอร์ UI รีเซ็ตตาม AI
         for name in INGREDIENT_DATA.keys():
             val = round(ingredient_vars[name].varValue, 1)
             st.session_state.optimized_weights[name] = val
@@ -142,9 +158,8 @@ with creator_left:
     st.markdown("### 🛠️ 3. Formula Adjustment & Alternative Index")
     user_weights = {}
     for name in INGREDIENT_DATA.keys():
-        # ดึงค่าจาก session_state มาเป็น Default เพื่อให้ซิงค์กันได้สมบูรณ์แบบ
-        default_val = float(st.session_state.optimized_weights.get(name, 0.0))
-        user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, default_val, step=0.1, key=f"sl_{name}")
+        val = float(st.session_state.optimized_weights.get(name, 0.0))
+        user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, val, step=0.1, key=f"sl_{name}")
 
 # คำนวณสรุปโภชนาการสะสมจริงแบบเรียลไทม์
 current_nutrition = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0}
