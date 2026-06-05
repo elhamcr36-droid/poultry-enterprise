@@ -68,7 +68,7 @@ st.markdown("### ระบบปัญญาประดิษฐ์คำนว
 
 page_tabs = st.tabs([
     "🏠 ห้องปฏิบัติการสูตรอาหาร & เลือกสายพันธุ์", 
-    "📊 บันทึกสถิติฟาร์ม & บัญชีนวัตกรรม",
+    "📊 บันทึกสถิติฟาร์ม & ใบจัดซื้อ (PO)",
     "📦 ศูนย์จัดการคลังวัตถุดิบ (40 ชนิด)"
 ])
 
@@ -130,7 +130,53 @@ MASTER_INGREDIENT_DICTIONARY = {
     "พรีมิกซ์แร่ธาตุและวิตามินเข้มข้น": {"price": 120.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "tryptophan": 0.00, "threonine": 0.00, "arginine": 0.00, "fiber": 0.0, "fat": 0.0, "ash": 82.0, "moisture": 2.0, "salt": 1.00, "choline": 25000, "tox_risk": 0, "min_limit": 0.2, "max_limit": 0.5}
 }
 
-# 🛠️ ตรวจเช็คและจองพื้นที่ใน Session State เพื่อป้องกัน AttributeError
+# ==========================================
+# 🐔 3. คลังกลุ่มและสายพันธุ์สัตว์ปีก (6 กลุ่ม 18 สายพันธุ์)
+# ==========================================
+BREED_PROFILES = {
+    "1. กลุ่มไก่ไข่สีน้ำตาลพาณิชย์ (Commercial Brown Layers)": {
+        "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "ยืนหนึ่งเรื่องความไข่ดกในไทย ทนร้อนจัด แผงเปลือกไข่หนา แตกหักยาก"},
+        "Hy-Line Brown": {"name": "ไฮไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "ค่า FCR ต่ำมาก กินน้อยแต่ให้ไข่ไซส์ใหญ่สม่ำเสมอ อายุการปลดระวางยาวนาน"},
+        "Lohmann Brown": {"name": "โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "🤎 น้ำตาลเข้มจัด", "bg_color": "#9a3412", "text_color": "#ffffff", "default_feed": 114, "desc": "สายพันธุ์เยอรมัน นิยมเลี้ยงกรงตับ ปรับตัวเข้ากับสภาพแวดล้อมเปิดปิดได้นิ่งมาก"}
+    },
+    "2. กลุ่มไก่ไข่สีขาวพาณิชย์ (Commercial White Layers)": {
+        "Hy-Line W-36": {"name": "ไฮไลน์ ดับบลิว-36 (Hy-Line W-36)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#475569", "text_color": "#ffffff", "default_feed": 101, "desc": "ตัวเล็ก ประหยัดอาหารที่สุดในอุตสาหกรรม เหมาะสำหรับทำไข่เหลวส่งโรงงาน"},
+        "Lohmann White": {"name": "โลห์แมน ไวท์ (Lohmann White)", "egg_color": "🤍 ขาวมุก", "bg_color": "#334155", "text_color": "#ffffff", "default_feed": 104, "desc": "ผลผลิตสูงยาวนาน เปอร์เซ็นต์การไข่ช่วงพีคพุ่งแตะ 96% ได้สบาย"},
+        "Novogen White": {"name": "โนโวเจน ไวท์ (Novogen White)", "egg_color": "🤍 ขาวนวล", "bg_color": "#1e293b", "text_color": "#ffffff", "default_feed": 103, "desc": "สายพันธุ์ฝรั่งเศส นิ่ง ไม่ตื่นตกใจง่าย ไข่ทรงกลมสวยได้มาตรฐาน"}
+    },
+    "3. กลุ่มไก่สายพันธุ์แท้ & อนุรักษ์ (Purebred & Heritage)": {
+        "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#991b1b", "text_color": "#ffffff", "default_feed": 130, "desc": "ไก่พันธุ์แท้สีแดงเข้ม แข็งแรงทนทาน หาอาหารเก่ง เหมาะเลี้ยงแบบปล่อยธรรมชาติ"},
+        "Barred Plymouth Rock": {"name": "บาร์ พลีมัธร็อค (Barred Rock)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#52525b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายบาร์สีขาวดำ เลี้ยงง่าย เชื่อง ให้ทั้งเนื้อและไข่ได้ดีในฟาร์มอินทรีย์"},
+        "Leghorn": {"name": "เลกฮอร์นพันธุ์แท้ (Original Leghorn)", "egg_color": "🤍 ขาวเงา", "bg_color": "#15803d", "text_color": "#ffffff", "default_feed": 105, "desc": "ปราดเปรียว บินเก่ง ตื่นตัวสูงมาก เป็นต้นตระกูลของไก่ไข่ขาวพาณิชย์ในปัจจุบัน"}
+    },
+    "4. กลุ่มไก่ชนไทยเชิงพาณิชย์ (Thai Gamecocks / Fighting Cocks)": {
+        "Pradu Hang Dam": {"name": "ประดู่หางดำ (Pradu Hang Dam)", "egg_color": "💛 ครีมอมเหลือง", "bg_color": "#111827", "text_color": "#ffffff", "default_feed": 120, "desc": "ราชาไก่ชนไทย กระดูกใหญ่ โครงสร้างแกร่ง ต้องการโปรตีนและกรดอะมิโนสร้างกล้ามเนื้อ"},
+        "Khieo Phari": {"name": "เขียวพาลี / เขียวเลา", "egg_color": "💛 ครีม", "bg_color": "#064e3b", "text_color": "#ffffff", "default_feed": 118, "desc": "สายพันธุ์ดุดัน ว่องไว ปราดเปรียว เน้นสูตรอาหารที่ไม่สะสมไขมันส่วนเกิน"},
+        "เหลืองหางขาว": {"name": "เหลืองหางขาว (ไก่พระนเรศวร)", "egg_color": "💛 ครีมขาว", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 122, "desc": "ไก่ชนมมงคลตามตำราโบราณ ตัวใหญ่ ยาว ทรงสง่างาม แข็งแกร่ง"}
+    },
+    "5. กลุ่มไก่พื้นเมืองไทย & ไก่สามสาย (Thai Native & Crossbred)": {
+        "Kai Dang Srithep": {"name": "ไก่แดงศรีเทพ", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#7f1d1d", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่พื้นเมืองปรับปรุงพันธุ์ เนื้อแน่น ไข่ดกกว่าพื้นเมืองเดิม ทนโรคระบาดได้ดีมาก"},
+        "Kai Sam Sai": {"name": "ไก่สามสายเลือด (3-Way Cross)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#431407", "text_color": "#ffffff", "default_feed": 135, "desc": "ลูกผสมระหว่างพื้นเมือง+โรด+บาร์ โตเร็ว เนื้อนุ่มแน่น อัตราไข่ดี เลี้ยงง่าย"},
+        "Kai Chee Ubon": {"name": "ไก่ชีอุบล", "egg_color": "💛 ครีมนวล", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 105, "desc": "ไก่พื้นเมืองขนสีขาวบริสุทธิ์ ขยายพันธุ์ง่าย ทนต่อสภาพแล้งและอากาศร้อนจัดได้ดี"}
+    },
+    "6. กลุ่มไก่เนื้อและไก่พ่อแม่พันธุ์ (Broiler & Parent Stock)": {
+        "Cobb 500": {"name": "ค็อบบ์ 500 (Cobb 500)", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#1e3a8a", "text_color": "#ffffff", "default_feed": 160, "desc": "ราชาไก่เนื้อ โตไวที่สุดในโลก อกหนา ค่า FCR ต่ำ ต้องการพลังงานและไลซีนเข้มข้น"},
+        "Ross 308": {"name": "รอสส์ 308 (Ross 308)", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#172554", "text_color": "#ffffff", "default_feed": 155, "desc": "เติบโตสม่ำเสมอ แข็งแรง ขาใหญ่รับน้ำหนักดีมาก นิยมในอุตสาหกรรมไก่เนื้อโรงงานใหญ่"},
+        "Hubbard": {"name": "ฮับบาร์ด (Hubbard)", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#311005", "text_color": "#ffffff", "default_feed": 158, "desc": "โตไว โครงสร้างใหญ่ ทนทานต่อสภาวะความชื้นโรงเรือนในแถบเอเชียตะวันออกเฉียงใต้"}
+    }
+}
+
+STAGE_NUTRITION_TARGETS = {
+    "starter": {"name": "ลูกไก่แรกเกิด - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "lysine": 1.10, "methionine": 0.45, "tryptophan": 0.20, "threonine": 0.74, "arginine": 1.15, "fiber": 4.0, "fat": 4.0, "ash": 7.0, "salt": 0.30, "choline": 1300.0},
+    "grower": {"name": "ไก่รุ่นอายุ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "lysine": 0.85, "methionine": 0.38, "tryptophan": 0.16, "threonine": 0.60, "arginine": 0.90, "fiber": 4.5, "fat": 3.2, "ash": 7.5, "salt": 0.30, "choline": 1000.0},
+    "laying": {"name": "ไก่ระยะให้ผลผลิต/ช่วงไข่/สมบูรณ์พันธุ์ (Laying/Adult)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "tryptophan": 0.19, "threonine": 0.65, "arginine": 1.00, "fiber": 4.0, "fat": 3.5, "ash": 8.0, "salt": 0.32, "choline": 1100.0}
+}
+
+LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
+
+# ==========================================
+# ⚙️ 4. ตรวจสอบและตั้งค่าหน่วยความจำ (Session State Initiation)
+# ==========================================
 if "chicken_count" not in st.session_state:
     st.session_state.chicken_count = 100  
 
@@ -182,50 +228,7 @@ for name in st.session_state.ingredient_data.keys():
     if name not in st.session_state.optimized_weights:
         st.session_state.optimized_weights[name] = 0.0
 
-# ==========================================
-# 🐔 3. คลังกลุ่มและสายพันธุ์สัตว์ปีกขยายขีดความสามารถ (6 กลุ่ม 18 สายพันธุ์)
-# ==========================================
-BREED_PROFILES = {
-    "1. กลุ่มไก่ไข่สีน้ำตาลพาณิชย์ (Commercial Brown Layers)": {
-        "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "ยืนหนึ่งเรื่องความไข่ดกในไทย ทนร้อนจัด แผงเปลือกไข่หนา แตกหักยาก"},
-        "Hy-Line Brown": {"name": "ไฮไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "ค่า FCR ต่ำมาก กินน้อยแต่ให้ไข่ไซส์ใหญ่สม่ำเสมอ อายุการปลดระวางยาวนาน"},
-        "Lohmann Brown": {"name": "โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "🤎 น้ำตาลเข้มจัด", "bg_color": "#9a3412", "text_color": "#ffffff", "default_feed": 114, "desc": "สายพันธุ์เยอรมัน นิยมเลี้ยงกรงตับ ปรับตัวเข้ากับสภาพแวดล้อมเปิดปิดได้นิ่งมาก"}
-    },
-    "2. กลุ่มไก่ไข่สีขาวพาณิชย์ (Commercial White Layers)": {
-        "Hy-Line W-36": {"name": "ไฮไลน์ ดับบลิว-36 (Hy-Line W-36)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#475569", "text_color": "#ffffff", "default_feed": 101, "desc": "ตัวเล็ก ประหยัดอาหารที่สุดในอุตสาหกรรม เหมาะสำหรับทำไข่เหลวส่งโรงงาน"},
-        "Lohmann White": {"name": "โลห์แมน ไวท์ (Lohmann White)", "egg_color": "🤍 ขาวมุก", "bg_color": "#334155", "text_color": "#ffffff", "default_feed": 104, "desc": "ผลผลิตสูงยาวนาน เปอร์เซ็นต์การไข่ช่วงพีคพุ่งแตะ 96% ได้สบาย"},
-        "Novogen White": {"name": "โนโวเจน ไวท์ (Novogen White)", "egg_color": "🤍 ขาวนวล", "bg_color": "#1e293b", "text_color": "#ffffff", "default_feed": 103, "desc": "สายพันธุ์ฝรั่งเศส นิ่ง ไม่ตื่นตกใจง่าย ไข่ทรงกลมสวยได้มาตรฐาน"}
-    },
-    "3. กลุ่มไก่สายพันธุ์แท้ & อนุรักษ์ (Purebred & Heritage)": {
-        "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#991b1b", "text_color": "#ffffff", "default_feed": 130, "desc": "ไก่พันธุ์แท้สีแดงเข้ม แข็งแรงทนทาน หาอาหารเก่ง เหมาะเลี้ยงแบบปล่อยธรรมชาติ"},
-        "Barred Plymouth Rock": {"name": "บาร์ พลีมัธร็อค (Barred Rock)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#52525b", "text_color": "#ffffff", "default_feed": 128, "desc": "ไก่ลายบาร์สีขาวดำ เลี้ยงง่าย เชื่อง ให้ทั้งเนื้อและไข่ได้ดีในฟาร์มอินทรีย์"},
-        "Leghorn": {"name": "เลกฮอร์นพันธุ์แท้ (Original Leghorn)", "egg_color": "🤍 ขาวเงา", "bg_color": "#15803d", "text_color": "#ffffff", "default_feed": 105, "desc": "ปราดเปรียว บินเก่ง ตื่นตัวสูงมาก เป็นต้นตระกูลของไก่ไข่ขาวพาณิชย์ในปัจจุบัน"}
-    },
-    "4. กลุ่มไก่ชนไทยเชิงพาณิชย์ (Thai Gamecocks / Fighting Cocks)": {
-        "Pradu Hang Dam": {"name": "ประดู่หางดำ (Pradu Hang Dam)", "egg_color": "💛 ครีมอมเหลือง", "bg_color": "#111827", "text_color": "#ffffff", "default_feed": 120, "desc": "ราชาไก่ชนไทย กระดูกใหญ่ โครงสร้างแกร่ง ต้องการโปรตีนและกรดอะมิโนสร้างกล้ามเนื้อ"},
-        "Khieo Phari": {"name": "เขียวพาลี / เขียวเลา", "egg_color": "💛 ครีม", "bg_color": "#064e3b", "text_color": "#ffffff", "default_feed": 118, "desc": "สายพันธุ์ดุดัน ว่องไว ปราดเปรียว เน้นสูตรอาหารที่ไม่สะสมไขมันส่วนเกิน"},
-        "เหลืองหางขาว": {"name": "เหลืองหางขาว (ไก่พระนเรศวร)", "egg_color": "💛 ครีมขาว", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 122, "desc": "ไก่ชนมมงคลตามตำราโบราณ ตัวใหญ่ ยาว ทรงสง่างาม แข็งแกร่ง"}
-    },
-    "5. กลุ่มไก่พื้นเมืองไทย & ไก่สามสาย (Thai Native & Crossbred)": {
-        "Kai Dang Srithep": {"name": "ไก่แดงศรีเทพ", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#7f1d1d", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่พื้นเมืองปรับปรุงพันธุ์ เนื้อแน่น ไข่ดกกว่าพื้นเมืองเดิม ทนโรคระบาดได้ดีมาก"},
-        "Kai Sam Sai": {"name": "ไก่สามสายเลือด (3-Way Cross)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#431407", "text_color": "#ffffff", "default_feed": 135, "desc": "ลูกผสมระหว่างพื้นเมือง+โรด+บาร์ โตเร็ว เนื้อนุ่มแน่น อัตราไข่ดี เลี้ยงง่าย"},
-        "Kai Chee Ubon": {"name": "ไก่ชีอุบล", "egg_color": "💛 ครีมนวล", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 105, "desc": "ไก่พื้นเมืองขนสีขาวบริสุทธิ์ ขยายพันธุ์ง่าย ทนต่อสภาพแล้งและอากาศร้อนจัดได้ดี"}
-    },
-    "6. กลุ่มไก่เนื้อและไก่พ่อแม่พันธุ์ (Broiler & Parent Stock)": {
-        "Cobb 500": {"name": "ค็อบบ์ 500 (Cobb 500)", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#1e3a8a", "text_color": "#ffffff", "default_feed": 160, "desc": "ราชาไก่เนื้อ โตไวที่สุดในโลก อกหนา ค่า FCR ต่ำ ต้องการพลังงานและไลซีนเข้มข้น"},
-        "Ross 308": {"name": "รอสส์ 308 (Ross 308)", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#172554", "text_color": "#ffffff", "default_feed": 155, "desc": "เติบโตสม่ำเสมอ แข็งแรง ขาใหญ่รับน้ำหนักดีมาก นิยมในอุตสาหกรรมไก่เนื้อโรงงานใหญ่"},
-        "Hubbard": {"name": "ฮับบาร์ด (Hubbard)", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#311005", "text_color": "#ffffff", "default_feed": 158, "desc": "โตไว โครงสร้างใหญ่ ทนทานต่อสภาวะความชื้นโรงเรือนในแถบเอเชียตะวันออกเฉียงใต้"}
-    }
-}
-
-STAGE_NUTRITION_TARGETS = {
-    "starter": {"name": "ลูกไก่แรกเกิด - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "lysine": 1.10, "methionine": 0.45, "tryptophan": 0.20, "threonine": 0.74, "arginine": 1.15, "fiber": 4.0, "fat": 4.0, "ash": 7.0, "salt": 0.30, "choline": 1300.0},
-    "grower": {"name": "ไก่รุ่นอายุ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "lysine": 0.85, "methionine": 0.38, "tryptophan": 0.16, "threonine": 0.60, "arginine": 0.90, "fiber": 4.5, "fat": 3.2, "ash": 7.5, "salt": 0.30, "choline": 1000.0},
-    "laying": {"name": "ไก่ระยะให้ผลผลิต/ช่วงไข่/สมบูรณ์พันธุ์ (Laying/Adult)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "tryptophan": 0.19, "threonine": 0.65, "arginine": 1.00, "fiber": 4.0, "fat": 3.5, "ash": 8.0, "salt": 0.32, "choline": 1100.0}
-}
-
-LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
-
+# 🧮 ฟังก์ชันคำนวณสารอาหารและราคาปัจจุบันของสูตร
 def calculate_current_formulation():
     nut_calc = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "tryptophan": 0.0, "threonine": 0.0, "arginine": 0.0, "fiber": 0.0, "fat": 0.0, "ash": 0.0, "salt": 0.0, "choline": 0.0}
     cost, moisture, risk = 0.0, 0.0, 0.0
@@ -243,10 +246,10 @@ def calculate_current_formulation():
 current_nutrition, current_formula_cost, total_moisture, total_risk_score = calculate_current_formulation()
 
 # ==========================================
-# 📥 5. ส่วนเนื้อหาฟังก์ชันในแต่ละแท็บ
+# 📥 5. ส่วนควบคุมเนื้อหาในแต่ละแท็บ (UI Tabs Rendering)
 # ==========================================
 
-# --- [แท็บที่ 1]: หน้าหลัก คลังสายพันธุ์และห้องแล็บอาหาร ---
+# --- [แท็บที่ 1]: ห้องปฏิบัติการสูตรอาหาร & การจัดการสายพันธุ์ ---
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 🏠 การจัดการคลังสายพันธุ์สัตว์ปีกในโรงเรือน")
@@ -317,7 +320,7 @@ with page_tabs[0]:
             st.success("🎉 AI ค้นพบจุดสมดุลสัดส่วนราคาที่ถูกที่สุดเสร็จสิ้น!")
             st.rerun()
         else:
-            st.error("❌ สมการขัดแย้งกันเกินไป ไม่สามารถคำนวณอัตโนมัติได้เนื่องจากวัตถุดิบที่เลือกมีสารอาหารไม่เพียงพอ แนะนำปรับด้วยมือด้านล่างชั่วคราวครับ")
+            st.error("❌ สมการขัดแย้งกันเกินไป ไม่สามารถคำนวณอัตโนมัติได้เนื่้องจากวัตถุดิบที่เลือกมีสารอาหารไม่เพียงพอ แนะนำปรับด้วยมือด้านล่างชั่วคราวครับ")
 
     st.markdown("---")
     creator_left, creator_right = st.columns(2, gap="large")
@@ -326,18 +329,17 @@ with page_tabs[0]:
         st.markdown("#### 🔧 1. สัดส่วนและโครงสร้างวัตถุดิบความจุสูง (%)")
         user_weights = {}
         
-        # 👑 [จุดแก้ไขเด่น]: ทำการจัดเรียงคีย์ตามค่าน้ำหนักสัดส่วนปัจจุบันจาก "มากไปหาน้อย" (Descending Order)
+        # 👑 [จัดเรียงลำดับใหม่]: เรียงคีย์ตามปริมาณมากที่สุดไปน้อยที่สุด (Descending Order)
         sorted_by_weight = sorted(
             st.session_state.ingredient_data.keys(), 
             key=lambda x: st.session_state.optimized_weights.get(x, 0.0), 
             reverse=True
         )
         
-        # แสดงรายการที่ถูกจัดเรียงใหม่แล้วบนแอปพลิเคชัน
         for name in sorted_by_weight:
             val = float(st.session_state.optimized_weights.get(name, 0.0))
             
-            # ทำไฮไลต์วัตถุดิบที่มีการใช้งานจริง (> 0%) ให้โดดเด่นมองง่ายยิ่งขึ้น
+            # ไฮไลต์ตัวหนังสือหากมีการผสมจริงในสูตร
             if val > 0:
                 st.write(f"**🔥 {name} ({val}%)**")
             else:
@@ -349,21 +351,19 @@ with page_tabs[0]:
             with input_col:
                 i_val = st.number_input(f"กรอกตัวเลข {name}", min_value=0.0, max_value=100.0, value=s_val, step=0.1, format="%.1f", label_visibility="collapsed", key=f"num_in_{name}")
             
-            # บันทึกค่าล่าสุดกลับเข้า Object ของผู้ใช้
             user_weights[name] = i_val
             
-        # ตรวจเช็คหากมีการสไลด์ปรับเปลี่ยนค่าด้วยมือ ให้ทำการจัดเก็บลง State
         if user_weights != st.session_state.optimized_weights:
             st.session_state.optimized_weights = user_weights
             st.rerun()
             
         total_sum = sum(st.session_state.optimized_weights.values())
-        st.markdown(f"**🔢 น้ำหนักรวมปัจจุบัน:** `{total_sum:.1f}%` (เป้าหมายร่วมกันคือ 100%)")
+        st.markdown(f"**🔢 น้ำหนักรวมปัจจุบัน:** `{total_sum:.1f}%` (เป้าหมายคือ 100%)")
         if not (99.9 <= total_sum <= 100.1):
             st.warning("⚠️ สัดส่วนรวมยังไม่เท่ากับ 100% พอดี ผลการวิเคราะห์สารอาหารอาจจะไม่ตรงตามจริง")
 
     with creator_right:
-        st.markdown("#### 🩺 2. หน้าจอตรวจวัดสารอาหารแบบละเอียดพรีเมียม (15 ค่า)")
+        st.markdown("#### 🩺 2. หน้าจอตรวจวัดสารอาหารแบบละเอียดพรีเมียม (14 ค่า)")
         nutrient_display = [
             ("🥩 โปรตีนรวม (Crude Protein)", "protein", "%"),
             ("⚡ พลังงานใช้ประโยชน์ได้ (ME)", "me", "kcal/kg"),
@@ -376,7 +376,7 @@ with page_tabs[0]:
             ("🧬 อาร์จินีน (Arginine)", "arginine", "%"),
             ("🌾 กากใยรวม (Crude Fiber)", "fiber", "%"),
             ("🌽 ไขมันรวม (Crude Fat)", "fat", "%"),
-            ("🌋 เถ้าถ่านและแร่ธาตุ (Ash)", "ash", "%"),
+            ("🌋 เถ้ารวมและแร่ธาตุ (Ash)", "ash", "%"),
             ("🧂 ปริมาณเกลือแกง (Salt/NaCl)", "salt", "%"),
             ("🧠 โคลีนคลอไรด์ (Choline)", "choline", "mg/kg")
         ]
@@ -391,8 +391,9 @@ with page_tabs[0]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 2]: บันทึกสถิติฟาร์ม & บัญชีนวัตกรรม ---
+# --- [แท็บที่ 2]: บันทึกสถิติฟาร์ม & ใบจัดซื้อ (Purchase Order) ---
 with page_tabs[1]:
+    # --- ส่วนเดิม: สถิติผลกำไรรายวัน ---
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 สมุดจดสถิติผลกำไรและบันทึกรายวันฟาร์ม")
     
@@ -421,11 +422,7 @@ with page_tabs[1]:
             
             if st.form_submit_button("💾 บันทึกลงตารางดาต้า"):
                 new_row = {
-                    "วันที่": in_date, 
-                    "อัตราผลผลิต(%)": lay_r, 
-                    "อัตราสูญเสีย(%)": crack_r, 
-                    "น้ำหนักผลผลิต(กก.)": egg_w, 
-                    "กำไรสุทธิ(บาท)": p_today
+                    "วันที่": in_date, "อัตราผลผลิต(%)": lay_r, "อัตราสูญเสีย(%)": crack_r, "น้ำหนักผลผลิต(กก.)": egg_w, "กำไรสุทธิ(บาท)": p_today
                 }
                 st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, pd.DataFrame([new_row])], ignore_index=True)
                 st.success("บันทึกเสร็จสิ้น!")
@@ -441,17 +438,68 @@ with page_tabs[1]:
     st.dataframe(df_track, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # 🔄 --- ส่วนที่ย้ายมาใหม่: ใบจัดซื้อและวางแผนงบประมาณ (Purchase Order) ---
+    st.markdown("<div class='content-card' style='border-top: 5px solid #38bdf8;'>", unsafe_allow_html=True)
+    st.markdown("## 📝 ใบจัดซื้อและจัดเตรียมชุดวัตถุดิบอาหารสัตว์ (Purchase Order)")
+    
+    current_stage_key = st.session_state.get("current_key", "laying")
+    total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET.get(current_stage_key, 48.0)
+    st.info(f"📊 คำนวณความต้องการตามจำนวน **{st.session_state.chicken_count:,} ตัว** ต้องใช้อาหารผสมรวมทั้งหมด **{total_feed_needed_kg:,.1f} กิโลกรัม** ในช่วงนี้")
+    
+    budget_data = []
+    total_cost_summary = 0.0
+    
+    # ดึงค่าตามลำดับจัดเรียงตามสัดส่วนความหนาแน่นสารอาหาร (จากมากไปน้อย)
+    sorted_budget_keys = sorted(
+        st.session_state.optimized_weights.items(), 
+        key=lambda x: x[1], 
+        reverse=True
+    )
+    
+    for name, weight in sorted_budget_keys:
+        w_kg = (weight / 100.0) * total_feed_needed_kg
+        if w_kg > 0:
+            p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
+            cost_line = w_kg * p_unit
+            total_cost_summary += cost_line
+            
+            budget_data.append({
+                "วัตถุดิบที่ต้องจัดซื้อ": name, 
+                "สัดส่วนสูตร": f"{weight}%",
+                "น้ำหนักที่ต้องใช้รวม": f"{w_kg:,.1f} กก.", 
+                "กระสอบโดยประมาณ (30 กก.)": f"~ {round(w_kg / 30, 1)} กระสอบ",
+                "ราคากิโลกรัมละ": f"{p_unit:.2f} บาท",
+                "งบประมาณรวม": f"{cost_line:,.2f} บาท"
+            })
+            
+    df_budget = pd.DataFrame(budget_data)
+    if not df_budget.empty:
+        st.dataframe(df_budget, use_container_width=True, hide_index=True)
+        
+        # แสดงยอดสรุปงบเงินรวมให้เห็นเด่นชัด
+        st.markdown(f"""
+        <div style='text-align: right; padding: 15px; background-color: rgba(56, 189, 248, 0.15); border-radius: 8px; margin-top: 10px;'>
+            <h4 style='margin:0; color:#38bdf8 !important;'>💵 ยอดงบประมาณจัดซื้อวัตถุดิบอาหารรวมทั้งสิ้น: {total_cost_summary:,.2f} บาท</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        csv = df_budget.to_csv(index=False).encode('utf-8-sig')
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.download_button("📥 ดาวน์โหลดใบสั่งซื้อ (Download PO CSV)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบอาหารฟาร์มสัตว์ปีก.csv", mime="text/csv")
+    else:
+        st.info("💡 สัดส่วนอาหารในสูตรปัจจุบันยังเป็น 0% กรุณาไปเลื่อนปรับหรือสั่งให้ AI คำนวณที่แท็บแรกก่อนนะครับ")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- [แท็บที่ 3]: ระบบจัดการคลังวัตถุดิบ (40 ชนิด) ---
+
+# --- [แท็บที่ 3]: ศูนย์จัดการคลังวัตถุดิบ (เหลือเฉพาะระบบค้นหาและอัปเดตราคา) ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ระบบกล่องเลือกวัตถุดิบอัจฉริยะ (Dropdown Selectbox)")
-    st.markdown("ดึงข้อมูลโดยตรงจากฐานข้อมูลแล็บกลางอาหารสัตว์ปีก 40 ชนิด ไม่ต้องจำและไม่ต้องกรอกตัวเลขสารอาหารเองให้ยุ่งยากครับ")
     
     available_to_add = [name for name in MASTER_INGREDIENT_DICTIONARY.keys() if name not in st.session_state.ingredient_data]
     
     if available_to_add:
-        selected_ing_to_add = st.selectbox("🌾 ค้นหาและเลือกวัตถุดิบที่คุณหาได้ในท้องถิ่นเพื่อดึงเข้าสู่สูตรอาหารเพิ่มเติม:", available_to_add)
+        selected_ing_to_add = st.selectbox("🌾 ค้นหาและเลือกวัตถุดิบเพิ่มเดิมจากแล็บกลาง (รวม 40 ชนิด):", available_to_add)
         preview = MASTER_INGREDIENT_DICTIONARY[selected_ing_to_add]
         st.markdown(f"**📋 รายละเอียดสารอาหารแนะนำของ {selected_ing_to_add} (ราคาตลาดอ้างอิง: {preview['price']} บาท/กก.)**")
         
@@ -465,7 +513,7 @@ with page_tabs[2]:
         if st.button(f"✨ ยืนยันดึง '{selected_ing_to_add}' เข้าสู่หน้าสูตรผสมหลัก", type="primary", use_container_width=True):
             st.session_state.ingredient_data[selected_ing_to_add] = MASTER_INGREDIENT_DICTIONARY[selected_ing_to_add]
             st.session_state.optimized_weights[selected_ing_to_add] = 0.0
-            st.success(f"🎉 ดึงเข้าคลังสำเร็จ! แถบสไลด์ปรับสัดส่วนสำหรับ {selected_ing_to_add} พร้อมทำงานที่แท็บแรกแล้วครับ")
+            st.success(f"🎉 ดึงวัตถุดิบสำเร็จ! แถบสไลด์ในหน้าแล็บจะเรียงลำดับให้โดยอัตโนมัติ")
             st.rerun()
     else:
         st.info("💡 วัตถุดิบทั้ง 40 ชนิดถูกนำเข้าสู่หน้าจอคำนวณทั้งหมดเรียบร้อยแล้ว")
@@ -500,45 +548,12 @@ with page_tabs[2]:
         if st.button("🔄 รีเซ็ตคลังอาหารสัตว์กลับค่าเริ่มต้น", use_container_width=True):
             if "ingredient_data" in st.session_state: del st.session_state["ingredient_data"]
             if "optimized_weights" in st.session_state: del st.session_state["optimized_weights"]
-            st.success("รีเซ็ตดาต้าเรียบร้อย")
+            st.success("รีเซ็ตระบบอาหารสัตว์กลับไปเป็นค่าตั้งต้นจากแล็บแล้ว")
             st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📝 ใบจัดซื้อและจัดเตรียมชุดวัตถุดิบอาหารสัตว์ (Purchase Order)")
-    total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET.get(st.session_state.current_key, 40.0)
-    st.info(f"📊 คิดคำนวณสำหรับสัตว์ปีกจำนวน **{st.session_state.chicken_count:,} ตัว** ต้องใช้อาหารผสมรวมทั้งสิ้น **{total_feed_needed_kg:,.1f} กิโลกรัม**")
-    
-    budget_data = []
-    
-    # ดึงค่าตามลำดับจัดเรียงจริงเพื่อความสอดคล้องกันในทุกๆ หน้าจอ
-    sorted_budget_keys = sorted(
-        st.session_state.optimized_weights.items(), 
-        key=lambda x: x[1], 
-        reverse=True
-    )
-    
-    for name, weight in sorted_budget_keys:
-        w_kg = (weight / 100.0) * total_feed_needed_kg
-        if w_kg > 0:
-            p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
-            budget_data.append({
-                "วัตถุดิบที่ต้องจัดซื้อ": name, "สัดส่วนสูตร": f"{weight}%",
-                "น้ำหนักที่ต้องใช้รวม": f"{w_kg:,.1f} กก.", "จำนวนกระสอบประมาณการ (30 กก.)": f"~ {round(w_kg / 30, 1)} กระสอบ",
-                "รวมงบประมาณที่ต้องเตรียม": f"{round(w_kg * p_unit, 2):,} บาท"
-            })
-            
-    df_budget = pd.DataFrame(budget_data)
-    if not df_budget.empty:
-        st.dataframe(df_budget, use_container_width=True, hide_index=True)
-        csv = df_budget.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 ดาวน์โหลดใบสั่งซื้อ (Download PO CSV)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบอาหารฟาร์มสัตว์ปีก.csv", mime="text/csv")
-    else:
-        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาไปเลื่อนปรับสัดส่วนหรือสั่ง AI คำนวณที่หน้าแรกก่อนนะครับ")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Mega Feed & Breed Studio | ระบบฐานข้อมูลโภชนาการความหนาแน่นสูงระดับอุตสาหกรรมทำงานสมบูรณ์แบบ</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Mega Feed & Breed Studio | ระบบจัดเรียงสูตรและวางบิลจัดซื้ออัจฉริยะทำงานสมบูรณ์แบบ</div>", unsafe_allow_html=True)
