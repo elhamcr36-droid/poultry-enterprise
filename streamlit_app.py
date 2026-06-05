@@ -27,7 +27,7 @@ if "current_page" not in st.session_state:
 page = st.sidebar.radio(
     "ไปที่หน้าจอ:",
     ["🏠 หน้าแรก & ตั้งค่าสายพันธุ์", "🧠 คำนวณสูตรอาหาร (AI Optimizer)", "📦 แผนการจัดซื้อวัตถุดิบ", "📈 สถิติผลผลิต & บัญชีฟาร์ม"],
-    key="navigation_radio_v8"
+    key="navigation_radio_v9"
 )
 st.session_state.current_page = page
 
@@ -35,7 +35,7 @@ st.session_state.current_page = page
 # 📋 2. ฐานข้อมูลส่วนประกอบและโภชนาการมาตรฐาน (Database Initialization)
 # ==========================================
 STAGE_NUTRITION_TARGETS = {
-    "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42, "fiber": 4.0, "fat": 3.5},
+    "starter": {"name": "ลูกไก่ไข่ 0 - 6 Sัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42, "fiber": 4.0, "fat": 3.5},
     "grower": {"name": "ไก่รุ่นไข่ 6 - 16 สัปดาห์ (Grower)", "protein": 16.0, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "amino": 0.32, "fiber": 4.5, "fat": 3.0},
     "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต 16 สัปดาห์ขึ้นไป (Laying)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38, "fiber": 4.0, "fat": 3.5}
 }
@@ -51,29 +51,41 @@ if "ingredient_data" not in st.session_state:
         "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
     }
 
+# 🔥 ขยายฐานข้อมูลสายพันธุ์แบบจุใจ (6 กลุ่ม 22 สายพันธุ์)
 BREED_PROFILES = {
     "1. กลุ่มไฮบริดสีน้ำตาลพาณิชย์ (Commercial Brown Hybrids)": {
-        "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนร้อนดีเยี่ยม"},
+        "Isa Brown": {"name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "เบอร์ 1 ในไทย ไข่ดก 300-320 ฟอง/ปี เปลือกหนา ทนความร้อนเมืองไทยได้ดีเยี่ยม"},
         "Hy-Line Brown": {"name": "ไฮไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "🤎 น้ำตาลนวล", "bg_color": "#d97706", "text_color": "#ffffff", "default_feed": 110, "desc": "กินน้อย FCR ดีมาก อัตราผลิตสม่ำเสมอยาวนาน เปลือกแข็งแรงแตกยาก"},
-        "Hisex Brown": {"name": "ไฮ-เซ็กส์ บราวน์ (Hisex Brown)", "egg_color": "🤎 น้ำตาลสว่าง", "bg_color": "#c2410c", "text_color": "#ffffff", "default_feed": 113, "desc": "สายพันธุ์อึด ให้ผลผลิตสูงช่วงต้นของการไข่เร็วมาก นิยมในฟาร์มระบบปิด"},
-        "Bovans Brown": {"name": "โบแวนส์ บราวน์ (Bovans Brown)", "egg_color": "🤎 น้ำตาลเข้มจัด", "bg_color": "#9a3412", "text_color": "#ffffff", "default_feed": 114, "desc": "โครงสร้างแข็งแรง ปรับตัวเข้ากับสภาพแวดล้อมเปิดได้ดี ไข่ฟองใหญ่ไซส์จัมโบ้"},
-        "Novogen Brown": {"name": "โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "🤎 น้ำตาลช็อกโกแลต", "bg_color": "#78350f", "text_color": "#ffffff", "default_feed": 112, "desc": "สายพันธุ์ฝรั่งเศส นิสัยเชื่อง เลี้ยงง่าย อัตราการจิกตีกระทบกระทั่งกันต่ำมาก"}
+        "Hisex Brown": {"name": "ไฮ-เซ็กส์ บราวน์ (Hisex Brown)", "egg_color": "🤎 น้ำตาลสว่าง", "bg_color": "#c2410c", "text_color": "#ffffff", "default_feed": 113, "desc": "สายพันธุ์อึด ให้ผลผลิตสูงช่วงต้นของการไข่เร็วมาก นิยมมากในฟาร์มระบบปิด"},
+        "Bovans Brown": {"name": "โบแวนส์ บราวน์ (Bovans Brown)", "egg_color": "🤎 น้ำตาลเข้มจัด", "bg_color": "#9a3412", "text_color": "#ffffff", "default_feed": 114, "desc": "โครงสร้างแข็งแรง ปรับตัวเข้ากับสภาพแวดล้อมระบบเปิดได้ดี ไข่ฟองใหญ่ไซส์จัมโบ้"},
+        "Novogen Brown": {"name": "โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "🤎 น้ำตาลช็อกโกแลต", "bg_color": "#78350f", "text_color": "#ffffff", "default_feed": 112, "desc": "สายพันธุ์ฝรั่งเศส นิสัยเชื่อง เลี้ยงง่าย อัตราการจิกตีกระทบกระทั่งกันต่ำมาก"},
+        "Lohmann Brown Classic": {"name": "โลห์แมน บราวน์ คลาสสิก", "egg_color": "🤎 น้ำตาลทอง", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 114, "desc": "สายพันธุ์เยอรมันยอดนิยม ปรับตัวเก่ง มีเสถียรภาพการไข่สูงและให้ขนาดไข่สม่ำเสมอ"},
+        "Dekalb Brown": {"name": "เดคัลบ์ บราวน์ (Dekalb Brown)", "egg_color": "🤎 น้ำตาลเงา", "bg_color": "#a16207", "text_color": "#ffffff", "default_feed": 111, "desc": "ไข่ดกตั้งแต่สัปดาห์แรกๆ คุณภาพภายในของไข่ (ยูนิตฮอว์) ดีเด่น ไข่ขาวข้นเนื้อแน่น"}
     },
     "2. กลุ่มไฮบริดสีขาวพาณิชย์ (Commercial White Hybrids)": {
-        "Hy-Line W-36": {"name": "ไฮไลน์ ดับบลิว-36 (Hy-Line W-36)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#f1f5f9", "text_color": "#0f172a", "default_feed": 101, "desc": "กินอาหารน้อยที่สุดในกลุ่มพาณิชย์ ไข่เปลือกขาวสะอาด น้ำหนักตัวเบา จัดการง่าย"},
-        "Lohmann White": {"name": "โลห์แมน ไวท์ (Lohmann White)", "egg_color": "🤍 ขาวมุก", "bg_color": "#e2e8f0", "text_color": "#0f172a", "default_feed": 105, "desc": "สายพันธุ์เยอรมัน ให้ผลผลิตเปอร์เซ็นต์ไข่สูงยาวนาน (Persistent laying) นิยมในตลาดอุตสาหกรรมแปรรูปไข่เหลว"}
+        "Hy-Line W-36": {"name": "ไฮไลน์ ดับบลิว-36 (Hy-Line W-36)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#f1f5f9", "text_color": "#0f172a", "default_feed": 101, "desc": "กินอาหารน้อยที่สุดในกลุ่มพาณิชย์ น้ำหนักตัวเบา ค่า FCR ต่ำมาก จัดการง่ายประหยัดทุน"},
+        "Lohmann White": {"name": "โลห์แมน ไวท์ (Lohmann White)", "egg_color": "🤍 ขาวมุก", "bg_color": "#e2e8f0", "text_color": "#0f172a", "default_feed": 105, "desc": "ให้ผลผลิตเปอร์เซ็นต์ไข่สูงยาวนาน (Persistent laying) นิยมในอุตสาหกรรมแปรรูปไข่เหลว"},
+        "Bovans White": {"name": "โบแวนส์ ไวท์ (Bovans White)", "egg_color": "🤍 ขาวนวล", "bg_color": "#cbd5e1", "text_color": "#0f172a", "default_feed": 104, "desc": "ทนต่อความเครียดในโรงเรือนหนาแน่นได้ดี ให้ไข่เปลือกขาวที่เหนียวและแตกหักยาก"},
+        "Hisex White": {"name": "ไฮ-เซ็กส์ ไวท์ (Hisex White)", "egg_color": "🤍 ขาวเงา", "bg_color": "#94a3b8", "text_color": "#ffffff", "default_feed": 103, "desc": "สายพันธุ์เบา ไข่ดกจัดเฉลี่ยสูงสุดถึง 330 ฟอง/ปี ตอบสนองต่ออาหารโปรตีนสูงได้ยอดเยี่ยม"}
     },
-    "3. กลุ่มสายพันธุ์แท้ / อนุรักษ์ (Pure Breeds)": {
-        "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่เนื้อแน่นสีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด เหมาะสำหรับเลี้ยงปล่อยธรรมชาติหรือทำพันธุ์ผสม"},
-        "White Leghorn": {"name": "เลกฮอร์นขาว (White Leghorn)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#cbd5e1", "text_color": "#1e293b", "default_feed": 105, "desc": "ต้นตระกูลไก่ไข่ขาว ตัวเล็ก ปราดเปรียว บินเก่ง ตกใจง่าย ไม่ชอบให้ขังในที่แคบ"},
-        "Barred Plymouth Rock": {"name": "บาร์ พลีมัธร็อค (Barred Rock)", "egg_color": "🤎 น้ำตาลอมชมพู", "bg_color": "#475569", "text_color": "#ffffff", "default_feed": 130, "desc": "ไก่ลายเสือตัวใหญ่ เป็นทั้งไก่เนื้อและไก่ไข่ (Dual-purpose) นิสัยเป็นมิตร เลี้ยงปล่อยสวนหลังบ้านดีมาก"}
+    "3. กลุ่มสายพันธุ์แท้ / อนุรักษ์ (Pure Breeds & Heritage)": {
+        "Rhode Island Red": {"name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "🤎 น้ำตาลอ่อน", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "ไก่เนื้อแน่นสีน้ำตาลแดง ขนเงางาม อึด ทนโรค ทนแดด เหมาะสำหรับเลี้ยงปล่อยธรรมชาติ"},
+        "White Leghorn": {"name": "เลกฮอร์นขาว (White Leghorn)", "egg_color": "🤍 ขาวสะอาด", "bg_color": "#e2e8f0", "text_color": "#1e293b", "default_feed": 105, "desc": "ต้นตระกูลไก่ไข่ขาว ตัวเล็ก ปราดเปรียว บินเก่ง ตกใจง่าย ไม่ชอบให้ขังในที่แคบ"},
+        "Barred Plymouth Rock": {"name": "บาร์ พลีมัธร็อค (Barred Rock)", "egg_color": "🤎 น้ำตาลอมชมพู", "bg_color": "#475569", "text_color": "#ffffff", "default_feed": 130, "desc": "ไก่ลายเสือตัวใหญ่ เป็นทั้งไก่เนื้อและไก่ไข่ (Dual-purpose) นิสัยเป็นมิตร เลี้ยงสวนหลังบ้านดี"},
+        "Australorp": {"name": "ออสตร้าลอป (Black Australorp)", "egg_color": "🤎 น้ำตาลครีม", "bg_color": "#1e293b", "text_color": "#ffffff", "default_feed": 122, "desc": "ไก่สีดำขลับจากออสเตรเลีย อารมณ์ดี อึดทน เคยทำสถิติวางไข่ดกที่สุดในกลุ่มพันธุ์แท้ มักไข่ไม่หยุดแม้หน้าหนาว"}
     },
-    "4. กลุ่มไก่ไข่สวยงาม / ไข่สีพิเศษ (Designer & Heritage Eggers)": {
-        "Ameraucana": {"name": "อเมรอกาน่า (Ameraucana)", "egg_color": "🩵 ฟ้าพาสเทล / เขียวมินต์", "bg_color": "#0ea5e9", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่หน้าเครา มีเสน่ห์ที่ยีนพิเศษทำให้ไข่ออกมาเป็นสีฟ้าพาสเทล ตลาดพรีเมียมต้องการสูง"},
-        "Marans": {"name": "มารันส์ (Black Copper Marans)", "egg_color": "🤎 น้ำตาลช็อกโกแลตเข้มจัด (Dark Chocolate)", "bg_color": "#451a03", "text_color": "#ffffff", "default_feed": 120, "desc": "ฉายา 'ไข่ไก่ช็อกโกแลต' เปลือกไข่มีสีน้ำตาลไหม้เงางาม ฝรั่งเศสนิยมทานดิบเพราะเปลือกหนาเชื้อโรคเข้ายาก"}
+    "4. กลุ่มไก่ไข่แฟนซี / ไข่สีพิเศษ (Designer & Heritage Eggers)": {
+        "Ameraucana": {"name": "อเมรอกาน่า (Ameraucana)", "egg_color": "🩵 ฟ้าพาสเทล / เขียวมินต์", "bg_color": "#0ea5e9", "text_color": "#ffffff", "default_feed": 110, "desc": "ไก่หน้าเครา มีเสน่ห์ที่ยีนพิเศษทำให้ไข่ออกมาเป็นสีฟ้าพาสเทล ตลาดพรีเมียมต้องการสูงและราคาแพง"},
+        "Marans": {"name": "มารันส์ (Black Copper Marans)", "egg_color": "🤎 น้ำตาลช็อกโกแลตเข้มจัด", "bg_color": "#451a03", "text_color": "#ffffff", "default_feed": 120, "desc": "ฉายา 'ไข่ไก่ช็อกโกแลต' เปลือกไข่มีสีน้ำตาลไหม้เงางาม ฝรั่งเศสนิยมทานดิบเพราะเปลือกหนาเชื้อโรคเข้ายาก"},
+        "Olive Egger": {"name": "โอลีฟ เอ็กเกอร์ (Olive Egger)", "egg_color": "💚 เขียวมะกอก / เขียวทหาร", "bg_color": "#3f6212", "text_color": "#ffffff", "default_feed": 115, "desc": "ไก่ลูกผสมสายดีไซเนอร์ (Marans x Ameraucana) ได้ไข่เปลือกสีเขียวมะกอกแปลกใหม่ ดึงดูดผู้บริโภคสายสุขภาพ"},
+        "Easter Egger": {"name": "อีสเตอร์ เอ็กเกอร์ (Easter Egger)", "egg_color": "🌈 คละสี (ชมพู/เขียว/ฟ้า)", "bg_color": "#6366f1", "text_color": "#ffffff", "default_feed": 108, "desc": "ไก่ลูกผสมที่ไม่ได้จำกัดสายพันธุ์แท้ ให้ไข่ลุ้นสนุกคละสีพาสเทลในฝูงเดียวกัน เพิ่มมูลค่าการขายแบบกล่องแฟนซี"}
     },
-    "5. กลุ่มไก่ไข่พื้นเมือง / พัฒนาโดยกรมปศุสัตว์ไทย (Thai Native & Layer Breeds)": {
-        "Pradu Hang Dam Taku": {"name": "ประดู่หางดำ (กรมปศุสัตว์)", "egg_color": "🧡 ครีมอมชมพู", "bg_color": "#14532d", "text_color": "#ffffff", "default_feed": 95, "desc": "ไก่พื้นเมืองแท้ของไทย ทนทานโรคระบาดและสภาพความร้อนชื้นได้ดีที่สุด ไข่ใบเล็กแต่ไข่แดงมันวาวและใบใหญ่"}
+    "5. กลุ่มไก่ไข่พื้นเมือง / พัฒนาโดยกรมปศุสัตว์ไทย (Thai Layer Breeds)": {
+        "Pradu Hang Dam Taku": {"name": "ประดู่หางดำ (กรมปศุสัตว์)", "egg_color": "🧡 ครีมอมชมพู", "bg_color": "#14532d", "text_color": "#ffffff", "default_feed": 95, "desc": "ไก่พื้นเมืองแท้ของไทย ทนทานโรคระบาดและสภาพความร้อนชื้นได้ดีที่สุด ไข่ใบเล็กแต่ไข่แดงมันวาวฟองใหญ่"},
+        "Kai Khai Krom Pa-Sut": {"name": "ไก่ไข่กรมปศุสัตว์ (สายพันธุ์พัฒนา)", "egg_color": "🤎 น้ำตาลอ่อนนวล", "bg_color": "#166534", "text_color": "#ffffff", "default_feed": 112, "desc": "ปรับปรุงพันธุ์โดยกรมปศุสัตว์ไทยเพื่อให้เกษตรกรรายย่อยเลี้ยงง่าย ทนทาน แข็งแรง ไข่ดกเฉลี่ย 260-280 ฟอง/ปี"}
+    },
+    "6. กลุ่มไก่ไข่ขนาดเล็ก / พันธุ์จิ๋วทนร้อน (Miniature Layers)": {
+        "Japanese Bantam": {"name": "ไก่แจ้ญี่ปุ่น (Japanese Bantam)", "egg_color": "💛 ครีมขาวใบจิ๋ว", "bg_color": "#581c87", "text_color": "#ffffff", "default_feed": 55, "desc": "ไก่ไข่ขนาดมินิ กินอาหารน้อยมากเพียงครึ่งเดียวของไก่ปกติ เหมาะสำหรับฟาร์มทางเลือกที่เน้นขายไข่ใบเล็กตลาดออร์แกนิก"}
     }
 }
 
@@ -85,7 +97,7 @@ LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
 if "selected_group" not in st.session_state: 
     st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
 
-# 🔥 แก้ไขจุดบกพร่อง: ตรวจสอบและบังคับรีเซ็ตกลุ่ม หากตรวจพบชื่อกลุ่มแบบเก่าค้างอยู่ในเบราว์เซอร์ผู้ใช้
+# บังคับรีเซ็ตกลุ่ม หากตรวจพบชื่อกลุ่มแบบเก่าค้างอยู่ในเบราว์เซอร์ผู้ใช้ ป้องกัน KeyError
 if st.session_state.selected_group not in BREED_PROFILES:
     st.session_state.selected_group = list(BREED_PROFILES.keys())[0]
 
@@ -104,7 +116,7 @@ if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 if "use_phytase" not in st.session_state: st.session_state.use_phytase = True
 
-# ดึงข้อมูลโปรไฟล์สายพันธุ์ที่การันตีความปลอดภัยเรียบร้อยแล้ว
+# ดึงข้อมูลโปรไฟล์สายพันธุ์ที่ตรวจสอบเรียบร้อยแล้ว
 breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
 
 # ฟังก์ชันคำนวณโภชนาการปัจจุบัน
@@ -167,6 +179,8 @@ if st.session_state.current_page == "🏠 หน้าแรก & ตั้ง�
 
     st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
     st.session_state.chicken_count = st.number_input("จำนวนไก่ในฟาร์มทั้งหมด (ตัว):", min_value=1, value=st.session_state.chicken_count, step=100)
+    
+    # ดึงข้อมูลการกินตามจริงของสายพันธุ์นั้นๆ มาคูณสัดส่วนน้ำ
     base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
     calc_water = st.session_state.chicken_count * base_water
     if "ร้อนจัด" in st.session_state.weather_env:
@@ -328,7 +342,7 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
         
     df_track = st.session_state.tracker_data.copy()
     
-    # คำนวณปริมาณอาหารและราคาที่กินจริง ณ ปัจจุบัน
+    # คำนวณปริมาณอาหารและราคาที่กินจริง ณ ปัจจุบันตามสายพันธุ์ย่อย
     daily_feed_consumed_kg = (st.session_state.chicken_count * breed_info['default_feed']) / 1000.0
     daily_feed_cost = daily_feed_consumed_kg * current_formula_cost
     
@@ -386,7 +400,7 @@ elif st.session_state.current_page == "📈 สถิติผลผลิต & 
     st.dataframe(df_track, use_container_width=True, hide_index=True)
 
 # ==========================================
-# 🏁 10. ส่วนท้ายของแอปพลิเคชัน (Enterprise Footer)
+# 🏁 ส่วนท้ายของแอปพลิเคชัน (Enterprise Footer)
 # ==========================================
 st.markdown("---")
-st.markdown(f"<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed v8.5 Enterprise | สลับหน้าไร้รอยต่อผ่านสถาปัตยกรรม st.session_state โค้ดชุดสมบูรณ์</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='text-align: center; color: #64748b; font-size: 0.8em;'>© 2026 Smart Layer Feed v9.0 | ขยายฐานข้อมูลความแม่นยำสูง 6 กลุ่ม 22 สายพันธุ์ ปลอดภัยจากปัญหา KeyError ค้างถาวร</div>", unsafe_allow_html=True)
