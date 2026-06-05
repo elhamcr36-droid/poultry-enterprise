@@ -15,117 +15,117 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. CUSTOM CSS (ธีมน้ำเงิน Corporate ผสมกลิ่นอายฟาร์มไก่ไข่พรีเมียม)
+# 2. CUSTOM CSS (แก้ไข Layout ให้ตรงล็อก ไม่หลุดกล่อง)
 # ==========================================
 def add_custom_styles():
     st.markdown(
         """
         <style>
-        /* 1. พื้นหลังหลักสีน้ำเงินไล่เฉดหรูหราแบบ Deep Blue Gradient */
+        /* พื้นหลังหลักสีน้ำเงินไล่เฉดสไตล์ Corporate แบบในรูปภาพ */
         .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
             background: linear-gradient(180deg, #4b749f 0%, #243b55 100%) !important;
             background-attachment: fixed !important;
         }
         
-        /* 2. ตัวอักษรหัวข้อขนาดใหญ่ด้านบนหน้าจอสำหรับระบบไก่ไข่ */
+        /* หัวข้อระบบด้านบนสุด */
         .app-main-title {
             color: #ffffff !important;
             font-size: 38px !important;
             font-weight: bold !important;
             text-align: center;
-            margin-top: 45px;
+            margin-top: 40px;
             margin-bottom: 0px;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            text-shadow: 0px 4px 12px rgba(0, 0, 0, 0.35);
+            text-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
         }
         .app-sub-title {
-            color: #ffcc00 !important; /* สีเหลืองทองเฉดไข่แดงเพิ่มจุดเด่น */
+            color: #ffcc00 !important; 
             font-size: 24px !important;
             font-weight: bold !important;
             text-align: center;
             margin-top: 5px;
-            margin-bottom: 35px;
+            margin-bottom: 30px;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             text-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
         }
         
-        /* 3. กล่องการ์ดสีขาวขอบมนหนาโค้งพิเศษ (Super Rounded White Card) */
-        .auth-card {
-            background-color: #ffffff !important;
-            padding: 35px 30px 15px 30px;
-            border-radius: 35px; 
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
-            max-width: 420px;
+        /* กล่องการ์ดสีขาวที่รวมทุกองค์ประกอบ (แก้ปัญหาหลุดเฟรม) */
+        .auth-container {
+            max-width: 450px;
             margin: 0 auto;
+            background-color: #ffffff !important;
+            padding: 35px 35px 30px 35px;
+            border-radius: 30px; 
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
             text-align: center;
         }
         
-        /* 4. อวาตาร์วงกลมสัญลักษณ์ฟาร์มซอฟต์พาสเทล */
+        /* วงกลมไอคอนไข่ไก่ */
         .avatar-container {
-            width: 95px;
-            height: 95px;
+            width: 90px;
+            height: 90px;
             background-color: #fff9f0;
             border-radius: 50%;
-            margin: 0 auto 20px auto;
+            margin: 0 auto 15px auto;
             border: 3px solid #ffdfb4;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
         .avatar-container span {
-            font-size: 48px;
+            font-size: 45px;
         }
         
-        /* 5. ช่องกรอกข้อมูลสไตล์สีฟ้าอ่อนนุ่มนวล มนเรียบเนียน */
-        .stTextInput input {
+        /* สไตล์ช่องกรอกข้อมูลภายในกล่องสีขาว */
+        .auth-container .stTextInput input {
             border-radius: 12px !important;
             border: 1px solid #d3e2f2 !important;
-            padding: 14px 20px !important;
+            padding: 12px 15px !important;
             background-color: #eef5fc !important;
             color: #333333 !important;
             font-size: 16px !important;
         }
         
-        /* 6. ปุ่มกดหลักไล่เฉดสีกราเดียนท์น้ำมัน/น้ำเงินหรูหรา วิ่งยาวสุดขอบ */
-        div.stButton > button {
+        /* ปุ่มเข้าสู่ระบบแบบ Gradient กว้างเต็มกล่อง */
+        .auth-container div.stButton > button {
             background: linear-gradient(90deg, #4a76a8 0%, #3b5998 100%) !important;
             color: #ffffff !important;
-            border-radius: 14px !important;
+            border-radius: 12px !important;
             padding: 12px 20px !important;
             font-size: 16px !important;
             font-weight: bold !important;
             border: none !important;
             width: 100% !important;
-            box-shadow: 0 4px 15px rgba(59, 89, 152, 0.3) !important;
-            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(59, 89, 152, 0.2) !important;
+            margin-top: 10px;
         }
-        div.stButton > button:hover {
+        .auth-container div.stButton > button:hover {
             background: linear-gradient(90deg, #3b5998 0%, #243b55 100%) !important;
-            box-shadow: 0 6px 20px rgba(59, 89, 152, 0.5) !important;
             transform: translateY(-1px);
         }
         
-        /* 7. ปุ่มลิงก์ข้อความโปร่งใสด้านล่างการ์ดสำหรับหน้าจอสีน้ำเงิน */
-        .auth-footer-buttons div.stButton > button {
+        /* ปุ่มลิงก์ลืมรหัสผ่าน / สมัครสมาชิกใต้กล่อง (ปรับให้เป็นข้อความกึ่งกลางคลีนๆ) */
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .footer-links div.stButton > button {
             background: transparent !important;
-            color: #ffffff !important;
+            color: rgba(255, 255, 255, 0.9) !important;
             border: none !important;
             font-size: 14px !important;
             font-weight: normal !important;
-            padding: 0 !important;
+            padding: 5px 10px !important;
             width: auto !important;
             box-shadow: none !important;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
-        .auth-footer-buttons div.stButton > button:hover {
+        .footer-links div.stButton > button:hover {
             color: #ffcc00 !important;
             text-decoration: underline !important;
             background: transparent !important;
-            box-shadow: none !important;
         }
         
-        /* 8. จัดการหน้าแดชบอร์ดด้านในให้อ่านง่ายและโมเดิร์น */
+        /* สไตล์หน้า Dashboard ระบบภายใน */
         div[data-testid="stGridColumn"] > div {
             background-color: rgba(255, 255, 255, 0.95) !important; 
             padding: 25px;
@@ -167,14 +167,13 @@ def is_password_strong(password):
         return False, "รหัสผ่านต้องมีตัวเลข (0-9)"
     return True, "รหัสผ่านปลอดภัยตามมาตรฐาน"
 
-# การจัดการ state การสลับหน้าล็อกอิน
 if "auth_page" not in st.session_state:
     st.session_state.auth_page = "login"
 if "user" not in st.session_state:
     st.session_state.user = None
 
 # ==========================================
-# 4. HARDCODED DATA (คลังสารอาหารและวัตถุดิบไก่ไข่)
+# 4. HARDCODED DATA (คลังข้อมูลสารอาหารไก่ไข่)
 # ==========================================
 raw_ingredients = [
     ('พลังงาน', 'ข้าวโพด', 'Corn'), ('พลังงาน', 'ปลายข้าว', 'Broken Rice'), ('พลังงาน', 'รำละเอียด', 'Rice Bran'),
@@ -186,11 +185,11 @@ raw_ingredients = [
 df_ingredients = pd.DataFrame(raw_ingredients, columns=['category', 'name_th', 'name_en'])
 df_ingredients['name'] = df_ingredients['name_th'] + " (" + df_ingredients['name_en'] + ")"
 
-# เซ็ตข้อมูลตัวเลขสารอาหารพื้นฐานสําหรับจำลองการคำนวณ
-df_ingredients['price_per_kg'] = 15.0
-df_ingredients['protein_pct'] = 22.0
-df_ingredients['me_kcal_per_kg'] = 3000.0
-df_ingredients['max_limit_pct'] = 100.0
+# เซ็ตค่าโภชนาการและราคาจำลองสำหรับการคำนวณเชิงเส้น (Linear Programming)
+df_ingredients['price_per_kg'] = [13.5, 14.0, 11.0, 18.5, 32.0, 3.5, 4.0, 95.0, 80.0]
+df_ingredients['protein_pct'] = [8.5, 8.0, 12.0, 44.0, 60.0, 0.0, 0.0, 0.0, 0.0]
+df_ingredients['me_kcal_per_kg'] = [3300.0, 3200.0, 2400.0, 2420.0, 2850.0, 0.0, 0.0, 0.0, 0.0]
+df_ingredients['max_limit_pct'] = [60.0, 40.0, 25.0, 35.0, 10.0, 10.0, 10.0, 1.0, 1.0]
 
 raw_breeds = [
     ('สายพันธุ์เชิงพาณิชย์', 'ไฮไลน์ บราวน์', 'Hy-Line Brown'), 
@@ -216,145 +215,126 @@ def reset_calculation():
     st.session_state.calculated = False
 
 # ==========================================
-# 5. ROUTING - GUEST INTERFACE (AUTH PAGES)
+# 5. AUTHENTICATION INTERFACE (FIXED LAYOUT)
 # ==========================================
 if st.session_state.user is None:
     
-    # พาดหัวบอกกลุ่มธีมชัดเจนเกี่ยวกับสารอาหารสัตว์/ไก่ไข่บนพาดหัวฟาร์มสีน้ำเงิน
     st.markdown('<div class="app-main-title">Smart Layer Feed</div>', unsafe_allow_html=True)
     st.markdown('<div class="app-sub-title">ระบบคำนวณสูตรอาหารไก่ไข่อัจฉริยะ</div>', unsafe_allow_html=True)
     
-    # ------------------------------------------
-    # 🗂️ หน้าเข้าสู่ระบบ (LOGIN SYSTEM)
-    # ------------------------------------------
-    if st.session_state.auth_page == "login":
-        st.markdown(
-            """
-            <div class="auth-card">
-                <div class="avatar-container">
-                    <span>🥚</span>
-                </div>
-                <p style="color:#666666; font-size:15px; margin-bottom:20px;">ลงชื่อเข้าใช้ระบบเพื่อจัดการสูตรอาหารฟาร์ม</p>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
-        _, center_col, _ = st.columns([1, 1.1, 1])
-        with center_col:
-            login_email = st.text_input("ชื่อผู้ใช้งาน (อีเมลฟาร์ม)", placeholder="ชื่อผู้ใช้งาน หรือ อีเมลฟาร์ม", key="input_login_email", label_visibility="collapsed")
+    _, center_col, _ = st.columns([1, 1.2, 1])
+    
+    with center_col:
+        # ------------------------------------------
+        # 🗂️ หน้าเข้าสู่ระบบ (LOGIN)
+        # ------------------------------------------
+        if st.session_state.auth_page == "login":
+            st.markdown(
+                """
+                <div class="auth-container">
+                    <div class="avatar-container"><span>🥚</span></div>
+                    <div style="color:#555555; font-size:15px; margin-bottom:20px; font-weight:500;">
+                        ลงชื่อเข้าใช้ระบบเพื่อจัดการสูตรอาหารฟาร์ม
+                    </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            
+            login_email = st.text_input("ชื่อผู้ใช้งาน", placeholder="ชื่อผู้ใช้งาน หรือ อีเมลฟาร์ม", key="input_login_email", label_visibility="collapsed")
             login_pass = st.text_input("รหัสผ่าน", placeholder="รหัสผ่าน", type="password", key="input_login_pass", label_visibility="collapsed")
             
-            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-            
-            if st.button("ลงชื่อเข้าสู่ระบบฟาร์ม"):
+            if st.button("ลงชื่อเข้าสู่ระบบฟาร์ม", use_container_width=True):
                 try:
                     response = supabase.auth.sign_in_with_password({"email": login_email, "password": login_pass})
                     st.session_state.user = response.user
-                    st.success("🎉 เข้าสู่ระบบเรียบร้อย!")
                     st.rerun()
-                except Exception as e:
+                except Exception:
                     st.error("❌ ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง")
+                    
+            st.markdown("</div>", unsafe_allow_html=True) # ปิดกล่องขาวด้านบน
             
-            # โซนปุ่มสลับลิงก์โปร่งใสใต้การ์ด
-            st.markdown("<div class='auth-footer-buttons' style='text-align:center; margin-top:20px;'>", unsafe_allow_html=True)
-            footer_c1, footer_c2 = st.columns(2)
-            with footer_c1:
+            # ปุ่มสลับลิ้งค์ใต้กล่องขาว (จัดรูปแบบให้อยู่กึ่งกลาง ไม่แตกแถว)
+            st.markdown('<div class="footer-links">', unsafe_allow_html=True)
+            f_col1, f_col2 = st.columns(2)
+            with f_col1:
                 if st.button("ลืมรหัสผ่าน?", key="btn_go_forgot"):
                     st.session_state.auth_page = "forgot"
                     st.rerun()
-            with footer_c2:
+            with f_col2:
                 if st.button("สมัครสมาชิกฟาร์มใหม่", key="btn_go_reg"):
                     st.session_state.auth_page = "register"
                     st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    # ------------------------------------------
-    # 🗂️ หน้าสมัครสมาชิก (REGISTER SYSTEM)
-    # ------------------------------------------
-    elif st.session_state.auth_page == "register":
-        st.markdown(
-            """
-            <div class="auth-card">
-                <div class="avatar-container">
-                    <span>🐔</span>
-                </div>
-                <h3 style="color:#243b55; margin-top:0; font-weight:bold;">ลงทะเบียนเปิดบัญชีฟาร์ม</h3>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
-        _, center_col, _ = st.columns([1, 1.3, 1])
-        with center_col:
-            f_col1, f_col2 = st.columns(2)
-            with f_col1:
-                first_name = st.text_input("ชื่อจริง", placeholder="ชื่อผู้ดูแล", key="reg_fn")
-            with f_col2:
-                last_name = st.text_input("นามสกุล", placeholder="นามสกุล", key="reg_ln")
-                
-            reg_email = st.text_input("อีเมล", placeholder="ที่อยู่อีเมลสำหรับฟาร์ม", key="reg_email")
-            reg_password = st.text_input("รหัสผ่าน", placeholder="ตั้งรหัสผ่านใหม่", type="password", key="reg_password")
+        # ------------------------------------------
+        # 🗂️ หน้าสมัครสมาชิก (REGISTER)
+        # ------------------------------------------
+        elif st.session_state.auth_page == "register":
+            st.markdown(
+                """
+                <div class="auth-container">
+                    <div class="avatar-container"><span>🐔</span></div>
+                    <div style="color:#243b55; font-size:18px; margin-bottom:20px; font-weight:bold;">
+                        ลงทะเบียนเปิดบัญชีฟาร์มใหม่
+                    </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            
+            reg_fn = st.text_input("ชื่อจริง", placeholder="ชื่อจริงผู้ดูแล", key="reg_fn", label_visibility="collapsed")
+            reg_ln = st.text_input("นามสกุล", placeholder="นามสกุล", key="reg_ln", label_visibility="collapsed")
+            reg_email = st.text_input("อีเมล", placeholder="ที่อยู่อีเมลสำหรับฟาร์ม", key="reg_email", label_visibility="collapsed")
+            reg_password = st.text_input("รหัสผ่าน", placeholder="ตั้งรหัสผ่านใหม่ (8 ตัวขึ้นไป)", type="password", key="reg_password", label_visibility="collapsed")
+            farm_name = st.text_input("ชื่อฟาร์ม", placeholder="ชื่อฟาร์มไก่ไข่ของคุณ", key="reg_farm", label_visibility="collapsed")
             
             if reg_password:
                 is_valid, msg = is_password_strong(reg_password)
                 if is_valid: st.success(f"🟢 {msg}")
                 else: st.warning(f"🟡 {msg}")
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            farm_name = st.text_input("ชื่อฟาร์มไก่ไข่ของคุณ", placeholder="เช่น เรืองทองฟาร์ม ไก่ไข่")
-
-            if st.button("ลงทะเบียนบัญชีฟาร์ม"):
+            
+            if st.button("ลงทะเบียนบัญชีฟาร์ม", use_container_width=True):
                 is_valid, msg = is_password_strong(reg_password)
-                if not (first_name and last_name and reg_email and farm_name):
-                    st.error("❌ กรุณากรอกข้อมูลสมาชิกรวมถึงชื่อฟาร์มให้ครบถ้วน")
+                if not (reg_fn and reg_email and reg_password and farm_name):
+                    st.error("❌ กรุณากรอกข้อมูลให้ครบถ้วน")
                 elif not is_valid:
                     st.error(f"❌ {msg}")
                 else:
                     try:
-                        res = supabase.auth.sign_up({
-                            "email": reg_email,
-                            "password": reg_password,
-                            "options": {
-                                "data": {
-                                    "first_name": first_name,
-                                    "last_name": last_name,
-                                    "farm_name": farm_name
-                                }
-                            }
+                        supabase.auth.sign_up({
+                            "email": reg_email, "password": reg_password,
+                            "options": {"data": {"first_name": reg_fn, "last_name": reg_ln, "farm_name": farm_name}}
                         })
-                        st.success("📩 ระบบส่งอีเมลยืนยันแล้ว! กรุณาเปิดตรวจสอบเพื่อเปิดการใช้งาน")
+                        st.success("📩 ระบบส่งอีเมลยืนยันแล้ว! กรุณาตรวจสอบกล่องข้อความของคุณ")
                     except Exception as e:
                         st.error(f"เกิดข้อผิดพลาด: {str(e)}")
+                        
+            st.markdown("</div>", unsafe_allow_html=True)
             
-            st.markdown("<div class='auth-footer-buttons' style='text-align:center; margin-top:10px;'>", unsafe_allow_html=True)
-            if st.button("⬅️ กลับไปยังหน้าเข้าสู่ระบบ", key="back_to_login_from_reg"):
+            st.markdown('<div class="footer-links">', unsafe_allow_html=True)
+            if st.button("⬅️ กลับไปยังหน้าเข้าสู่ระบบ", key="back_from_reg"):
                 st.session_state.auth_page = "login"
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    # ------------------------------------------
-    # 🗂️ หน้าลืมรหัสผ่าน (FORGOT PASSWORD SYSTEM)
-    # ------------------------------------------
-    elif st.session_state.auth_page == "forgot":
-        st.markdown(
-            """
-            <div class="auth-card">
-                <div class="avatar-container">
-                    <span>🔑</span>
-                </div>
-                <h3 style="color:#243b55; margin-top:0; font-weight:bold;">กู้คืนรหัสผ่านฟาร์ม</h3>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
-        _, center_col, _ = st.columns([1, 1.1, 1])
-        with center_col:
-            st.write("ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลฟาร์มของคุณ")
-            reset_email = st.text_input("อีเมลฟาร์มที่ใช้ลงทะเบียน", placeholder="กรอกอีเมลของคุณ", key="forgot_email")
+        # ------------------------------------------
+        # 🗂️ หน้าลืมรหัสผ่าน (FORGOT PASSWORD)
+        # ------------------------------------------
+        elif st.session_state.auth_page == "forgot":
+            st.markdown(
+                """
+                <div class="auth-container">
+                    <div class="avatar-container"><span>🔑</span></div>
+                    <div style="color:#243b55; font-size:18px; margin-bottom:15px; font-weight:bold;">
+                        กู้คืนรหัสผ่านฟาร์ม
+                    </div>
+                    <p style="color:#666; font-size:14px; margin-bottom:20px;">ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลของคุณ</p>
+                """, 
+                unsafe_allow_html=True
+            )
             
-            if st.button("ส่งลิงก์รีเซ็ตรหัสผ่าน"):
+            reset_email = st.text_input("อีเมล", placeholder="กรอกอีเมลฟาร์มที่ใช้ลงทะเบียน", key="forgot_email", label_visibility="collapsed")
+            
+            if st.button("ส่งลิงก์รีเซ็ตรหัสผ่าน", use_container_width=True):
                 if reset_email:
                     try:
                         supabase.auth.reset_password_for_email(reset_email)
@@ -364,11 +344,13 @@ if st.session_state.user is None:
                 else:
                     st.error("❌ กรุณากรอกอีเมล")
                     
-            st.markdown("<div class='auth-footer-buttons' style='text-align:center; margin-top:10px;'>", unsafe_allow_html=True)
-            if st.button("⬅️ กลับไปยังหน้าเข้าสู่ระบบ", key="back_to_login_from_forgot"):
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown('<div class="footer-links">', unsafe_allow_html=True)
+            if st.button("⬅️ กลับไปยังหน้าเข้าสู่ระบบ", key="back_from_forgot"):
                 st.session_state.auth_page = "login"
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 6. MAIN SYSTEM DASHBOARD (เมื่อเข้าสู่ระบบสำเร็จ)
@@ -378,15 +360,7 @@ else:
     user_name = user_info.get("first_name", "ผู้เลี้ยง")
     farm_title = user_info.get("farm_name", "สมาร์ทฟาร์ม")
     
-    # สไตล์ป้ายและกล่องข้างในระบบให้อ่านฟอนต์สีขาวเด่นชัดเจน
-    st.markdown(
-        """
-        <style>
-        h1, h2, h3, h4, h5, h6, p, label { color: #ffffff !important; }
-        .stSelectbox label, .stNumberInput label, .stSlider label { color: #ffffff !important; }
-        </style>
-        """, unsafe_allow_html=True
-    )
+    st.markdown("<style>h1, h2, h3, h4, h5, h6, p, label { color: #ffffff !important; }</style>", unsafe_allow_html=True)
     
     header_col1, header_col2 = st.columns([8, 2])
     with header_col1:
@@ -394,7 +368,7 @@ else:
         st.subheader(f"👋 ยินดีต้อนรับคุณ {user_name} (ผู้จัดการข้อมูลสูตรอาหาร)")
     with header_col2:
         st.write("")
-        if st.button("🔒 ออกจากระบบบัญชี"):
+        if st.button("🔒 ออกจากระบบ"):
             supabase.auth.sign_out()
             st.session_state.user = None
             st.rerun()
@@ -426,13 +400,13 @@ else:
     # ส่วนประมวลผลโมเดล Linear Programming ด้วย PuLP
     if st.button("🚀 เริ่มคำนวณและประมวลผลสูตรอาหารความคุ้มค่าสูงสุด", use_container_width=True, type="primary"):
         if not df_ingredients.empty:
-            REQ_PROTEIN, REQ_ME = 20.0, 2900.0
+            REQ_PROTEIN, REQ_ME = 18.0, 2800.0  # ปรับเกณฑ์จำลองโภชนาการขั้นต่ำให้เหมาะสม
             
             prob = pulp.LpProblem("Feed_Optimization", pulp.LpMinimize)
             ingredients_list = df_ingredients['name'].tolist()
             vars_dict = {name: pulp.LpVariable(f"Ing_{i}", lowBound=0) for i, name in enumerate(ingredients_list)}
             
-            # Objective: มุ่งเน้นต้นทุนรวมต่ำที่สุด
+            # Objective: หาต้นทุนที่ต่ำที่สุด
             prob += pulp.lpSum([vars_dict[row['name']] * row['price_per_kg'] for _, row in df_ingredients.iterrows()])
             prob += pulp.lpSum([vars_dict[i] for i in ingredients_list]) == 100.0
             
@@ -453,7 +427,7 @@ else:
                     w = vars_dict[row['name']].varValue
                     if w and w > 0.01:
                         result_list.append({
-                            "วัตถุดิบอาหารอาหาร": row['name'], 
+                            "วัตถุดิบอาหาร": row['name'], 
                             "สัดส่วน (%)": round(w, 2), 
                             "ปริมาณที่ใช้ (กก./100กก.)": round(w, 2),
                             "ราคา (บาท)": round(w * row['price_per_kg'], 2)
@@ -461,6 +435,8 @@ else:
                 
                 st.session_state.df_result = pd.DataFrame(result_list)
                 st.success("🎉 ล็อกสัดส่วนและวิเคราะห์สูตรอาหารเรียบร้อยแล้ว!")
+            else:
+                st.error("❌ ไม่สามารถคำนวณสูตรอาหารตามเกณฑ์โภชนาการนี้ได้ กรุณาปรับเปลี่ยนวัตถุดิบ")
 
     st.markdown("---")
     st.markdown("### 📊 รายงานผลลัพธ์และอัตรากำไรของฟาร์ม")
@@ -483,7 +459,7 @@ else:
         
         with report_left:
             st.markdown("##### 🍩 แผนภูมิสัดส่วนสูตรอาหาร")
-            fig = px.pie(st.session_state.df_result, values='สัดส่วน (%)', names='วัตถุดิบอาหารอาหาร', hole=0.45)
+            fig = px.pie(st.session_state.df_result, values='สัดส่วน (%)', names='วัตถุดิบอาหาร', hole=0.45)
             fig.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=320, font=dict(color="black"), paper_bgcolor='rgba(255,255,255,0.95)')
             st.plotly_chart(fig, use_container_width=True)
 
