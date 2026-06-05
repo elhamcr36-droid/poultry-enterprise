@@ -91,7 +91,7 @@ st.markdown(f"""
 <div style='background-color:{breed_info['bg_color']}; padding:15px; border-radius:10px; color:{breed_info['text_color']}; margin-bottom:15px; border: 1px solid rgba(0,0,0,0.1);'>
     <b>🧬 สายพันธุ์ปัจจุบัน: {breed_info['name']}</b> | 🎨 สีเปลือกไข่: {breed_info['egg_color']} | 🥣 อัตรากินอาหาร: {breed_info['default_feed']} กรัม/วัน <br>
     <p style='margin: 5px 0 0 0; font-size: 0.9em; opacity: 0.95;'>ℹ️ <i>{breed_info['desc']}</i></p>
-    <small style='display:block; margin-top:5px; font-weight: bold; opacity: 0.8;'>📊 สถานะการซิงค์ข้อมูลฐานข้อมูลคลาวด์ Supabase: {cloud_status_text}</small>
+    <small style='display:block; margin-top:5px; font-weight: bold; opacity: 0.8;'>📊 Status ระบบคลาวด์ Supabase: {cloud_status_text}</small>
 </div>
 """, unsafe_allow_html=True)
 
@@ -252,26 +252,59 @@ st.dataframe(pd.DataFrame(budget_data), use_container_width=True, hide_index=Tru
 st.markdown("---")
 
 # ==========================================
-# 📈 9. ระบบบันทึกผลผลิตและเชื่อมต่อ Supabase
+# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [เวอร์ชันแก้ปัญหากลืนสี + อัปเกรดวิเคราะห์วิกฤต]
 # ==========================================
-st.markdown("### 📈 6. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน")
+st.markdown("### 📈 6. สมุดจดสถิติและกราฟวิเคราะห์ผลผลิตประจำวัน")
 
+# ฐานข้อมูลเก็บสถิติ (รองรับคอลัมน์ "หมายเหตุ" เพิ่มเติม)
 if "tracker_data" not in st.session_state:
     st.session_state.tracker_data = pd.DataFrame([
-        {"วันที่": "01/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 82.0, "อัตราไข่บุบแตก (%)": 4.5},
-        {"วันที่": "02/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 81.5, "อัตราไข่บุบแตก (%)": 5.0},
-        {"วันที่": "03/06", "สูตรอาหาร": "สูตร AI แนะนำ", "อัตราการไข่ (%)": 84.0, "อัตราไข่บุบแตก (%)": 2.1},
+        {"วันที่": "01/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 82.0, "อัตราไข่บุบแตก (%)": 4.5, "หมายเหตุ": "ปกติ"},
+        {"วันที่": "02/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 81.5, "อัตราไข่บุบแตก (%)": 5.0, "หมายเหตุ": "ฝนตกหนักตอนบ่าย"},
+        {"วันที่": "03/06", "สูตรอาหาร": "สูตร AI แนะนำ", "อัตราการไข่ (%)": 84.0, "อัตราไข่บุบแตก (%)": 2.1, "หมายเหตุ": "เริ่มปรับสูตรอาหารใหม่"},
     ])
+
+# ส่วนคำนวณและแสดงผลภาพรวมแดชบอร์ดด้านบนกราฟ
+st.markdown("##### 📊 สรุปภาพรวมผลผลิตในสมุดจดปัจจุบัน")
+avg_lay = st.session_state.tracker_data["อัตราการไข่ (%)"].mean()
+avg_crack = st.session_state.tracker_data["อัตราไข่บุบแตก (%)"].mean()
+last_lay = st.session_state.tracker_data["อัตราการไข่ (%)"].iloc[-1]
+last_crack = st.session_state.tracker_data["อัตราไข่บุบแตก (%)"].iloc[-1]
+
+m_lay, m_crack, m_alert = st.columns(3)
+with m_lay:
+    st.metric(label="🥚 อัตราการไข่เฉลี่ยรวม", value=f"{avg_lay:.2f} %", delta=f"ล่าสุด: {last_lay}%")
+with m_crack:
+    st.metric(label="💥 อัตราไข่บุบแตกเฉลี่ยรวม", value=f"{avg_crack:.2f} %", delta=f"ล่าสุด: {last_crack}%", delta_color="inverse")
+with m_alert:
+    # 🚨 ระบบแจ้งเตือนวิกฤตอัตโนมัติหน้างาน
+    if last_lay < 80.0:
+        st.error("🚨 วิกฤต: อัตราการไข่ล่าสุดต่ำกว่าเกณฑ์ 80%! ไก่กำลังส่งสัญญาณป่วยหรือเครียด")
+    elif last_crack > 4.0:
+        st.warning("⚠️ เตือนภัย: อัตราไข่แตกสูงเกิน 4%! แคลเซียมในอาหารอาจไม่พอ")
+    else:
+        st.success("✅ สถานะฝูงไก่: ผลผลิตอยู่ในเกณฑ์สมบูรณ์และปลอดภัยดี")
+
+st.markdown("---")
+
 track_col1, track_col2 = st.columns([4, 6], gap="large")
 with track_col1:
-    with st.form("supabase_sync_form"):
-        in_date = st.text_input("📝 วันที่บันทึก (เช่น 04/06):", value="04/06")
-        f_name = st.text_input("🥣 วันนี้ใช้สูตรอาหารชื่ออะไร:", value="สูตร AI แนะนำ")
-        lay_r = st.number_input("🥚 วันนี้เก็บไข่ได้กี่ % (อัตราการไข่):", value=86.2)
-        crack_r = st.number_input("💥 วันนี้มีไข่บุบ/ไข่แตกกี่ %:", value=1.5)
+    with st.form("supabase_sync_form_final"):
+        st.markdown("##### 📝 กรอกรายงานหลังเดินตรวจเล้า")
+        in_date = st.text_input("วันที่บันทึก (เช่น 04/06):", value="04/06")
+        f_name = st.text_input("วันนี้ใช้สูตรอาหารชื่ออะไร:", value="สูตร AI แนะนำ")
+        lay_r = st.number_input("วันนี้เก็บไข่ได้กี่ % (อัตราการไข่):", value=86.2, min_value=0.0, max_value=100.0, step=0.1)
+        crack_r = st.number_input("วันนี้มีไข่บุบ/ไข่แตกกี่ %:", value=1.5, min_value=0.0, max_value=100.0, step=0.1)
+        note_text = st.text_input("📌 หมายเหตุ/เหตุการณ์สำคัญวันนี้ (ถ้ามี):", value="ปกติ")
         
         if st.form_submit_button("💾 กดบันทึกสถิติวันนี้"):
-            new_row = pd.DataFrame([{"วันที่": in_date, "สูตรอาหาร": f_name, "อัตราการไข่ (%)": lay_r, "อัตราไข่บุบแตก (%)": crack_r}])
+            new_row = pd.DataFrame([{
+                "วันที่": in_date, 
+                "สูตรอาหาร": f_name, 
+                "อัตราการไข่ (%)": lay_r, 
+                "อัตราไข่บุบแตก (%)": crack_r,
+                "หมายเหตุ": note_text
+            }])
             st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
             
             payload = {
@@ -280,7 +313,8 @@ with track_col1:
                 "laying_rate": lay_r, 
                 "crack_rate": crack_r, 
                 "cost_per_kg": float(total_cost),
-                "breed_name": breed_info['name']
+                "breed_name": breed_info['name'],
+                "notes": note_text
             }
             
             if "your-project" not in SUPABASE_URL and SUPABASE_KEY != "your-anon-key":
@@ -297,29 +331,30 @@ with track_col1:
                     if response.status_code in [200, 201]:
                         st.success(f"☁️ บันทึกข้อมูลเข้าสู่ระบบออนไลน์เรียบร้อยแล้ว!")
                     else:
-                        st.error(f"❌ เกิดข้อผิดพลาดจากเซิฟเวอร์ระบบคลาวด์ (รหัส: {response.status_code})")
+                        st.error(f"❌ เกิดข้อผิดพลาดจากคลาวด์: {response.status_code}")
                 except Exception as e:
-                    st.error(f"❌ ไม่สามารถส่งข้อมูลได้เนื่องจากปัญหาสัญญาณอินเทอร์เน็ต: {e}")
+                    st.error(f"❌ สัญญาณอินเทอร์เน็ตขัดข้อง: {e}")
             else:
                 st.info("⚠️ บันทึกข้อมูลลงในเครื่องเรียบร้อยแล้ว (กำลังทำงานในโหมดออฟไลน์)")
             
             st.rerun()
 
 with track_col2:
-    # 🎨 ปรับปรุงส่วนนี้: บังคับใช้ธีม "plotly_dark" เพื่อแก้ไขปัญหาตัวอักษรกลืนหายไปกับพื้นหลังสีขาวใน Dark Mode
+    # 🎨 บังคับใช้ธีม "plotly_dark" และปรับสีพื้นหลังโปร่งใสเพื่อให้ข้อความเด้งชัดเจนในธีมมืด
     fig = px.line(
         st.session_state.tracker_data, 
         x="วันที่", 
         y=["อัตราการไข่ (%)", "อัตราไข่บุบแตก (%)"], 
         markers=True, 
-        template="plotly_dark",  # เปลี่ยนเป็นธีมมืดเพื่อให้ตัวเลขและเส้นกราฟเด้งชัดขึ้นมา
-        title="📈 กราฟเปรียบเทียบ: อาหารสูตรไหนให้ผลผลิตดีที่สุด"
+        template="plotly_dark",
+        hover_data=["สูตรอาหาร", "หมายเหตุ"],
+        title="📈 กราฟเปรียบเทียบผลผลิตและอัตราไข่แตกประจำวัน"
     )
     
-    # เคลียร์สีพื้นหลังขาวอันเก่าออก เพื่อให้กลมกลืนกับพื้นหลังแอปพลิเคชันอย่างเป็นธรรมชาติ
     fig.update_layout(
         hovermode="x unified",
         paper_bgcolor='rgba(0,0,0,0)', 
-        plot_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='rgba(0,0,0,0)',
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     st.plotly_chart(fig, use_container_width=True)
