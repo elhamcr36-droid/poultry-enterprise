@@ -75,19 +75,19 @@ SUPABASE_URL = st.sidebar.text_input("ลิงก์โปรเจกต์ Su
 SUPABASE_KEY = st.sidebar.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
 
 # ==========================================
-# 🧭 ระบบเมนูแท็บนำทางด้านบน (Top Tabs Navigation - ยุบเหลือ 3 แท็บหลัก)
+# 🧭 ระบบเมนูแท็บนำทางด้านบน (สลับเอาระบบหลังบ้านไปไว้ท้ายสุด)
 # ==========================================
 st.markdown("# 🐔 Smart Layer Feed")
 st.markdown("### ระบบคำนวณสูตรอาหารและบริหารจัดการฟาร์มไก่ไข่อัจฉริยะแบบครบวงจร")
 
 page_tabs = st.tabs([
     "🏠 หน้าแรก & ห้องปฏิบัติการสูตรอาหาร", 
-    "📦 ระบบหลังบ้าน", 
-    "📈 สถิติผลผลิต & บัญชีฟาร์ม"
+    "📈 สถิติผลผลิต & บัญชีฟาร์ม",
+    "📦 ระบบหลังบ้าน"
 ])
 
 # ==========================================
-# 📋 2. ฐานข้อมูลคุณค่าทางโภชนาการและสารอาหาร (15 ชนิดจัดเต็ม)
+# 📋 2. ฐานข้อมูลคุณค่าทางโภชนาการและสารอาหาร
 # ==========================================
 STAGE_NUTRITION_TARGETS = {
     "starter": {"name": "ลูกไก่ไข่ 0 - 6 สัปดาห์ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.00, "phos": 0.45, "amino": 0.42, "fiber": 4.0, "fat": 3.5},
@@ -97,20 +97,16 @@ STAGE_NUTRITION_TARGETS = {
 
 if "ingredient_data" not in st.session_state:
     st.session_state.ingredient_data = {
-        # แหล่งพลังงาน
         "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18, "moisture": 12.0, "fiber": 2.2, "fat": 3.8, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
         "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "amino": 0.22, "moisture": 10.5, "fiber": 12.0, "fat": 13.0, "tox_risk": 3, "min_limit": 0.0, "max_limit": 30.0},
         "ปลายข้าว": {"price": 14.5, "protein": 8.0, "me": 3360.0, "calcium": 0.04, "phos": 0.10, "amino": 0.15, "moisture": 12.0, "fiber": 1.0, "fat": 1.5, "tox_risk": 1, "min_limit": 0.0, "max_limit": 40.0},
         "มันเส้นบด": {"price": 9.5, "protein": 2.0, "me": 3000.0, "calcium": 0.18, "phos": 0.09, "amino": 0.04, "moisture": 13.0, "fiber": 3.5, "fat": 0.5, "tox_risk": 2, "min_limit": 0.0, "max_limit": 20.0},
-        # แหล่งโปรตีน
         "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "amino": 0.65, "moisture": 11.5, "fiber": 5.5, "fat": 1.5, "tox_risk": 1, "min_limit": 5.0, "max_limit": 40.0},
         "ปลาป่น": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "amino": 0.95, "moisture": 10.0, "fiber": 1.0, "fat": 8.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
         "กากเนื้อปาล์ม": {"price": 8.0, "protein": 15.0, "me": 1650.0, "calcium": 0.30, "phos": 0.60, "amino": 0.25, "moisture": 10.0, "fiber": 16.0, "fat": 7.0, "tox_risk": 2, "min_limit": 0.0, "max_limit": 10.0},
         "กากเบียร์แห้ง": {"price": 10.5, "protein": 26.0, "me": 2100.0, "calcium": 0.30, "phos": 0.50, "amino": 0.40, "moisture": 11.0, "fiber": 15.0, "fat": 6.0, "tox_risk": 2, "min_limit": 0.0, "max_limit": 10.0},
         "กากถั่วลิสง": {"price": 16.0, "protein": 45.0, "me": 2600.0, "calcium": 0.20, "phos": 0.55, "amino": 0.50, "moisture": 10.0, "fiber": 6.0, "fat": 1.8, "tox_risk": 4, "min_limit": 0.0, "max_limit": 10.0},
-        # แหล่งไขมัน
         "น้ำมันปาล์มดิบ": {"price": 34.0, "protein": 0.0, "me": 8400.0, "calcium": 0.00, "phos": 0.00, "amino": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 99.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 4.0},
-        # แร่ธาตุและสารเสริม
         "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "amino": 0.00, "moisture": 0.5, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
         "ไดแคลเซียมฟอสเฟต": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "amino": 0.00, "moisture": 1.0, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 5.0},
         "เกลือแกง": {"price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 0.00, "moisture": 1.0, "fiber": 0.0, "fat": 0.0, "tox_risk": 0, "min_limit": 0.1, "max_limit": 0.4},
@@ -177,10 +173,10 @@ current_nutrition, current_formula_cost, total_moisture, total_risk_score = calc
 # 📥 4. ส่วนเนื้อหาของแต่ละแท็บแอปพลิเคชัน
 # ==========================================
 
-# --- [แท็บที่ 1]: หน้าแรก & ห้องปฏิบัติการสูตรอาหาร (รวมกันตามสั่ง) ---
+# --- [แท็บที่ 1]: หน้าแรก & ห้องปฏิบัติการสูตรอาหาร ---
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("<h2>🏠 ข้อมูลสายพันธุ์หลักและการตั้งค่าฟาร์ม</h2>")
+    st.markdown("## 🏠 ข้อมูลสายพันธุ์หลักและการตั้งค่าฟาร์ม")
     
     c_group, c_breed = st.columns(2)
     with c_group:
@@ -203,12 +199,10 @@ with page_tabs[0]:
     st.session_state.chicken_count = st.number_input("จำนวนไก่ในฟาร์มทั้งหมด (ตัว):", min_value=1, value=st.session_state.chicken_count, step=100)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 🔥 ย้าย "ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์" มาไว้ที่หน้าแรกตรงนี้
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("<h2>🧠 ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์ (AI Optimizer)</h2>")
+    st.markdown("## 🧠 ห้องปฏิบัติการสูตรอาหาร & ปัญญาประดิษฐ์ (AI Optimizer)")
     
     target = STAGE_NUTRITION_TARGETS[st.session_state.current_key]
-    # ดึงค่าปัจจัยความหนาแน่นสารอาหารตามสภาพอากาศที่ระบุไว้ในหน้าหลังบ้านมาใช้ประมวลผลร่วมกัน
     density_factor = 1.08 if "ร้อนจัด" in st.session_state.weather_env else (0.95 if "หนาว" in st.session_state.weather_env else 1.0)
     adjusted_target = {
         "protein": target["protein"] * density_factor, "me": target["me"],
@@ -283,72 +277,8 @@ with page_tabs[0]:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- [แท็บที่ 2]: ระบบหลังบ้าน (ย้ายสภาพอากาศ และระบบน้ำดื่มมาไว้ที่นี่ทั้งหมด) ---
+# --- [แท็บที่ 2]: สถิติผลผลิต & บัญชีฟาร์ม (ขยับขึ้นมาลำดับที่ 2) ---
 with page_tabs[1]:
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 ระบบหลังบ้าน (Backoffice Management)")
-    
-    # ⛅ ย้ายส่วน "สภาพอากาศและอุณหภูมิวันนี้" มาไว้ที่นี่ตามสั่ง
-    st.markdown("### ⛅ การจัดการสภาพแวดล้อมและอุณหภูมิ")
-    weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
-    st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้ (ส่งผลต่อน้ำดื่มและการคำนวณโภชนาการ AI):", weather_list, horizontal=True)
-    
-    st.markdown("---")
-    
-    # 💧 ระบบคำนวณน้ำดื่มประจำวัน
-    st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
-    breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
-    base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
-    calc_water = st.session_state.chicken_count * base_water
-    if "ร้อนจัด" in st.session_state.weather_env:
-        calc_water *= 1.25
-        st.error("🔥 ตรวจพบอุณหภูมิอากาศร้อนจัด! ระบบหลังบ้านปรับสูตรปริมาณน้ำดื่มขึ้น 25% เพื่อลดสภาวะ Heat Stress")
-    st.metric("ปริมาณน้ำดื่มรวมที่ต้องจ่ายเข้าโรงเรือนต่อวัน", f"{calc_water:,.1f} ลิตร (Liters)")
-    
-    st.markdown("---")
-    st.markdown("### 💰 อัปเดตราคาวัตถุดิบประจำงวด (บาท/กิโลกรัม)")
-    
-    all_ingredients = list(st.session_state.ingredient_data.keys())
-    chunk_size = 4
-    for i in range(0, len(all_ingredients), chunk_size):
-        chunk_slice = all_ingredients[i:i+chunk_size]
-        cols = st.columns(len(chunk_slice))
-        for idx, name in enumerate(chunk_slice):
-            with cols[idx]:
-                st.session_state.ingredient_data[name]["price"] = st.number_input(
-                    f"{name}", min_value=0.0, 
-                    value=float(st.session_state.ingredient_data[name]["price"]), 
-                    step=0.1, key=f"p_{name}"
-                )
-                
-    st.markdown("---")
-    st.markdown("### 📝 ใบประมาณการจัดซื้อและดาวน์โหลด PO")
-    total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
-    st.info(f"📊 ปริมาณอาหารรวมที่ต้องจัดซื้อจัดสำรอง: **{total_feed_needed_kg/1000.0:,.2f} ตัน** (วิเคราะห์ความต้องการจากฐานข้อมูลจำนวนไก่ฝูงปัจจุบัน)")
-    
-    budget_data = []
-    for name, weight in st.session_state.optimized_weights.items():
-        w_kg = (weight / 100.0) * total_feed_needed_kg
-        if w_kg > 0:
-            p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
-            budget_data.append({
-                "วัตถุดิบ": name, "สัดส่วน (%)": f"{weight}%",
-                "ปริมาณที่ต้องซื้อ (กก.)": round(w_kg, 1),
-                "งบประมาณ (บาท)": round(w_kg * p_unit, 2)
-            })
-            
-    df_budget = pd.DataFrame(budget_data)
-    if not df_budget.empty:
-        st.dataframe(df_budget, use_container_width=True, hide_index=True)
-        csv = df_budget.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 ดาวน์โหลดใบจัดซื้อระบบหลังบ้าน (Download PO CSV)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบ_BackOffice.csv", mime="text/csv")
-    else:
-        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาปรับตั้งค่าสูตรอาหารที่แผงควบคุมก่อน")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# --- [แท็บที่ 3]: สถิติผลผลิต & บัญชีฟาร์ม ---
-with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 สมุดจดบันทึกสถิติและวิเคราะห์ผลกำไรฟาร์ม")
     if "tracker_data" not in st.session_state:
@@ -401,8 +331,70 @@ with page_tabs[2]:
     st.dataframe(df_track, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+# --- [แท็บที่ 3]: ระบบหลังบ้าน (ย้ายมาไว้หลังสุดขวาสุด) ---
+with page_tabs[2]:
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("## 📦 ระบบหลังบ้าน (Backoffice Management)")
+    
+    st.markdown("### ⛅ การจัดการสภาพแวดล้อมและอุณหภูมิ")
+    weather_list = ["🌡️ อากาศปกติ (25-32°C)", "🔥 อากาศร้อนจัด (> 32°C)", "❄️ อากาศหนาว (< 25°C)"]
+    st.session_state.weather_env = st.radio("สภาพอากาศและอุณหภูมิวันนี้ (ส่งผลต่อน้ำดื่มและการคำนวณโภชนาการ AI):", weather_list, horizontal=True)
+    
+    st.markdown("---")
+    
+    st.markdown("### 💧 ระบบคำนวณปริมาณน้ำดื่มประจำวัน (Water Calculator)")
+    breed_info = BREED_PROFILES[st.session_state.selected_group][st.session_state.selected_breed_key]
+    base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if st.session_state.current_key == "laying" else 0.15
+    calc_water = st.session_state.chicken_count * base_water
+    if "ร้อนจัด" in st.session_state.weather_env:
+        calc_water *= 1.25
+        st.error("🔥 ตรวจพบอุณหภูมิอากาศร้อนจัด! ระบบหลังบ้านปรับสูตรปริมาณน้ำดื่มขึ้น 25% เพื่อลดสภาวะ Heat Stress")
+    st.metric("ปริมาณน้ำดื่มรวมที่ต้องจ่ายเข้าโรงเรือนต่อวัน", f"{calc_water:,.1f} ลิตร (Liters)")
+    
+    st.markdown("---")
+    st.markdown("### 💰 อัปเดตราคาวัตถุดิบประจำงวด (บาท/กิโลกรัม)")
+    
+    all_ingredients = list(st.session_state.ingredient_data.keys())
+    chunk_size = 4
+    for i in range(0, len(all_ingredients), chunk_size):
+        chunk_slice = all_ingredients[i:i+chunk_size]
+        cols = st.columns(len(chunk_slice))
+        for idx, name in enumerate(chunk_slice):
+            with cols[idx]:
+                st.session_state.ingredient_data[name]["price"] = st.number_input(
+                    f"{name}", min_value=0.0, 
+                    value=float(st.session_state.ingredient_data[name]["price"]), 
+                    step=0.1, key=f"p_{name}"
+                )
+                
+    st.markdown("---")
+    st.markdown("### 📝 ใบประมาณการจัดซื้อและดาวน์โหลด PO")
+    total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET[st.session_state.current_key]
+    st.info(f"📊 ปริมาณอาหารรวมที่ต้องจัดซื้อจัดสำรอง: **{total_feed_needed_kg/1000.0:,.2f} ตัน**")
+    
+    budget_data = []
+    for name, weight in st.session_state.optimized_weights.items():
+        w_kg = (weight / 100.0) * total_feed_needed_kg
+        if w_kg > 0:
+            p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
+            budget_data.append({
+                "วัตถุดิบ": name, "สัดส่วน (%)": f"{weight}%",
+                "ปริมาณที่ต้องซื้อ (กก.)": round(w_kg, 1),
+                "งบประมาณ (บาท)": round(w_kg * p_unit, 2)
+            })
+            
+    df_budget = pd.DataFrame(budget_data)
+    if not df_budget.empty:
+        st.dataframe(df_budget, use_container_width=True, hide_index=True)
+        csv = df_budget.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📥 ดาวน์โหลดใบจัดซื้อระบบหลังบ้าน (Download PO CSV)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบ_BackOffice.csv", mime="text/csv")
+    else:
+        st.info("💡 สัดส่วนอาหารในสูตรยังเป็น 0% กรุณาปรับตั้งค่าสูตรอาหารที่แผงควบคุมก่อน")
+    st.markdown("</div>", unsafe_allow_html=True)
+
 # ==========================================
 # 🏁 ส่วนท้ายของแอปพลิเคชัน
 # ==========================================
 st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ย้ายโครงสร้างวิเคราะห์สภาพอากาศและแล็บ AI สำเร็จสมบูรณ์</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Smart Layer Feed | ปรับย้ายลำดับปุ่มระบบหลังบ้านไปท้ายสุดสำเร็จ</div>", unsafe_allow_html=True)
