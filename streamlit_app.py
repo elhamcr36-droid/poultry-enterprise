@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import pulp
 import requests
+from io import BytesIO
 
 # ==========================================
 # 🔱 1. ตั้งค่าคอนฟิกแอปพลิเคชันและหน้าจอ
@@ -24,15 +26,17 @@ STAGE_NUTRITION_TARGETS = {
     "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต 16 สัปดาห์ขึ้นไป (Laying)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38}
 }
 
-INGREDIENT_DATA = {
-    "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18, "moisture": 12.0, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
-    "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "amino": 0.65, "moisture": 11.5, "tox_risk": 1, "min_limit": 5.0, "max_limit": 40.0},
-    "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "amino": 0.22, "moisture": 10.5, "tox_risk": 3, "min_limit": 0.0, "max_limit": 30.0},
-    "ปลาป่น": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "amino": 0.95, "moisture": 10.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
-    "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "amino": 0.00, "moisture": 0.5, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
-    "ไดแคลเซียมฟอสเฟต": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "amino": 0.00, "moisture": 1.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 5.0},
-    "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
-}
+# ใช้ Session State เพื่อรองรับการอัปเดตราคาวัตถุดิบแบบ Dynamic
+if "ingredient_data" not in st.session_state:
+    st.session_state.ingredient_data = {
+        "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18, "moisture": 12.0, "tox_risk": 3, "min_limit": 20.0, "max_limit": 70.0},
+        "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "amino": 0.65, "moisture": 11.5, "tox_risk": 1, "min_limit": 5.0, "max_limit": 40.0},
+        "รำละเอียด": {"price": 11.0, "protein": 12.0, "me": 2400.0, "calcium": 0.05, "phos": 1.35, "amino": 0.22, "moisture": 10.5, "tox_risk": 3, "min_limit": 0.0, "max_limit": 30.0},
+        "ปลาป่น": {"price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "amino": 0.95, "moisture": 10.0, "tox_risk": 1, "min_limit": 0.0, "max_limit": 15.0},
+        "เปลือกหอยบด": {"price": 4.0, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.04, "amino": 0.00, "moisture": 0.5, "tox_risk": 0, "min_limit": 0.0, "max_limit": 12.0},
+        "ไดแคลเซียมฟอสเฟต": {"price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "amino": 0.00, "moisture": 1.0, "tox_risk": 0, "min_limit": 0.0, "max_limit": 5.0},
+        "กรดอะมิโนสังเคราะห์": {"price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "amino": 99.00, "moisture": 0.2, "tox_risk": 0, "min_limit": 0.0, "max_limit": 2.0}
+    }
 
 BREED_PROFILES = {
     "1. กลุ่มไฮบริด / ลูกผสมพาณิชย์ (Commercial Hybrids)": {
@@ -97,6 +101,17 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ==========================================
+# 💰🆕 ฟีเจอร์เพิ่มใหม่: หน้าจอปรับราคาวัตถุดิบ (Dynamic Price Dashboard)
+# ==========================================
+with st.expander("💰 🛠️ แผงควบคุมและอัปเดตราคาวัตถุดิบหน้าฟาร์ม (Dynamic Price)"):
+    st.caption("ปรับเปลี่ยนราคาที่นี่เพื่อใช้คำนวณต้นทุนจริงและให้ AI Optimizer ประมวลผลจุดคุ้มทุนใหม่")
+    cols = st.columns(len(st.session_state.ingredient_data.keys()))
+    for idx, name in enumerate(st.session_state.ingredient_data.keys()):
+        with cols[idx]:
+            new_price = st.number_input(f"{name} (บาท/กก.)", min_value=0.0, value=float(st.session_state.ingredient_data[name]["price"]), step=0.5, key=f"p_{name}")
+            st.session_state.ingredient_data[name]["price"] = new_price
+
 st.markdown("---")
 
 # ==========================================
@@ -144,20 +159,20 @@ if st.button("⚡ สั่งปัญญาประดิษฐ์ประ�
     prob = pulp.LpProblem("LeastCostLayerFeed", pulp.LpMinimize)
     ingredient_vars = {}
     
-    for name, data in INGREDIENT_DATA.items():
+    for name, data in st.session_state.ingredient_data.items():
         ingredient_vars[name] = pulp.LpVariable(name, lowBound=data["min_limit"], upBound=data["max_limit"])
         
-    prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["price"] / 100.0) for name in INGREDIENT_DATA.keys()])
-    prob += pulp.lpSum([ingredient_vars[name] for name in INGREDIENT_DATA.keys()]) == 100.0, "TotalWeight"
-    prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["protein"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["protein"], "ProteinRequired"
-    prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["me"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["me"], "EnergyRequired"
-    prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["calcium"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["calcium"], "CalciumRequired"
-    prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["phos"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["phos"], "PhosRequired"
-    prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["amino"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["amino"], "AminoRequired"
+    prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["price"] / 100.0) for name in st.session_state.ingredient_data.keys()])
+    prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0, "TotalWeight"
+    prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["protein"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["protein"], "ProteinRequired"
+    prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["me"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["me"], "EnergyRequired"
+    prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["calcium"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["calcium"], "CalciumRequired"
+    prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["phos"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["phos"], "PhosRequired"
+    prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["amino"] / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target["amino"], "AminoRequired"
     
     status = prob.solve(pulp.PULP_CBC_CMD(msg=False))
     if pulp.LpStatus[status] == "Optimal":
-        for name in INGREDIENT_DATA.keys():
+        for name in st.session_state.ingredient_data.keys():
             val = round(ingredient_vars[name].varValue, 1)
             st.session_state.optimized_weights[name] = val
         st.success("🎉 ค้นพบทางเลือกการผสมสูตรอาหารที่ประหยัดเงินที่สุดและปลอดภัยเรียบร้อยแล้ว!")
@@ -172,7 +187,7 @@ creator_left, creator_right = st.columns([1, 1], gap="large")
 with creator_left:
     st.markdown("### 🛠️ 3. แผงควบคุมและปรับแต่งสูตรสัดส่วนอาหารด้วยตนเอง")
     user_weights = {}
-    for name in INGREDIENT_DATA.keys():
+    for name in st.session_state.ingredient_data.keys():
         val = float(st.session_state.optimized_weights.get(name, 0.0))
         user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, val, step=0.1, key=f"sl_{name}")
 
@@ -188,7 +203,7 @@ total_risk_score = 0.0
 
 for name, weight in user_weights.items():
     factor = weight / 100.0
-    nutrients = INGREDIENT_DATA[name]
+    nutrients = st.session_state.ingredient_data[name]
     current_nutrition["protein"] += nutrients["protein"] * factor
     current_nutrition["me"] += nutrients["me"] * factor
     current_nutrition["calcium"] += nutrients["calcium"] * factor
@@ -240,80 +255,156 @@ with m_col3:
 st.markdown("---")
 
 # ==========================================
-# 📊 8. การวางแผนปริมาณสั่งซื้อและใบจัดซื้อวัตถุดิบ
+# 📊 8. การวางแผนปริมาณสั่งซื้อและใบจัดซื้อวัตถุดิบ [🆕 เพิ่มปุ่มดาวน์โหลดรายงาน Excel/CSV]
 # ==========================================
 st.markdown("### 📅 5. แผนการสำรองวัตถุดิบและประมาณการคำสั่งซื้อ")
 total_phase_feed_needed_kg = chicken_count * LIFECYCLE_FEED_BUDGET[current_key]
 st.write(f"📦 ยอดสั่งซื้อและปริมาณวัตถุดิบรวมที่ต้องกักตุนเข้าคลังสำหรับฝูงนี้ตลอดเฟสปัจจุบัน: **{total_phase_feed_needed_kg/1000.0:,.2f} ตัน**")
 budget_data = []
-for name in INGREDIENT_DATA.keys():
+for name in st.session_state.ingredient_data.keys():
     w_kg = (user_weights[name] / 100.0) * total_phase_feed_needed_kg
     if w_kg > 0:
-        budget_data.append({"วัตถุดิบ": name, "สัดส่วนการผสม (%)": f"{user_weights[name]}%", "น้ำหนักรวมที่ต้องสั่งซื้อเข้าโกดัง (กก.)": f"{w_kg:,.1f} กก."})
-st.dataframe(pd.DataFrame(budget_data), use_container_width=True, hide_index=True)
+        budget_data.append({"วัตถุดิบ": name, "สัดส่วนการผสม (%)": f"{user_weights[name]}%", "น้ำหนักรวมที่ต้องสั่งซื้อเข้าโกดัง (กก.)": round(w_kg, 1)})
+
+df_budget = pd.DataFrame(budget_data)
+st.dataframe(df_budget, use_container_width=True, hide_index=True)
+
+# ปุ่มดาวน์โหลดไฟล์ใบจัดซื้อ
+if not df_budget.empty:
+    csv_budget = df_budget.to_csv(index=False).encode('utf-8-sig')
+    st.download_button(
+        label="📥 ดาวน์โหลดใบจัดซื้อวัตถุดิบอาหารสัตว์ (CSV)",
+        data=csv_budget,
+        file_name=f"ใบสั่งซื้อวัตถุดิบ_{in_date if 'in_date' in locals() else 'รายงาน'}.csv",
+        mime="text/csv"
+    )
+
 st.markdown("---")
 
 # ==========================================
-# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [เวอร์ชันเสถียร แก้ไขบั๊กเรียบร้อย]
+# 📈 9. สมุดจดสถิติและกราฟดูสถิติไข่ไก่ประจำวัน [เวอร์ชันอัปเกรดเชิงลึก — FCR & Financial Tracker]
 # ==========================================
-st.markdown("### 📈 6. สมุดจดสถิติและกราฟวิเคราะห์ผลผลิตประจำวัน")
+st.markdown("### 📈 6. สมุดจดสถิติและกราฟวิเคราะห์ผลผลิตประจำวัน (เวอร์ชันอัปเกรดการคำนวณกำไร)")
 
-# ฐานข้อมูลเก็บสถิติ (รองรับคอลัมน์ "หมายเหตุ" เพิ่มเติม)
+# ตั้งค่าฐานข้อมูลจำลองเริ่มต้นรวมถึงรายได้และกำไร
 if "tracker_data" not in st.session_state:
     st.session_state.tracker_data = pd.DataFrame([
-        {"วันที่": "01/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 82.0, "อัตราไข่บุบแตก (%)": 4.5, "หมายเหตุ": "ปกติ"},
-        {"วันที่": "02/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 81.5, "อัตราไข่บุบแตก (%)": 5.0, "หมายเหตุ": "ฝนตกหนักตอนบ่าย"},
-        {"วันที่": "03/06", "สูตรอาหาร": "สูตร AI แนะนำ", "อัตราการไข่ (%)": 84.0, "อัตราไข่บุบแตก (%)": 2.1, "หมายเหตุ": "เริ่มปรับสูตรอาหารใหม่"},
+        {"วันที่": "01/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 82.0, "อัตราไข่บุบแตก (%)": 4.5, "น้ำหนักไข่รวม (กก.)": 52.0, "ไข่เบอร์ 0-1 (%)": 20.0, "ไข่เบอร์ 2-3 (%)": 55.0, "ไข่เบอร์ 4-5 (%)": 25.0, "ตาย/คัดทิ้ง (ตัว)": 0, "กำไรสุทธิวันนี้ (บาท)": 420.0, "หมายเหตุ": "ปกติ"},
+        {"วันที่": "02/06", "สูตรอาหาร": "สูตรเดิม", "อัตราการไข่ (%)": 81.5, "อัตราไข่บุบแตก (%)": 5.0, "น้ำหนักไข่รวม (กก.)": 51.5, "ไข่เบอร์ 0-1 (%)": 22.0, "ไข่เบอร์ 2-3 (%)": 53.0, "ไข่เบอร์ 4-5 (%)": 25.0, "ตาย/คัดทิ้ง (ตัว)": 1, "กำไรสุทธิวันนี้ (บาท)": 395.0, "หมายเหตุ": "ฝนตกหนักตอนบ่าย"},
+        {"วันที่": "03/06", "สูตรอาหาร": "สูตร AI แนะนำ", "อัตราการไข่ (%)": 84.0, "อัตราไข่บุบแตก (%)": 2.1, "น้ำหนักไข่รวม (กก.)": 53.8, "ไข่เบอร์ 0-1 (%)": 25.0, "ไข่เบอร์ 2-3 (%)": 55.0, "ไข่เบอร์ 4-5 (%)": 20.0, "ตาย/คัดทิ้ง (ตัว)": 0, "กำไรสุทธิวันนี้ (บาท)": 610.0, "หมายเหตุ": "เริ่มปรับสูตรอาหารใหม่"},
     ])
 
-# ส่วนคำนวณและแสดงผลภาพรวมแดชบอร์ดด้านบนกราฟ
-st.markdown("##### 📊 สรุปภาพรวมผลผลิตในสมุดจดปัจจุบัน")
-avg_lay = st.session_state.tracker_data["อัตราการไข่ (%)"].mean()
-avg_crack = st.session_state.tracker_data["อัตราไข่บุบแตก (%)"].mean()
-last_lay = st.session_state.tracker_data["อัตราการไข่ (%)"].iloc[-1]
-last_crack = st.session_state.tracker_data["อัตราไข่บุบแตก (%)"].iloc[-1]
+df_track = st.session_state.tracker_data.copy()
 
-m_lay, m_crack, m_alert = st.columns(3)
+# คำนวณปริมาณอาหารและต้นทุนค่าอาหารต่อวันของฝูง
+daily_feed_consumed_kg = (chicken_count * breed_info['default_feed']) / 1000.0
+daily_feed_cost = daily_feed_consumed_kg * total_cost
+
+df_track["FCR (ประสิทธิภาพอาหาร)"] = (daily_feed_consumed_kg / df_track["น้ำหนักไข่รวม (กก.)"]).round(2)
+total_dead = df_track["ตาย/คัดทิ้ง (ตัว)"].sum()
+total_profit_accum = df_track["กำไรสุทธิวันนี้ (บาท)"].sum()
+
+st.markdown("##### 📊 สรุปภาพรวมประสิทธิภาพเชิงลึกและบัญชีฟาร์ม")
+avg_lay = df_track["อัตราการไข่ (%)"].mean()
+avg_crack = df_track["อัตราไข่บุบแตก (%)"].mean()
+avg_fcr = df_track["FCR (ประสิทธิภาพอาหาร)"].mean()
+last_profit = df_track["กำไรสุทธิวันนี้ (บาท)"].iloc[-1]
+
+m_lay, m_crack, m_fcr, m_profit = st.columns(4)
 with m_lay:
-    st.metric(label="🥚 อัตราการไข่เฉลี่ยรวม", value=f"{avg_lay:.2f} %", delta=f"ล่าสุด: {last_lay}%")
+    st.metric(label="🥚 อัตราการไข่เฉลี่ย", value=f"{avg_lay:.1f} %", delta=f"ล่าสุด: {df_track['อัตราการไข่ (%)'].iloc[-1]}%")
 with m_crack:
-    st.metric(label="💥 อัตราไข่บุบแตกเฉลี่ยรวม", value=f"{avg_crack:.2f} %", delta=f"ล่าสุด: {last_crack}%", delta_color="inverse")
-with m_alert:
-    # 🚨 ระบบแจ้งเตือนวิกฤตอัตโนมัติหน้างาน
-    if last_lay < 80.0:
-        st.error("🚨 วิกฤต: อัตราการไข่ล่าสุดต่ำกว่าเกณฑ์ 80%! ไก่กำลังส่งสัญญาณป่วยหรือเครียด")
-    elif last_crack > 4.0:
-        st.warning("⚠️ เตือนภัย: อัตราไข่แตกสูงเกิน 4%! แคลเซียมในอาหารอาจไม่พอ")
-    else:
-        st.success("✅ Status ฝูงไก่: ผลผลิตอยู่ในเกณฑ์สมบูรณ์และปลอดภัยดี")
+    st.metric(label="💥 อัตราไข่บุบแตกเฉลี่ย", value=f"{avg_crack:.2f} %", delta=f"ล่าสุด: {df_track['อัตราไข่บุบแตก (%)'].iloc[-1]}%", delta_color="inverse")
+with m_fcr:
+    st.metric(label="🥣 ค่า FCR เฉลี่ย (อาหาร กก./ไข่ 1 กก.)", value=f"{avg_fcr:.2f}", delta=f"ล่าสุด: {df_track['FCR (ประสิทธิภาพอาหาร)'].iloc[-1]}", delta_color="inverse")
+with m_profit:
+    st.metric(label="💵 กำไรสุทธิวันนี้ (หักค่าอาหารแล้ว)", value=f"{last_profit:,.1f} บาท", delta=f"สะสมรอบนี้: {total_profit_accum:,.1f} บาท")
+
+st.markdown("---")
+
+# 💵🆕 ฟีเจอร์เพิ่มใหม่: แผงรับข้อมูลราคาขายไข่ประจำวัน (Financial Tracker Inputs)
+st.markdown("##### 💵 📊 ตารางตั้งราคาขายหน้าฟาร์มวันนี้เพื่อคำนวณผลกำไร")
+p_c1, p_c2, p_c3 = st.columns(3)
+with p_c1:
+    price_large = st.number_input("ราคาขายไข่ เบอร์ 0 - 1 (บาท/ฟอง):", min_value=0.0, value=4.5, step=0.1)
+with p_c2:
+    price_med = st.number_input("ราคาขายไข่ เบอร์ 2 - 3 (บาท/ฟอง):", min_value=0.0, value=4.0, step=0.1)
+with p_c3:
+    price_small = st.number_input("ราคาขายไข่ เบอร์ 4 - 5 (บาท/ฟอง):", min_value=0.0, value=3.5, step=0.1)
 
 st.markdown("---")
 
 track_col1, track_col2 = st.columns([4, 6], gap="large")
+
 with track_col1:
-    with st.form("supabase_sync_form_final_v3"):
-        st.markdown("##### 📝 กรอกรายงานหลังเดินตรวจเล้า")
-        in_date = st.text_input("วันที่บันทึก (เช่น 04/06):", value="04/06")
-        f_name = st.text_input("วันนี้ใช้สูตรอาหารชื่ออะไร:", value="สูตร AI แนะนำ")
-        lay_r = st.number_input("วันนี้เก็บไข่ได้กี่ % (อัตราการไข่):", value=86.2, min_value=0.0, max_value=100.0, step=0.1)
-        crack_r = st.number_input("วันนี้มีไข่บุบ/ไข่แตกกี่ %:", value=1.5, min_value=0.0, max_value=100.0, step=0.1)
-        note_text = st.text_input("📌 หมายเหตุ/เหตุการณ์สำคัญวันนี้ (ถ้ามี):", value="ปกติ")
+    with st.form("supabase_sync_form_final_v5"):
+        st.markdown("##### 📝 สมุดบันทึกและจำแนกเกรดผลผลิต")
         
-        if st.form_submit_button("💾 กดบันทึกสถิติวันนี้"):
+        f_c1, f_c2 = st.columns(2)
+        with f_c1:
+            in_date = st.text_input("วันที่บันทึก (เช่น 04/06):", value="04/06")
+            lay_r = st.number_input("อัตราการไข่วันนี้ (%):", value=85.0, min_value=0.0, max_value=100.0, step=0.1)
+            egg_weight_total = st.number_input("น้ำหนักไข่รวมวันนี้ (กก.):", value=53.0, min_value=1.0, max_value=5000.0, step=0.5)
+        with f_c2:
+            f_name = st.text_input("สูตรอาหารวันนี้:", value="สูตร AI แนะนำ")
+            crack_r = st.number_input("อัตราไข่บุบแตกวันนี้ (%):", value=1.8, min_value=0.0, max_value=100.0, step=0.1)
+            dead_count = st.number_input("จำนวนไก่ตาย/คัดทิ้งวันนี้ (ตัว):", value=0, min_value=0, step=1)
+            
+        st.markdown("**📊 สัดส่วนขนาดไข่ที่คัดแยกวันนี้ (รวมต้องได้ 100%)**")
+        g_c1, g_c2, g_c3 = st.columns(3)
+        with g_c1:
+            g_large = st.number_input("เบอร์ 0 - 1 (%)", value=25.0, min_value=0.0, max_value=100.0, step=1.0, key="gl")
+        with g_c2:
+            g_med = st.number_input("เบอร์ 2 - 3 (%)", value=55.0, min_value=0.0, max_value=100.0, step=1.0, key="gm")
+        with g_c3:
+            g_small = st.number_input("เบอร์ 4 - 5 (%)", value=20.0, min_value=0.0, max_value=100.0, step=1.0, key="gs")
+            
+        note_text = st.text_input("📌 หมายเหตุ/เหตุการณ์สำคัญ:", value="ปกติ")
+        
+        total_grade_pct = g_large + g_med + g_small
+        if abs(total_grade_pct - 100.0) > 0.01:
+            st.error(f"❌ สัดส่วนขนาดไข่รวมกันได้ {total_grade_pct}% (กรุณาปรับแก้ให้ครบ 100% ก่อนบันทึก)")
+            submit_disabled = True
+        else:
+            submit_disabled = False
+            
+        if st.form_submit_button("💾 กดบันทึกสถิติวันนี้", disabled=submit_disabled):
+            # คำนวณรายได้จากจำนวนไข่ทั้งหมดตามสัดส่วนเบอร์
+            total_eggs_today = chicken_count * (lay_r / 100.0)
+            revenue_today = (
+                (total_eggs_today * (g_large / 100.0) * price_large) +
+                (total_eggs_today * (g_med / 100.0) * price_med) +
+                (total_eggs_today * (g_small / 100.0) * price_small)
+            )
+            profit_today = round(revenue_today - daily_feed_cost, 1)
+
             new_row = pd.DataFrame([{
                 "วันที่": in_date, 
                 "สูตรอาหาร": f_name, 
                 "อัตราการไข่ (%)": lay_r, 
                 "อัตราไข่บุบแตก (%)": crack_r,
+                "น้ำหนักไข่รวม (กก.)": egg_weight_total,
+                "ไข่เบอร์ 0-1 (%)": g_large,
+                "ไข่เบอร์ 2-3 (%)": g_med,
+                "ไข่เบอร์ 4-5 (%)": g_small,
+                "ตาย/คัดทิ้ง (ตัว)": dead_count,
+                "กำไรสุทธิวันนี้ (บาท)": profit_today,
                 "หมายเหตุ": note_text
             }])
             st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
             
+            # จัดเตรียม Payload ส่ง Cloud (Supabase)
             payload = {
                 "date_record": in_date, 
                 "formula_name": f_name, 
                 "laying_rate": lay_r, 
                 "crack_rate": crack_r, 
+                "egg_weight_total": egg_weight_total,
+                "grade_large_pct": g_large,
+                "grade_med_pct": g_med,
+                "grade_small_pct": g_small,
+                "dead_count": dead_count,
+                "net_profit_day": profit_today,
                 "cost_per_kg": float(total_cost),
                 "breed_name": breed_info['name'],
                 "notes": note_text
@@ -329,7 +420,6 @@ with track_col1:
                     }
                     endpoint = f"{SUPABASE_URL}/rest/v1/farm_records"
                     response = requests.post(endpoint, json=payload, headers=headers, timeout=5)
-                    
                     if response.status_code in [200, 201]:
                         st.success(f"☁️ บันทึกข้อมูลเข้าสู่ระบบออนไลน์เรียบร้อยแล้ว!")
                     else:
@@ -342,31 +432,55 @@ with track_col1:
             st.rerun()
 
 with track_col2:
-    # 🎯 ใช้ custom_data มารับค่าสูตรอาหารและหมายเหตุ เพื่อความเสถียรในการทำงานร่วมกับ Wide-form Data
-    fig = px.line(
-        st.session_state.tracker_data, 
-        x="วันที่", 
-        y=["อัตราการไข่ (%)", "อัตราไข่บุบแตก (%)"], 
-        markers=True, 
-        template="plotly_dark",
-        custom_data=["สูตรอาหาร", "หมายเหตุ"],
-        title="📈 กราฟเปรียบเทียบผลผลิตและอัตราไข่แตกประจำวัน"
-    )
+    tab_line, tab_bar, tab_profit = st.tabs(["📈 แนวโน้มผลผลิต & FCR", "📊 สัดส่วนขนาดไซส์ไข่ไก่", "💵 สถิติกำไรฟาร์ม"])
     
-    # ดึงค่าจาก custom_data มาจัดรูปแบบกล่องข้อความ Hover ให้สวยงามและอ่านง่ายในธีมมืด
-    fig.update_traces(
-        hovertemplate="<br>".join([
-            "<b>วันที่:</b> %{x}",
-            "<b>เปอร์เซ็นต์:</b> %{y}%",
-            "<b>🥣 สูตรอาหาร:</b> %{customdata[0]}",
-            "<b>📌 หมายเหตุ:</b> %{customdata[1]}"
-        ])
-    )
+    with tab_line:
+        fig_line = go.Figure()
+        fig_line.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["อัตราการไข่ (%)"], name="อัตราการไข่ (%)", mode="lines+markers", line=dict(color="#22c55e", width=3)))
+        fig_line.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["อัตราไข่บุบแตก (%)"], name="อัตราไข่บุบแตก (%)", mode="lines+markers", line=dict(color="#ef4444", width=2)))
+        fig_line.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["FCR (ประสิทธิภาพอาหาร)"], name="ดัชนี FCR", mode="lines+markers", yaxis="y2", line=dict(color="#3b82f6", dash="dash")))
+
+        fig_line.update_layout(
+            title="กราฟเปรียบเทียบผลผลิต ผลิตภาพอาหาร (FCR) และอัตราสูญเสีย",
+            template="plotly_dark", hovermode="x unified",
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(title="วันที่"), yaxis=dict(title="เปอร์เซ็นต์ (%)", side="left"),
+            yaxis2=dict(title="ดัชนีค่า FCR", side="right", overlaying="y", showgrid=False),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
+        
+    with tab_bar:
+        fig_bar = px.bar(
+            df_track, x="วันที่", y=["ไข่เบอร์ 4-5 (%)", "ไข่เบอร์ 2-3 (%)", "ไข่เบอร์ 0-1 (%)"],
+            title="กราฟวิเคราะห์สัดส่วนขนาดไข่ไก่ประจำวัน (Egg Size Distribution)",
+            labels={"value": "สัดส่วนเปอร์เซ็นต์ (%)", "variable": "เกรดขนาดไข่"},
+            color_discrete_sequence=["#fdba74", "#f97316", "#ea580c"], template="plotly_dark"
+        )
+        fig_bar.update_layout(
+            barmode="stack", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    with tab_profit:
+        # กราฟแท่งแสดงแนวโน้มผลกำไรสุทธิแต่ละวัน
+        fig_profit = px.bar(
+            df_track, x="วันที่", y="กำไรสุทธิวันนี้ (บาท)",
+            title="📊 กราฟสรุปผลกำไรสุทธิรายวันหลังหักค่าอาหาร (Net Daily Profit)",
+            color="กำไรสุทธิวันนี้ (บาท)", color_continuous_scale="Viridis", template="plotly_dark"
+        )
+        fig_profit.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_profit, use_container_width=True)
+
+    # แสดงตารางและปุ่มดาวน์โหลดรายงานสถิติประจำวันทั้งหมด
+    st.markdown("##### 📝 ตารางสถิติดิบทั้งหมดในเครื่องปัจจุบัน")
+    st.dataframe(df_track, use_container_width=True, hide_index=True)
     
-    fig.update_layout(
-        hovermode="x unified",
-        paper_bgcolor='rgba(0,0,0,0)', 
-        plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    csv_track = df_track.to_csv(index=False).encode('utf-8-sig')
+    st.download_button(
+        label="📥 ดาวน์โหลดรายงานสถิติและบัญชีฟาร์มประจำวัน (CSV)",
+        data=csv_track,
+        file_name="รายงานสถิติผลผลิตและกำไรประจำฟาร์ม.csv",
+        mime="text/csv"
     )
-    st.plotly_chart(fig, use_container_width=True)
