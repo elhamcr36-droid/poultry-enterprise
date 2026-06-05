@@ -3,8 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import pulp
-import requests
-from io import BytesIO
 from datetime import datetime
 
 # ==========================================
@@ -76,7 +74,7 @@ if "optimized_weights" not in st.session_state:
 # 🏛️ 3. ส่วนหัวของแอปและข้อมูลสายพันธุ์ (App Header & Breed Profiles)
 # ==========================================
 st.title("🔱 Smart Layer Feed — ระบบคำนวณโภชนาการอาหารไก่ไข่อัจฉริยะ")
-st.caption("ระบบคำนวณเชิงลึกระดับอุตสาหกรรมด้วยกลไกการค้นหาจุดคุ้มทุนเชิงเส้น (PuLP Linear Programming Engine)")
+st.caption("ระบบคำนวณเชิงลึกระดับอุตสาหกรรมด้วยกลไกการค้นหาจุดคุ้มทุนเชิงสิ้น (PuLP Linear Programming Engine)")
 
 st.markdown("### 🧬 0. ข้อมูลสายพันธุ์และสถานะการเชื่อมต่อคลาวด์ (Breed Profiles & Cloud Connection Status)")
 c_group, c_breed = st.columns(2)
@@ -204,7 +202,7 @@ with creator_left:
                 new_ing_me = st.number_input("⚡ พลังงานใช้ประโยชน์ได้ (Metabolizable Energy - ME กิโลแคลอรี/กก.):", min_value=0.0, value=0.0, step=50.0)
                 new_ing_fiber = st.number_input("🌾 ปริมาณกาก/เยื่อใย (Crude Fiber - %):", min_value=0.0, value=0.0, step=0.1)
             with f_col2:
-                new_ing_calcium = st.number_input("🦴 ปริมาณแคลเซียม (Calcium - %):", min_value=0.0, value=0.0, step=0.05)
+                new_ing_calcium = st.number_input("Bone ปริมาณแคลเซียม (Calcium - %):", min_value=0.0, value=0.0, step=0.05)
                 new_ing_phos = st.number_input("🧪 ปริมาณฟอสฟอรัส (Phosphorus - %):", min_value=0.0, value=0.0, step=0.05)
                 new_ing_amino = st.number_input("🧬 กรดอะมิโนจำเป็นรวม (Total Amino Acids - %):", min_value=0.0, value=0.0, step=0.05)
                 new_ing_fat = st.number_input("🥑 ปริมาณไขมัน (Crude Fat - %):", min_value=0.0, value=0.0, step=0.1)
@@ -267,7 +265,7 @@ with creator_right:
     nutrient_list = [
         ("🥩 โปรตีนรวม (Crude Protein)", "protein", "%"), 
         ("⚡ พลังงานใช้ประโยชน์ได้ (Metabolizable Energy)", "me", "kcal/kg"), 
-        ("🦴 แคลเซียม (Calcium)", "calcium", "%"), 
+        ("Bone แคลเซียม (Calcium)", "calcium", "%"), 
         ("🧪 ฟอสฟอรัสที่เป็นประโยชน์ (Available Phosphorus)", "phos", "%"), 
         ("🧬 กรดอะมิโนจำเป็นรวม (Total Amino Acids)", "amino", "%"),
         ("🌾 กาก / เยื่อใยรวม (Crude Fiber)", "fiber", "%"),
@@ -378,7 +376,7 @@ df_track = st.session_state.tracker_data.copy()
 daily_feed_consumed_kg = (chicken_count * breed_info['default_feed']) / 1000.0
 daily_feed_cost = daily_feed_consumed_kg * total_cost
 
-# คำนวณค่า FCR (Feed Conversion Ratio) อัตโนมัติ
+# คำนวณค่า FCR (Feed Conversion Ratio) อัตโนมัติลงในตาราง
 df_track["FCR (ประสิทธิภาพอาหาร)"] = (daily_feed_consumed_kg / df_track["น้ำหนักไข่รวม (กก.)"]).round(2)
 total_dead = df_track["ตาย/คัดทิ้ง (ตัว)"].sum()
 total_profit_accum = df_track["กำไรสุทธิวันนี้ (บาท)"].sum()
@@ -449,15 +447,19 @@ with track_col1:
             submit_disabled = False
             
         if st.form_submit_button("💾 กดบันทึกสถิติวันนี้ (Save Daily Records)", disabled=submit_disabled):
-            # คำนวณรายได้และกำไรอัตโนมัติจากราคาฟาร์มและสัดส่วนเบอร์ไข่
-            total_eggs_today = chicken_count * (lay_r / 100.0)
-            revenue_today = (
-                (total_eggs_today * (g_large / 100.0) * price_large) +
-                (total_eggs_today * (g_med / 100.0) * price_med) +
-                (total_eggs_today * (g_small / 100.0) * price_small)
-            )
-            profit_today = revenue_today - daily_feed_cost
+            # 1. คำนวณจำนวนฟองไข่ทั้งหมดโดยประมาณ (Laying Rate * จำนวนไก่)
+            total_eggs_estimated = (lay_r / 100.0) * chicken_count
             
+            # 2. รายได้แยกตามเกรด
+            rev_large = (total_eggs_estimated * (g_large / 100.0)) * price_large
+            rev_med = (total_eggs_estimated * (g_med / 100.0)) * price_med
+            rev_small = (total_eggs_estimated * (g_small / 100.0)) * price_small
+            total_revenue_today = rev_large + rev_med + rev_small
+            
+            # 3. กำไรสุทธิวันนี้ (รายได้ทั้งหมด - ต้นทุนค่าอาหารวันนั้น)
+            net_profit_today = total_revenue_today - daily_feed_cost
+            
+            # 4. บันทึกข้อมูลลง Session State DataFrame
             new_row = {
                 "วันที่": in_date, 
                 "สูตรอาหาร": f_name, 
@@ -468,55 +470,42 @@ with track_col1:
                 "ไข่เบอร์ 2-3 (%)": g_med, 
                 "ไข่เบอร์ 4-5 (%)": g_small, 
                 "ตาย/คัดทิ้ง (ตัว)": dead_count, 
-                "กำไรสุทธิวันนี้ (บาท)": round(profit_today, 2), 
+                "กำไรสุทธิวันนี้ (บาท)": round(net_profit_today, 2), 
                 "หมายเหตุ": note_text
             }
-            
             st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, pd.DataFrame([new_row])], ignore_index=True)
-            st.success("🎉 บันทึกข้อมูลและประมวลผลกำไรสุทธิประจำวันลงในระบบเรียบร้อยแล้ว!")
+            st.success(f"✅ บันทึกสถิติสำเร็จ! ประเมินรายได้ {total_revenue_today:,.1f} บาท, กำไรสุทธิ {net_profit_today:,.1f} บาท")
             st.rerun()
 
 with track_col2:
-    st.markdown("##### 📈 กราฟเส้นแนวโน้มผลผลิตและกำไรของฟาร์ม (Production Trends & Profit Analytics Charts)")
+    st.markdown("##### 📈 กราฟวิเคราะห์แนวโน้มผลผลิตและกำไร (Production & Profit Trend Analysis)")
+    
     if not df_track.empty:
-        # แสดงตารางประวัติข้อมูล
+        # กราฟที่ 1: อัตราการไข่ปะทะอัตราไข่แตกเสียหาย
+        fig_prod = go.Figure()
+        fig_prod.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["อัตราการไข่ (%)"], name="อัตราการไข่ (%)", line=dict(color='#22c55e', width=3)))
+        fig_prod.add_trace(go.Bar(x=df_track["วันที่"], y=df_track["อัตราไข่บุบแตก (%)"], name="ไข่บุบแตก (%)", marker_color='#ef4444', opacity=0.6))
+        fig_prod.update_layout(title="วิเคราะห์อัตราการให้ไข่ ปะทะ อัตราไข่เสียหายรายวัน", hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        st.plotly_chart(fig_prod, use_container_width=True)
+        
+        # กราฟที่ 2: แนวโน้มกระแสเงินสดและกำไรสุทธิฟาร์ม
+        fig_profit = px.area(df_track, x="วันที่", y="กำไรสุทธิวันนี้ (บาท)", title="แนวโน้มกำไรสุทธิรายวันจากสัดส่วนสูตรอาหาร (Net Profit Trend)", color_discrete_sequence=['#eab308'])
+        fig_profit.update_layout(hovermode="x unified")
+        st.plotly_chart(fig_profit, use_container_width=True)
+        
+        # แสดงตาราง Ledger ด้านล่างกราฟให้ตรวจสอบ
+        st.markdown("##### 📄 ตารางบันทึกบัญชีฟาร์มฉบับเต็ม (Historical Ledger Data)")
         st.dataframe(df_track, use_container_width=True, hide_index=True)
-        
-        # 🛠️ ใช้ go.Figure ร่วมกับ make_subplots สำหรับทำกราฟเปรียบเทียบแบบ 2 แกนวาย (Dual Y-Axis) 
-        # วิธีนี้ปลอดภัยจากการระเบิดและแสดงผลเปรียบเทียบเชิงลึกได้ตามที่ฟาร์มต้องการ
-        from plotly.subplots import make_subplots
-        
-        fig_dual = make_subplots(specs=[[{"secondary_y": True}]])
-        
-        # เพิ่มเส้นกราฟอัตราการไข่ (แกนซ้าย)
-        fig_dual.add_trace(
-            go.Scatter(x=df_track["วันที่"], y=df_track["อัตราการไข่ (%)"], name="อัตราการไข่ (%)", mode='lines+markers', line=dict(color='#0284c7', width=3)),
-            secondary_y=False,
-        )
-        
-        # เพิ่มเส้นกราฟกำไรสุทธิ (แกนขวา)
-        fig_dual.add_trace(
-            go.Scatter(x=df_track["วันที่"], y=df_track["กำไรสุทธิวันนี้ (บาท)"], name="กำไรสุทธิวันนี้ (บาท)", mode='lines+markers', line=dict(color='#16a34a', width=3)),
-            secondary_y=True,
-        )
-        
-        # กำหนดรายละเอียดหัวข้อและป้ายกำกับแกน
-        fig_dual.update_layout(
-            title_text="📊 วิเคราะห์เปรียบเทียบอัตราการไข่ และ ผลกำไรสุทธิรายวัน",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        
-        fig_dual.update_xaxes(title_text="วันที่บันทึก (Date)")
-        fig_dual.update_yaxes(title_text="<b>อัตราการไข่</b> (%)", color='#0284c7', secondary_y=False)
-        fig_dual.update_yaxes(title_text="<b>กำไรสุทธิ</b> (บาท)", color='#16a34a', secondary_y=True)
-        
-        st.plotly_chart(fig_dual, use_container_width=True)
-        
-        # เพิ่มเติม: กราฟแท่งแสดงอัตราไข่บุบแตกประจำวัน
-        fig_crack = px.bar(df_track, x="วันที่", y="อัตราไข่บุบแตก (%)", 
-                            title="💥 แนวโน้มอัตราไข่บุบแตกหน้าฟาร์ม (Daily Broken Egg Rates Trend)",
-                            text_auto='.1f', color_discrete_sequence=['#ef4444'])
-        st.plotly_chart(fig_crack, use_container_width=True)
-        
     else:
-        st.info("💡 ยังไม่มีข้อมูลสถิติในระบบ กรุณากรอกข้อมูลและบันทึกสถิติที่แผงควบคุมฝั่งซ้าย")
+        st.info("💡 ข้อมูลในคลังยังว่างเปล่า เริ่มกรอกสมุดจดบันทึกด้านซ้ายเพื่อเปิดการใช้งานกราฟเชิงลึก")
+
+# ==========================================
+# 🏁 10. ส่วนท้ายของแอปพลิเคชัน (Enterprise Footer)
+# ==========================================
+st.markdown("---")
+st.markdown(f"""
+<div style='text-align: center; color: #64748b; font-size: 0.8em;'>
+    © 2026 Smart Layer Feed v8.5 - Enterprise Livestock Solutions<br>
+    ระบบคำนวณและวิเคราะห์โภชนาการแม่ไก่ไข่เชิงพาณิชย์ | ⏱️ อัปเดตการประมวลผลล่าสุดเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+</div>
+""", unsafe_allow_html=True)
