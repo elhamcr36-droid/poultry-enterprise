@@ -21,7 +21,6 @@ STAGE_NUTRITION_TARGETS = {
     "laying": {"name": "ไก่ไข่ระยะให้ผลผลิต (16 สัปดาห์ขึ้นไป)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "amino": 0.38}
 }
 
-# ฐานข้อมูลราคาและโภชนาการรายตัว (ขยายขอบเขตการคำนวณจำกัดสัดส่วน Max/Min % เพื่อความปลอดภัยของลำไส้ไก่)
 INGREDIENT_DATA = {
     "ข้าวโพดบด": {"price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "amino": 0.18, "moisture": 12.0, "tox_risk": 3, "min_limit": 30.0, "max_limit": 65.0},
     "กากถั่วเหลือง": {"price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "amino": 0.65, "moisture": 11.5, "tox_risk": 1, "min_limit": 10.0, "max_limit": 35.0},
@@ -34,11 +33,15 @@ INGREDIENT_DATA = {
 
 BREED_PROFILES = {
     "Isa Brown": {"name": "Isa Brown (อีซ่า บราวน์)", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 115, "desc": "นิยมที่สุดในไทย ทนทาน เปลือกหนา ฟองใหญ่"},
-    "White Leghorn": {"name": "White Leghorn (ไวท์เลกฮอร์น)", "egg_color": "🤍 ขาว", "bg_color": "#f8fafc", "text_color": "#1e293b", "default_feed": 105, "desc": "กินอาหารน้อยมาก ให้ไข่เปลือกขาวดกเป็นเลิศ"},
+    "White Leghorn": {"name": "White Leghorn (ไวท์เลกฮอร์น)", "egg_color": "🤍 ขาว", "bg_color": "#e2e8f0", "text_color": "#1e293b", "default_feed": 105, "desc": "กินอาหารน้อยมาก ให้ไข่เปลือกขาวดกเป็นเลิศ"},
     "Rhode Island Red": {"name": "Rhode Island Red (โรดไอแลนด์เรด)", "egg_color": "🤎 น้ำตาล", "bg_color": "#8b4513", "text_color": "#ffffff", "default_feed": 125, "desc": "พันธุ์แท้โครงสร้างใหญ่ แข็งแรง กินเก่ง ไข่ดี"}
 }
 
 LIFECYCLE_FEED_BUDGET = {"starter": 1.2, "grower": 2.8, "laying": 48.0}
+
+# เตรียม Session State สำหรับเก็บค่าน้ำหนักสารอาหารเริ่มต้น
+if "optimized_weights" not in st.session_state:
+    st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 
 # ==========================================
 # 🏛️ 3. APP HEADER & BREED INFRASTRUCTURE
@@ -93,27 +96,22 @@ st.markdown("---")
 # ==========================================
 # 🧠 5. THE AI OPTIMIZATION ENGINE (PuLP MATRIX COMPUTER)
 # ==========================================
-st.markdown("### 🧠 2. AI least-Cost Optimization Brain")
+st.markdown("### 🧠 2. AI Least-Cost Optimization Brain")
 st.caption("ระบบคำนวณหาสัดส่วนการผสมวัตถุดิบอัตโนมัติที่ต้นทุนต่ำที่สุดในตลาด ณ ปัจจุบัน แต่ให้ค่าสารอาหารครบถ้วน")
 
-# ส่วนคำนวณจัดการเอนไซม์ไฟเตส (Micro-nutrients Logic)
 use_phytase = st.checkbox("🧪 ใส่เอนไซม์ไฟเตส (Phytase) ช่วยย่อยฟอสฟอรัสจากรำละเอียด (ลดเป้าหมายไดแคลเซียมลง 0.10% อัตโนมัติ)", value=True)
 if use_phytase:
     adjusted_target["phos"] = max(0.30, adjusted_target["phos"] - 0.10)
 
 if st.button("⚡ สั่งปัญญาประดิษฐ์ประมวลผลคำนวณสูตรต้นทุนต่ำสุด (Run AI Optimizer)"):
-    # เริ่มตั้งโจทย์โมเดลคณิตศาสตร์เชิงเส้นด้วย PuLP
     prob = pulp.LpProblem("LeastCostLayerFeed", pulp.LpMinimize)
     
-    # สร้างตัวแปรการผสมวัตถุดิบรายตัว (สัดส่วนเป็นเปอร์เซ็นต์ % ที่ยอมรับตามขอบเขตความปลอดภัย)
     ingredient_vars = {}
     for name, data in INGREDIENT_DATA.items():
         ingredient_vars[name] = pulp.LpVariable(name, lowBound=data["min_limit"], upBound=data["max_limit"])
         
-    # Objective Function: คำนวณราคารวมที่ต่ำที่สุด
     prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["price"] / 100.0) for name in INGREDIENT_DATA.keys()])
     
-    # Constraints (เงื่อนไขข้อบังคับทางโภชนาการ)
     prob += pulp.lpSum([ingredient_vars[name] for name in INGREDIENT_DATA.keys()]) == 100.0, "TotalWeight"
     prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["protein"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["protein"], "ProteinRequired"
     prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["me"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["me"], "EnergyRequired"
@@ -121,18 +119,17 @@ if st.button("⚡ สั่งปัญญาประดิษฐ์ประ�
     prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["phos"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["phos"], "PhosRequired"
     prob += pulp.lpSum([ingredient_vars[name] * (INGREDIENT_DATA[name]["amino"] / 100.0) for name in INGREDIENT_DATA.keys()]) >= adjusted_target["amino"], "AminoRequired"
     
-    # ประมวลผลคำตอบออกผลลัพธ์
     status = prob.solve()
     
     if pulp.LpStatus[status] == "Optimal":
-        st.session_state.optimized_weights = {name: ingredient_vars[name].varValue for name in INGREDIENT_DATA.keys()}
+        # อัปเดตทั้งตัวประมวลผลหลัก และบังคับค่าสไลเดอร์ใน Session State ให้เปลี่ยนตาม
+        for name in INGREDIENT_DATA.keys():
+            val = round(ingredient_vars[name].varValue, 1)
+            st.session_state.optimized_weights[name] = val
+            st.session_state[f"sl_{name}"] = val
         st.success("🎉 ค้นพบทางเลือกการผสมสูตรอาหารที่ประหยัดเงินที่สุดและปลอดภัยเรียบร้อยแล้ว!")
     else:
         st.error("❌ วัตถุดิบในคลังปัจจุบันไม่เพียงพอต่อการสร้างสูตรสารอาหารเข้มข้นขนาดนี้ โปรดเปิดสไลเดอร์ปรับมือด้านล่าง")
-
-# ตรวจเช็คหน่วยความจำสูตรอาหารของเซสชันแอปพลิเคชัน
-if "optimized_weights" not in st.session_state:
-    st.session_state.optimized_weights = {"ข้าวโพดบด": 52.0, "กากถั่วเหลือง": 24.0, "รำละเอียด": 14.0, "ปลาป่น": 5.0, "เปลือกหอยบด": 4.2, "ไดแคลเซียมฟอสเฟต": 0.6, "กรดอะมิโนสังเคราะห์": 0.2}
 
 st.markdown("---")
 
@@ -145,10 +142,11 @@ with creator_left:
     st.markdown("### 🛠️ 3. Formula Adjustment & Alternative Index")
     user_weights = {}
     for name in INGREDIENT_DATA.keys():
-        val = float(st.session_state.optimized_weights.get(name, 0.0))
-        user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, val, step=0.1, key=f"sl_{name}")
+        # ดึงค่าจาก session_state มาเป็น Default เพื่อให้ซิงค์กันได้สมบูรณ์แบบ
+        default_val = float(st.session_state.optimized_weights.get(name, 0.0))
+        user_weights[name] = st.slider(f"{name} (%)", 0.0, 100.0, default_val, step=0.1, key=f"sl_{name}")
 
-# คำนวณสรุปโภชนาการสะสมจริงแบบเรียลไทม์ผ่าน Pandas DataFrame
+# คำนวณสรุปโภชนาการสะสมจริงแบบเรียลไทม์
 current_nutrition = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "amino": 0.0}
 total_moisture = 0.0
 total_cost = 0.0
@@ -186,7 +184,7 @@ st.markdown("### 📅 4. Farm Operations & Life Logistics")
 m_col1, m_col2, m_col3 = st.columns(3, gap="medium")
 
 with m_col1:
-    st.markdown("##### 💧 ระบบคำนวณปริมาณน้ำน")
+    st.markdown("##### 💧 ระบบคำนวณปริมาณน้ำ")
     chicken_count = st.number_input("จำนวนไก่ในฟาร์ม (ตัว):", min_value=1, value=1000, step=100)
     base_water = (breed_info['default_feed'] / 1000.0) * 2.2 if current_key == "laying" else 0.15
     calc_water = chicken_count * base_water
@@ -251,15 +249,12 @@ with track_col1:
         crack_r = st.number_input("สัดส่วนไข่แตกหน้ากรงวันนี้ (%):", value=1.5)
         
         if st.form_submit_button("💾 บันทึกผลและสตรีมส่งข้อมูลขึ้นคลาวด์ Supabase"):
-            # 1. บันทึกเข้าหน่วยความจำแบบ Real-time ของตัวแอปก่อน
             new_row = pd.DataFrame([{"วันที่": in_date, "สูตรอาหาร": f_name, "อัตราการไข่ (%)": lay_r, "อัตราไข่บุบแตก (%)": crack_r}])
             st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, new_row], ignore_index=True)
             
-            # 2. จำลอง Gateway ยิงเข้า REST API ของฐานข้อมูลคลาวด์ Supabase Table
             payload = {"date_record": in_date, "formula_name": f_name, "laying_rate": lay_r, "crack_rate": crack_r, "cost_per_kg": total_cost}
             try:
                 headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
-                # ล็อกคำสั่งยิง POST ไปยังปลายทาง (หากผู้ใช้งานเปิดการใช้งานตารางดาต้าเบสหลังบ้านจริง)
                 # response = requests.post(f"{SUPABASE_URL}/rest/v1/egg_tracker", json=payload, headers=headers)
                 st.success(f"☁️ Cloud Sync Completed: ส่งสถิติไปยังฐานข้อมูล Supabase สำเร็จ!")
             except Exception as e:
