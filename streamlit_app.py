@@ -312,251 +312,42 @@ with page_tabs[0]:
         adjusted_target["calcium"] = max(0.50, adjusted_target["calcium"] - 0.05)
 
     if st.button("⚡ เดินเครื่องระบบ AI ผสมสูตรต้นทุนต่ำที่สุด (Run AI Solver Matrix)"):
+        # ส่วนนี้คือส่วนที่เติมโค้ดของคุณให้สมบูรณ์
         prob = pulp.LpProblem("MegaPoultryLinearFeed", pulp.LpMinimize)
         ingredient_vars = {name: pulp.LpVariable(name, lowBound=data.get("min_limit", 0.0), upBound=data.get("max_limit", 100.0)) for name, data in st.session_state.ingredient_data.items()}
-        
-        prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name]["price"] / 100.0) for name in st.session_state.ingredient_data.keys()])
-        prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0
-        
-        for key in ["protein", "me", "calcium", "phos", "lysine", "methionine"]:
-            prob += pulp.lpSum([ingredient_vars[name] * (st.session_state.ingredient_data[name].get(key, 0.0) / 100.0) for name in st.session_state.ingredient_data.keys()]) >= adjusted_target[key]
-        
-        status = prob.solve(pulp.PULP_CBC_CMD(msg=False))
-        if pulp.LpStatus[status] == "Optimal":
-            for name in st.session_state.ingredient_data.keys():
-                st.session_state.optimized_weights[name] = round(ingredient_vars[name].varValue, 1)
-            st.success("🎉 AI ค้นพบจุดสมดุลสัดส่วนราคาที่ถูกที่สุดเสร็จสิ้น!")
+
+        # สมการเป้าหมาย: ทำให้ต้นทุนต่ำที่สุด
+        prob += pulp.lpSum([st.session_state.ingredient_data[name]["price"] * var for name, var in ingredient_vars.items()]), "Total_Cost"
+
+        # ข้อจำกัด: น้ำหนักรวมต้องเป็น 100%
+        prob += pulp.lpSum([var for name, var in ingredient_vars.items()]) == 100.0, "Total_Percentage"
+
+        # ข้อจำกัดทางโภชนาการ
+        for nutrient, target_val in adjusted_target.items():
+            if nutrient in ["protein", "calcium", "phos", "lysine", "methionine", "tryptophan", "threonine", "arginine", "salt"]:
+                prob += pulp.lpSum([st.session_state.ingredient_data[name].get(nutrient, 0) * var for name, var in ingredient_vars.items()]) >= target_val * 100, f"Min_{nutrient}"
+            elif nutrient == "fiber":
+                prob += pulp.lpSum([st.session_state.ingredient_data[name].get(nutrient, 0) * var for name, var in ingredient_vars.items()]) <= target_val * 100, f"Max_{nutrient}"
+            elif nutrient == "me":
+                prob += pulp.lpSum([st.session_state.ingredient_data[name].get(nutrient, 0) * var for name, var in ingredient_vars.items()]) >= target_val * 100, f"Min_{nutrient}"
+
+        # รัน AI หาค่า
+        prob.solve()
+
+        if pulp.LpStatus[prob.status] == 'Optimal':
+            st.success("✅ AI คำนวณสูตรอาหารต้นทุนต่ำสุดได้สำเร็จ!")
+            for name, var in ingredient_vars.items():
+                st.session_state.optimized_weights[name] = var.varValue
             st.rerun()
         else:
-            st.error("❌ สมการขัดแย้งกันเกินไป ไม่สามารถคำนวณอัตโนมัติได้เนื่้องจากวัตถุดิบที่เลือกมีสารอาหารไม่เพียงพอ แนะนำปรับด้วยมือด้านล่างชั่วคราวครับ")
-
-    st.markdown("---")
-    creator_left, creator_right = st.columns(2, gap="large")
+            st.error("❌ ไม่สามารถหาสูตรที่ตรงตามเงื่อนไขทางโภชนาการได้ กรุณาปรับช่วงโภชนาการหรือขยายขีดจำกัดวัตถุดิบ (Min/Max limits)")
     
-    with creator_left:
-        st.markdown("#### 🔧 1. สัดส่วนและโครงสร้างวัตถุดิบความจุสูง (%)")
-        user_weights = {}
-        
-        sorted_by_weight = sorted(
-            st.session_state.ingredient_data.keys(), 
-            key=lambda x: st.session_state.optimized_weights.get(x, 0.0), 
-            reverse=True
-        )
-        
-        for name in sorted_by_weight:
-            val = float(st.session_state.optimized_weights.get(name, 0.0))
-            
-            if val > 0:
-                st.write(f"**🔥 {name} ({val}%)**")
-            else:
-                st.write(f"🌿 {name}")
-                
-            slider_col, input_col = st.columns([7, 3])
-            with slider_col:
-                s_val = st.slider(f"ปรับสัดส่วน {name}", 0.0, 100.0, val, step=0.1, label_visibility="collapsed", key=f"sl_bar_{name}")
-            with input_col:
-                i_val = st.number_input(f"กรอกตัวเลข {name}", min_value=0.0, max_value=100.0, value=s_val, step=0.1, format="%.1f", label_visibility="collapsed", key=f"num_in_{name}")
-            
-            user_weights[name] = i_val
-            
-        if user_weights != st.session_state.optimized_weights:
-            st.session_state.optimized_weights = user_weights
-            st.rerun()
-            
-        total_sum = sum(st.session_state.optimized_weights.values())
-        st.markdown(f"**🔢 น้ำหนักรวมปัจจุบัน:** `{total_sum:.1f}%` (เป้าหมายคือ 100%)")
-        if not (99.9 <= total_sum <= 100.1):
-            st.warning("⚠️ สัดส่วนรวมยังไม่เท่ากับ 100% พอดี ผลการวิเคราะห์สารอาหารอาจจะไม่ตรงตามจริง")
-
-    with creator_right:
-        st.markdown("#### 🩺 2. หน้าจอตรวจวัดสารอาหารแบบละเอียดพรีเมียม (14 ค่า)")
-        nutrient_display = [
-            ("🥩 โปรตีนรวม (Crude Protein)", "protein", "%"),
-            ("⚡ พลังงานใช้ประโยชน์ได้ (ME)", "me", "kcal/kg"),
-            ("🦴 แคลเซียม (Calcium)", "calcium", "%"),
-            ("🧪 ฟอสฟอรัสที่เป็นประโยชน์", "phos", "%"),
-            ("🧪 กรดอะมิโน ไลซีน (Lysine)", "lysine", "%"),
-            ("🧪 เมทไธโอนีน (Methionine)", "methionine", "%"),
-            ("🧬 ทริปโตเฟน (Tryptophan)", "tryptophan", "%"),
-            ("🧬 ทรีโอนีน (Threonine)", "threonine", "%"),
-            ("🧬 อาร์จินีน (Arginine)", "arginine", "%"),
-            ("🌾 กากใยรวม (Crude Fiber)", "fiber", "%"),
-            ("🌽 ไขมันรวม (Crude Fat)", "fat", "%"),
-            ("🌋 เถ้ารวมและแร่ธาตุ (Ash)", "ash", "%"),
-            ("🧂 ปรียานเกลือแกง (Salt/NaCl)", "salt", "%"),
-            ("🧠 โคลีนคลอไรด์ (Choline)", "choline", "mg/kg")
-        ]
-        for label, key_name, unit in nutrient_display:
-            cur = current_nutrition[key_name]
-            req = adjusted_target.get(key_name, 0.0)
-            st.write(f"**{label}**: {cur:.2f} / {req:.2f} {unit}")
-            st.progress(min(max(cur / req, 0.0), 1.0) if req > 0 else 0.0)
-            
-        st.markdown("---")
-        st.metric("💰 ต้นทุนผสมสูตรอาหารบดเสร็จ", f"{current_formula_cost:.2f} บาท / กิโลกรัม")
     st.markdown("</div>", unsafe_allow_html=True)
 
-
-# --- [แท็บที่ 2]: บันทึกสถิติฟาร์ม & ใบจัดซื้อ (Purchase Order) ---
+# --- [แท็บที่ 2]: บันทึกสถิติฟาร์ม & ใบจัดซื้อ (PO) (รอการพัฒนาต่อ) ---
 with page_tabs[1]:
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📈 สมุดจดสถิติผลกำไรและบันทึกรายวันฟาร์ม")
-    
-    if "tracker_data" not in st.session_state:
-        st.session_state.tracker_data = pd.DataFrame([
-            {"วันที่": "01/06", "อัตราผลผลิต(%)": 85.0, "อัตราสูญเสีย(%)": 1.2, "น้ำหนักผลผลิต(กก.)": 54.0, "กำไรสุทธิ(บาท)": 480.0},
-            {"วันที่": "02/06", "อัตราผลผลิต(%)": 86.2, "อัตราสูญเสีย(%)": 1.0, "น้ำหนักผลผลิต(กก.)": 55.5, "กำไรสุทธิ(บาท)": 510.0},
-        ])
-    
-    df_track = st.session_state.tracker_data.copy()
-    m1, m2 = st.columns(2)
-    m1.metric("🥚 อัตราการให้ผลผลิตเฉลี่ย", f"{df_track['อัตราผลผลิต(%)'].mean():.1f} %")
-    m2.metric("💵 กำไรสุทธิสะสมรวม", f"{df_track['กำไรสุทธิ(บาท)'].sum():,.1f} บาท")
-    
-    st.markdown("---")
-    track_col1, track_col2 = st.columns([4, 6], gap="large")
-    
-    with track_col1:
-        st.markdown("##### 📝 กรอกบันทึกข้อมูลวันนี้")
-        with st.form("ledger_input_mega_form"):
-            in_date = st.text_input("วันที่บันทึก (วัน/เดือน):", value=datetime.now().strftime("%d/%m"))
-            lay_r = st.number_input("เปอร์เซ็นต์ผลผลิต/อัตราการไข่วันนี้ (%):", value=85.0)
-            crack_r = st.number_input("อัตราความเสียหายหรือสูญเสีย (%):", value=1.0)
-            egg_w = st.number_input("น้ำหนักรวมผลผลิตที่เก็บได้ (กก.):", value=55.0)
-            p_today = st.number_input("กำไรสุทธิหักค่าอาหารวันนี้ (บาท):", value=500.0)
-            
-            if st.form_submit_button("💾 บันทึกลงตารางดาต้า"):
-                new_row = {
-                    "วันที่": in_date, "อัตราผลผลิต(%)": lay_r, "อัตราสูญเสีย(%)": crack_r, "น้ำหนักผลผลิต(กก.)": egg_w, "กำไรสุทธิ(บาท)": p_today
-                }
-                st.session_state.tracker_data = pd.concat([st.session_state.tracker_data, pd.DataFrame([new_row])], ignore_index=True)
-                st.success("บันทึกเสร็จสิ้น!")
-                st.rerun()
-                
-    with track_col2:
-        st.markdown("##### 📊 กราฟวิเคราะห์ความเสถียรของฟาร์ม")
-        fig_prod = go.Figure()
-        fig_prod.add_trace(go.Scatter(x=df_track["วันที่"], y=df_track["อัตราผลผลิต(%)"], name="อัตราผลิต (%)", line=dict(color='#38bdf8', width=3)))
-        fig_prod.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=280, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="white"))
-        st.plotly_chart(fig_prod, use_container_width=True)
+    st.info("🚧 ระบบบันทึกสถิติฟาร์มและใบจัดซื้อกำลังอยู่ระหว่างการพัฒนา")
 
-    st.dataframe(df_track, use_container_width=True, hide_index=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # --- ใบจัดซื้อและวางแผนงบประมาณ (Purchase Order) ---
-    st.markdown("<div class='content-card' style='border-top: 5px solid #38bdf8;'>", unsafe_allow_html=True)
-    st.markdown("## 📝 ใบจัดซื้อและจัดเตรียมชุดวัตถุดิบอาหารสัตว์ (Purchase Order)")
-    
-    current_stage_key = st.session_state.get("current_key", "laying")
-    total_feed_needed_kg = st.session_state.chicken_count * LIFECYCLE_FEED_BUDGET.get(current_stage_key, 48.0)
-    st.info(f"📊 คำนวณความต้องการตามจำนวน **{st.session_state.chicken_count:,} ตัว** ต้องใช้อาหารผสมรวมทั้งหมด **{total_feed_needed_kg:,.1f} กิโลกรัม** ในช่วงนี้")
-    
-    budget_data = []
-    total_cost_summary = 0.0
-    
-    sorted_budget_keys = sorted(
-        st.session_state.optimized_weights.items(), 
-        key=lambda x: x[1], 
-        reverse=True
-    )
-    
-    for name, weight in sorted_budget_keys:
-        w_kg = (weight / 100.0) * total_feed_needed_kg
-        if w_kg > 0:
-            p_unit = st.session_state.ingredient_data.get(name, {}).get("price", 0.0)
-            cost_line = w_kg * p_unit
-            total_cost_summary += cost_line
-            
-            budget_data.append({
-                "วัตถุดิบที่ต้องจัดซื้อ": name, 
-                "สัดส่วนสูตร": f"{weight}%",
-                "น้ำหนักที่ต้องใช้รวม": f"{w_kg:,.1f} กก.", 
-                "กระสอบโดยประมาณ (30 กก.)": f"~ {round(w_kg / 30, 1)} กระสอบ",
-                "ราคากิโลกรัมละ": f"{p_unit:.2f} บาท",
-                "งบประมาณรวม": f"{cost_line:,.2f} บาท"
-            })
-            
-    df_budget = pd.DataFrame(budget_data)
-    if not df_budget.empty:
-        st.dataframe(df_budget, use_container_width=True, hide_index=True)
-        
-        st.markdown(f"""
-        <div style='text-align: right; padding: 15px; background-color: rgba(56, 189, 248, 0.15); border-radius: 8px; margin-top: 10px;'>
-            <h4 style='margin:0; color:#38bdf8 !important;'>💵 ยอดงบประมาณจัดซื้อวัตถุดิบอาหารรวมทั้งสิ้น: {total_cost_summary:,.2f} บาท</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        csv = df_budget.to_csv(index=False).encode('utf-8-sig')
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.download_button("📥 ดาวน์โหลดใบสั่งซื้อ (Download PO CSV)", data=csv, file_name="ใบสั่งซื้อวัตถุดิบอาหารฟาร์มสัตว์ปีก.csv", mime="text/csv")
-    else:
-        st.info("💡 สัดส่วนอาหารในสูตรปัจจุบันยังเป็น 0% กรุณาไปเลื่อนปรับหรือสั่งให้ AI คำนวณที่แท็บแรกก่อนนะครับ")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# --- [แท็บที่ 3]: ศูนย์จัดการคลังวัตถุดิบ ---
+# --- [แท็บที่ 3]: ศูนย์จัดการคลังวัตถุดิบ (รอการพัฒนาต่อ) ---
 with page_tabs[2]:
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 ระบบกล่องเลือกวัตถุดิบอัจฉริยะ (Dropdown Selectbox)")
-    
-    available_to_add = [name for name in MASTER_INGREDIENT_DICTIONARY.keys() if name not in st.session_state.ingredient_data]
-    
-    if available_to_add:
-        selected_ing_to_add = st.selectbox("🌾 ค้นหาและเลือกวัตถุดิบเพิ่มเดิมจากแล็บกลาง (รวม 40 ชนิด):", available_to_add)
-        preview = MASTER_INGREDIENT_DICTIONARY[selected_ing_to_add]
-        st.markdown(f"**📋 รายละเอียดสารอาหารแนะนำของ {selected_ing_to_add} (ราคาตลาดอ้างอิง: {preview['price']} บาท/กก.)**")
-        
-        df_preview = pd.DataFrame([{
-            "ราคา": preview["price"], "โปรตีน(%)": preview["protein"], "พลังงาน(kcal)": preview["me"],
-            "แคลเซียม(%)": preview["calcium"], "ฟอสฟอรัส(%)": preview["phos"], "ไลซีน(%)": preview["lysine"],
-            "เมทไธโอนีน(%)": preview["methionine"], "กากใย(%)": preview["fiber"], "ไขมัน(%)": preview["fat"]
-        }])
-        st.dataframe(df_preview, use_container_width=True, hide_index=True)
-        
-        if st.button(f"✨ ยืนยันดึง '{selected_ing_to_add}' เข้าสู่หน้าสูตรผสมหลัก", type="primary", use_container_width=True):
-            st.session_state.ingredient_data[selected_ing_to_add] = MASTER_INGREDIENT_DICTIONARY[selected_ing_to_add]
-            st.session_state.optimized_weights[selected_ing_to_add] = 0.0
-            st.success(f"🎉 ดึงวัตถุดิบสำเร็จ! แถบสไลด์ในหน้าแล็บจะเรียงลำดับให้โดยอัตโนมัติ")
-            st.rerun()
-    else:
-        st.info("💡 วัตถุดิบทั้ง 40 ชนิดถูกนำเข้าสู่หน้าจอคำนวณทั้งหมดเรียบร้อยแล้ว")
-
-    st.markdown("---")
-
-    st.markdown("### 📝 ตารางอัปเดตและปรับราคาท้องตลาดประจำวัน")
-    current_ingredients = st.session_state.ingredient_data
-    col_left, col_right = st.columns(2, gap="large")
-    updated_prices = {}
-    ing_names = list(current_ingredients.keys())
-    half_size = (len(ing_names) + 1) // 2
-    
-    with col_left:
-        for name in ing_names[:half_size]:
-            old_price = current_ingredients[name]["price"]
-            updated_prices[name] = st.number_input(f"💵 ราคา {name} (บาท/กก.)", min_value=0.0, value=float(old_price), step=0.1, format="%.2f", key=f"bk_price_{name}")
-    with col_right:
-        for name in ing_names[half_size:]:
-            old_price = current_ingredients[name]["price"]
-            updated_prices[name] = st.number_input(f"💵 ราคา {name} (บาท/กก.)", min_value=0.0, value=float(old_price), step=0.1, format="%.2f", key=f"bk_price_{name}")
-
-    st.markdown("---")
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("💾 ยืนยันบันทึกราคาวัตถุดิบ (Save Config)", type="primary", use_container_width=True):
-            for name, new_p in updated_prices.items():
-                st.session_state.ingredient_data[name]["price"] = new_p
-            st.success("🎉 อัปเดตราคาซื้อขายหน้าฟาร์มเข้าสู่ระบบคำนวณเรียบร้อย!")
-            st.rerun()
-    with col_btn2:
-        if st.button("🔄 รีเซ็ตคลังอาหารสัตว์กลับค่าเริ่มต้น", use_container_width=True):
-            if "ingredient_data" in st.session_state: del st.session_state["ingredient_data"]
-            if "optimized_weights" in st.session_state: del st.session_state["optimized_weights"]
-            st.success("รีเซ็ตระบบอาหารสัตว์กลับไปเป็นค่าตั้งต้นจากแล็บแล้ว")
-            st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ==========================================
-# 🏁 ส่วนท้ายของแอปพลิเคชัน
-# ==========================================
-st.markdown("---")
-st.markdown("<div style='text-align: center; color: #ffffff; font-size: 0.85em; text-shadow: 1px 1px 2px #000;'>© 2026 Mega Feed & Breed Studio | ถอด Sidebar ออกเรียบร้อย หน้าต่างกว้างอ่านง่ายขึ้น 100%</div>", unsafe_allow_html=True)
+    st.info("🚧 ระบบศูนย์จัดการคลังวัตถุดิบกำลังอยู่ระหว่างการพัฒนา")
