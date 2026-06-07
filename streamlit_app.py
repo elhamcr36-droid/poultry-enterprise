@@ -311,43 +311,106 @@ with page_tabs[0]:
         adjusted_target["phos"] = max(0.22, adjusted_target["phos"] - 0.10)
         adjusted_target["calcium"] = max(0.50, adjusted_target["calcium"] - 0.05)
 
-    if st.button("⚡ เดินเครื่องระบบ AI ผสมสูตรต้นทุนต่ำที่สุด (Run AI Solver Matrix)"):
-        # ส่วนนี้คือส่วนที่เติมโค้ดของคุณให้สมบูรณ์
+    if st.button("⚡ เดินเครื่องระบบ AI ผสมสูตรต้นทุนต่ำที่สุด (Run AI Solver Matrix)", type="primary"):
+        # ✅ ส่วนที่เพิ่มเติมเข้ามาเพื่อแก้สมการ AI (Linear Programming ด้วย PuLP)
         prob = pulp.LpProblem("MegaPoultryLinearFeed", pulp.LpMinimize)
         ingredient_vars = {name: pulp.LpVariable(name, lowBound=data.get("min_limit", 0.0), upBound=data.get("max_limit", 100.0)) for name, data in st.session_state.ingredient_data.items()}
-
-        # สมการเป้าหมาย: ทำให้ต้นทุนต่ำที่สุด
-        prob += pulp.lpSum([st.session_state.ingredient_data[name]["price"] * var for name, var in ingredient_vars.items()]), "Total_Cost"
-
-        # ข้อจำกัด: น้ำหนักรวมต้องเป็น 100%
-        prob += pulp.lpSum([var for name, var in ingredient_vars.items()]) == 100.0, "Total_Percentage"
-
-        # ข้อจำกัดทางโภชนาการ
-        for nutrient, target_val in adjusted_target.items():
-            if nutrient in ["protein", "calcium", "phos", "lysine", "methionine", "tryptophan", "threonine", "arginine", "salt"]:
-                prob += pulp.lpSum([st.session_state.ingredient_data[name].get(nutrient, 0) * var for name, var in ingredient_vars.items()]) >= target_val * 100, f"Min_{nutrient}"
-            elif nutrient == "fiber":
-                prob += pulp.lpSum([st.session_state.ingredient_data[name].get(nutrient, 0) * var for name, var in ingredient_vars.items()]) <= target_val * 100, f"Max_{nutrient}"
-            elif nutrient == "me":
-                prob += pulp.lpSum([st.session_state.ingredient_data[name].get(nutrient, 0) * var for name, var in ingredient_vars.items()]) >= target_val * 100, f"Min_{nutrient}"
-
-        # รัน AI หาค่า
+        
+        # สมการเป้าหมาย: ลดต้นทุนให้ต่ำที่สุด (Minimize Cost)
+        prob += pulp.lpSum([ingredient_vars[name] * data["price"] for name, data in st.session_state.ingredient_data.items()]), "Total_Cost"
+        
+        # เงื่อนไขข้อที่ 1: น้ำหนักรวมต้องเท่ากับ 100% (100 kg)
+        prob += pulp.lpSum([ingredient_vars[name] for name in st.session_state.ingredient_data.keys()]) == 100.0, "Total_Weight"
+        
+        # เงื่อนไขทางโภชนาการ (Nutritional Constraints) >= ค่าที่ตั้งไว้
+        for nut in ["protein", "me", "calcium", "phos", "lysine", "methionine"]:
+            prob += pulp.lpSum([ingredient_vars[name] * data[nut] for name, data in st.session_state.ingredient_data.items()]) >= adjusted_target[nut] * 100.0, f"Min_{nut}"
+            
+        # เงื่อนไขจำกัด (กากใย / ไขมัน) ไม่ควรเกินค่าเป้าหมายมากเกินไป
+        prob += pulp.lpSum([ingredient_vars[name] * data["fiber"] for name, data in st.session_state.ingredient_data.items()]) <= (adjusted_target["fiber"] + 2.0) * 100.0, "Max_Fiber"
+        
+        # สั่งประมวลผล
         prob.solve()
-
-        if pulp.LpStatus[prob.status] == 'Optimal':
-            st.success("✅ AI คำนวณสูตรอาหารต้นทุนต่ำสุดได้สำเร็จ!")
+        
+        if pulp.LpStatus[prob.status] == "Optimal":
+            st.success("✅ AI คำนวณสูตรอาหารสำเร็จ! (Optimal Solution Found) อัปเดตสัดส่วนวัตถุดิบเรียบร้อยแล้ว")
             for name, var in ingredient_vars.items():
-                st.session_state.optimized_weights[name] = var.varValue
-            st.rerun()
+                st.session_state.optimized_weights[name] = round(var.varValue, 3)
+            st.rerun() # รีเฟรชหน้าจอเพื่อดึงค่าล่าสุดมาแสดง
         else:
-            st.error("❌ ไม่สามารถหาสูตรที่ตรงตามเงื่อนไขทางโภชนาการได้ กรุณาปรับช่วงโภชนาการหรือขยายขีดจำกัดวัตถุดิบ (Min/Max limits)")
+            st.error("❌ AI ไม่สามารถหาสูตรที่ตรงตามเงื่อนไขเป้าหมายได้ (Infeasible) กรุณาตรวจสอบวัตถุดิบในคลัง หรือผ่อนปรนเป้าหมายทางโภชนาการลงเล็กน้อย")
+
+    # สรุปสูตรอาหารปัจจุบัน
+    st.markdown("### 📊 สรุปสัดส่วนสูตรอาหารปัจจุบัน (อัปเดตแบบเรียลไทม์)")
     
+    col_stat1, col_stat2 = st.columns(2)
+    with col_stat1:
+        st.metric("💰 ต้นทุนสูตรอาหาร (บาท/กิโลกรัม)", f"฿ {current_formula_cost:,.2f}")
+    with col_stat2:
+        st.metric("💪 โปรตีนรวม", f"{current_nutrition['protein']:.2f} %", delta=f"{current_nutrition['protein'] - adjusted_target['protein']:.2f}% จากเป้าหมาย")
+
+    df_weights = pd.DataFrame([{"วัตถุดิบ": k, "สัดส่วน (%)": v} for k, v in st.session_state.optimized_weights.items() if v > 0.01])
+    if not df_weights.empty:
+        df_weights = df_weights.sort_values(by="สัดส่วน (%)", ascending=False).reset_index(drop=True)
+        fig = px.pie(df_weights, values="สัดส่วน (%)", names="วัตถุดิบ", title="สัดส่วนวัตถุดิบในสูตร", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+        st.plotly_chart(fig, use_container_width=True)
+        st.dataframe(df_weights, use_container_width=True)
+
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- [แท็บที่ 2]: บันทึกสถิติฟาร์ม & ใบจัดซื้อ (PO) (รอการพัฒนาต่อ) ---
-with page_tabs[1]:
-    st.info("🚧 ระบบบันทึกสถิติฟาร์มและใบจัดซื้อกำลังอยู่ระหว่างการพัฒนา")
 
-# --- [แท็บที่ 3]: ศูนย์จัดการคลังวัตถุดิบ (รอการพัฒนาต่อ) ---
+# --- [แท็บที่ 2]: บันทึกสถิติฟาร์ม & ใบจัดซื้อ (PO) ---
+with page_tabs[1]:
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("## 📊 ระบบคำนวณปริมาณการสั่งซื้อ (Purchase Order)")
+    st.info("คำนวณจากสูตรล่าสุด สเปคสายพันธุ์ และจำนวนประชากรสัตว์ปีกในปัจจุบัน")
+    
+    feed_days = st.number_input("ต้องการผลิตอาหารสำหรับกี่วัน?", min_value=1, max_value=90, value=7)
+    
+    # คำนวณความต้องการอาหารรวม
+    daily_feed_kg = (st.session_state.chicken_count * breed_options[st.session_state.selected_breed_key]['default_feed']) / 1000.0
+    total_feed_needed = daily_feed_kg * feed_days
+    
+    st.write(f"**อาหารที่ต้องใช้ต่อวัน:** {daily_feed_kg:,.2f} กิโลกรัม")
+    st.write(f"**อาหารรวมที่ต้องผลิต ({feed_days} วัน):** {total_feed_needed:,.2f} กิโลกรัม")
+    
+    st.markdown("### 📋 ใบสั่งซื้อวัตถุดิบ (PO. List)")
+    po_data = []
+    total_po_cost = 0.0
+    for name, percentage in st.session_state.optimized_weights.items():
+        if percentage > 0.01:
+            req_kg = (percentage / 100.0) * total_feed_needed
+            price_per_kg = st.session_state.ingredient_data[name]["price"]
+            cost = req_kg * price_per_kg
+            total_po_cost += cost
+            po_data.append({"วัตถุดิบ": name, "ปริมาณที่ต้องใช้ (กิโลกรัม)": round(req_kg, 2), "ราคาประเมิน (บาท)": round(cost, 2)})
+            
+    if po_data:
+        df_po = pd.DataFrame(po_data)
+        st.dataframe(df_po, use_container_width=True)
+        st.markdown(f"#### 💰 งบประมาณที่ต้องเตรียมรวม: **฿ {total_po_cost:,.2f}**")
+    else:
+        st.warning("ยังไม่มีการจัดสูตร กรุณาจัดสูตรอาหารในแท็บแรกก่อน")
+        
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# --- [แท็บที่ 3]: ศูนย์จัดการคลังวัตถุดิบ (40 ชนิด) ---
 with page_tabs[2]:
-    st.info("🚧 ระบบศูนย์จัดการคลังวัตถุดิบกำลังอยู่ระหว่างการพัฒนา")
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("## 📦 ศูนย์ข้อมูลสเปควัตถุดิบ และ ปรับปรุงราคาอัปเดตรายวัน")
+    st.write("คุณสามารถดูสเปควัตถุดิบและแก้ไขราคาได้โดยตรงที่นี่ (ในการพัฒนาจริงสามารถเชื่อมกับระบบ Database เช่น Supabase เพื่อแก้ไขได้)")
+    
+    # แปลง Dictionary เป็น DataFrame เพื่อง่ายต่อการแสดงผล
+    df_ingredients = pd.DataFrame.from_dict(MASTER_INGREDIENT_DICTIONARY, orient='index').reset_index()
+    df_ingredients.rename(columns={'index': 'ชื่อวัตถุดิบ'}, inplace=True)
+    
+    # แสดงตารางให้ผู้ใช้เห็น
+    st.dataframe(
+        df_ingredients[["ชื่อวัตถุดิบ", "price", "protein", "me", "calcium", "phos", "min_limit", "max_limit"]], 
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    st.caption("หมายเหตุ: วัตถุดิบทั้ง 40 ชนิดดึงข้อมูลจาก Master Dictionary ส่วนการตั้งค่าขีดจำกัด (Min/Max Limit) สามารถปรับได้ตามหน้างานจริงเพื่อป้องกันปัญหาโภชนาการหรือข้อจำกัดทางกายภาพของการผสมอาหาร")
+    st.markdown("</div>", unsafe_allow_html=True)
