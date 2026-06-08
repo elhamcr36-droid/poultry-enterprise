@@ -65,12 +65,9 @@ if not st.session_state.is_authenticated:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>🔐 ยินดีต้อนรับสู่ Mega Feed & Breed Studio</h2>", unsafe_allow_html=True)
     
-    with st.expander("☁️ ข้อมูลการเชื่อมต่อฐานข้อมูล (ล็อกค่าเริ่มต้นอัตโนมัติ)", expanded=False):
-        input_url = st.text_input("ลิงก์โปรเจกต์ Supabase URL:", CORRECT_URL).strip()
-        input_key = st.text_input("รหัส API (Anon Key):", CORRECT_KEY, type="password").strip()
-    else:
-        input_url = CORRECT_URL
-        input_key = CORRECT_KEY
+    # ซ่อนค่าเซ็ตติ้งฐานข้อมูลไว้เบื้องหลังเพื่อไม่ให้โค้ดพัง
+    input_url = CORRECT_URL
+    input_key = CORRECT_KEY
 
     st.markdown("---")
     tab_login, _ = st.tabs(["🔑 เข้าสู่ระบบ (Login)", "📝 สมัครสมาชิก (ปิดใช้งานชั่วคราว)"])
@@ -82,7 +79,7 @@ if not st.session_state.is_authenticated:
             pass_login = st.text_input("🔑 รหัสผ่าน", type="password", key="login_pass")
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-                # ตรวจสอบการล็อกอินแบบแอดมินทางลัด (Bypass)
+                # ตรวจสอบการล็อกอินแบบแอดมินทางลัด (Bypass ด้วยรหัส 222)
                 if email_login in ["222", "จีเมล222", "222@gmail.com"] and pass_login in ["222", "รหัส222"]:
                     st.session_state.is_authenticated = True
                     st.session_state.user_email = "👑 Admin (SQL Superuser)"
@@ -91,7 +88,7 @@ if not st.session_state.is_authenticated:
                     st.success("✅ เชื่อมต่อระบบสำเร็จ!")
                     st.rerun()
                 else:
-                    st.error("❌ ข้อมูลการยืนยันตัวตนไม่ถูกต้อง กรุณาใช้รหัสแอดมิน '222'")
+                    st.error("❌ ข้อมูลไม่ถูกต้อง กรุณาเข้าใช้งานด้วยรหัสแอดมิน '222'")
                     
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
@@ -101,10 +98,9 @@ if not st.session_state.is_authenticated:
 # ==========================================
 @st.cache_data(ttl=3) 
 def fetch_master_data(url, key):
-    # ปรับแต่งการดึงข้อมูลเพื่อหลีกเลี่ยงปัญหา DNS/โครงข่ายค้าง
     supabase: Client = create_client(url, key)
     
-    # ยิงคำสั่งหาแต่ละตารางบน SQL ฐานข้อมูล
+    # ดึงข้อมูลจากทั้ง 3 ตารางใน SQL ของ Supabase
     ing_res = supabase.table("ingredients").select("*").execute()
     tgt_res = supabase.table("nutrition_targets").select("*").execute()
     brd_res = supabase.table("chicken_breeds").select("*").execute()
@@ -113,14 +109,13 @@ def fetch_master_data(url, key):
     tgt_dict = {item["stage_key"]: item for item in tgt_res.data}
     return ing_dict, tgt_dict, brd_res.data
 
-# ตรวจจับข้อผิดพลาดและแสดงรายละเอียดแบบสดๆ 
+# ครอบระบบตรวจจับปัญหาไว้เพื่อรายงานผลทางหน้าเว็บ
 try:
     ingredients_data, targets_data, breeds_data = fetch_master_data(st.session_state.supabase_url, st.session_state.supabase_key)
 except Exception as e:
     st.error("❌ [Supabase SQL Error] ระบบไม่สามารถดึงข้อมูลลงมาจากฐานข้อมูลคลาวด์ได้")
-    st.info(f"🔍 รายละเอียดการปฏิเสธจากเซิร์ฟเวอร์: {str(e)}")
-    st.warning("💡 หากยังขึ้นข้อความเดิมหลังจากเปลี่ยนโค้ดแล้ว รบกวนตรวจสอบสัญญาณอินเทอร์เน็ตหรือปิดโปรแกรม VPN บนเครื่องคอมพิวเตอร์ของคุณแล้วลองกดปุ่มด้านล่างนี้อีกครั้งครับ")
-    if st.button("🔄 ลองเชื่อมต่อใหม่อีกครั้ง (Retry Connection)"):
+    st.info(f"🔍 รายละเอียดความผิดพลาด: {str(e)}")
+    if st.button("🔄 รีเฟรชและลองเชื่อมต่อใหม่อีกครั้ง"):
         st.rerun()
     st.stop()
 
@@ -149,7 +144,7 @@ page_tabs = st.tabs(["🏠 ระบบผสมสูตร AI", "📊 สถ�
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     if not breeds_data or not targets_data:
-        st.warning("⚠️ โครงสร้างตารางถูกต้อง แต่ไม่มีแถวข้อมูลในฐานข้อมูล SQL ฝั่ง Supabase กรุณาเพิ่มข้อมูลผ่านหน้าเว็บ Supabase ก่อนครับ")
+        st.warning("⚠️ มีโครงสร้างตารางในฐานข้อมูลเรียบร้อย แต่ไม่มีแถวข้อมูลด้านใน กรุณากรอกข้อมูลผ่านหน้าตารางเว็บ Supabase ก่อนครับ")
     else:
         c_group, c_breed = st.columns(2)
         with c_group:
@@ -203,7 +198,7 @@ with page_tabs[0]:
                     for name in ingredients_data.keys():
                         st.session_state.optimized_weights[name] = ing_vars[name].varValue * 100.0
                 else:
-                    st.error("❌ ไม่สามารถคำนวณสูตรอาหารตามข้อจำกัดโภชนาการนี้ได้ โปรดตรวจสอบความเหมาะสมของค่าในฐานข้อมูล")
+                    st.error("❌ ขอบเขตจำกัดบีบแน่นเกินไป ไม่สามารถคำนวณหาสูตรอาหารให้ผ่านโภชนาการได้")
 
         if any(v > 0 for v in st.session_state.optimized_weights.values()):
             res_col1, res_col2 = st.columns([1.2, 1])
