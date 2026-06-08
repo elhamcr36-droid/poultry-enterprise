@@ -65,9 +65,6 @@ if not st.session_state.is_authenticated:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>🔐 ยินดีต้อนรับสู่ Mega Feed & Breed Studio</h2>", unsafe_allow_html=True)
     
-    input_url = CORRECT_URL
-    input_key = CORRECT_KEY
-
     st.markdown("---")
     tab_login, _ = st.tabs(["🔑 เข้าสู่ระบบ (Login)", "📝 สมัครสมาชิก (ปิดใช้งานชั่วคราว)"])
     
@@ -81,8 +78,8 @@ if not st.session_state.is_authenticated:
                 if email_login in ["222", "จีเมล222", "222@gmail.com"] and pass_login in ["222", "รหัส222"]:
                     st.session_state.is_authenticated = True
                     st.session_state.user_email = "👑 Admin (SQL Superuser)"
-                    st.session_state.supabase_url = input_url
-                    st.session_state.supabase_key = input_key
+                    st.session_state.supabase_url = CORRECT_URL
+                    st.session_state.supabase_key = CORRECT_KEY
                     st.success("✅ เชื่อมต่อฐานข้อมูลสำเร็จ!")
                     st.rerun()
                 else:
@@ -94,25 +91,23 @@ if not st.session_state.is_authenticated:
 # ==========================================
 # 📥 3. ฟังก์ชันดึงข้อมูลจาก SQL (Supabase Multi-Table Fetch)
 # ==========================================
-@st.cache_data(ttl=3) 
+@st.cache_data(ttl=2) 
 def fetch_master_data(url, key):
     supabase: Client = create_client(url, key)
     ing_res = supabase.table("ingredients").select("*").execute()
     tgt_res = supabase.table("nutrition_targets").select("*").execute()
     brd_res = supabase.table("chicken_breeds").select("*").execute()
     
-    ing_dict = {item["name"]: item for item in ing_res.data}
-    tgt_dict = {item["stage_key"]: item for item in tgt_res.data}
-    return ing_dict, tgt_dict, brd_res.data
+    ing_dict = {item["name"]: item for item in ing_res.data} if ing_res.data else {}
+    tgt_dict = {item["stage_key"]: item for item in tgt_res.data} if tgt_res.data else {}
+    return ing_dict, tgt_dict, brd_res.data if brd_res.data else []
 
 try:
     ingredients_data, targets_data, breeds_data = fetch_master_data(st.session_state.supabase_url, st.session_state.supabase_key)
 except Exception as e:
-    st.error("❌ [Supabase SQL Error] ระบบไม่สามารถดึงข้อมูลลงมาจากฐานข้อมูลคลาวด์ได้")
-    st.info(f"🔍 รายละเอียดความผิดพลาด: {str(e)}")
-    if st.button("🔄 รีเฟรชและลองเชื่อมต่อใหม่อีกครั้ง"):
-        st.rerun()
-    st.stop()
+    st.error("❌ [Supabase SQL Error] เกิดความผิดพลาดในการเชื่อมต่อคลาวด์")
+    st.info(f"🔍 รายละเอียด: {str(e)}")
+    ingredients_data, targets_data, breeds_data = {}, {}, []
 
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
@@ -123,7 +118,7 @@ if "optimized_weights" not in st.session_state:
 col_h1, col_h2 = st.columns([8, 2])
 with col_h1:
     st.markdown("# 🐔 Mega Feed & Breed Studio")
-    st.markdown("<p style='color:#10b981; font-weight:bold; font-size:1.2rem;'>🟢 เชื่อมต่อคลาวด์ฐานข้อมูล Supabase SQL พร้อม Schema ใหม่สำเร็จแล้ว</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#10b981; font-weight:bold; font-size:1.2rem;'>🟢 เชื่อมต่อคลาวด์ฐานข้อมูล Supabase SQL สำเร็จ</p>", unsafe_allow_html=True)
 with col_h2:
     st.markdown(f"<p style='text-align:right; margin-bottom:5px;'>👤 <b>{st.session_state.user_email}</b></p>", unsafe_allow_html=True)
     if st.button("ออกจากระบบ (Logout)", use_container_width=True):
@@ -135,11 +130,14 @@ with col_h2:
 # ==========================================
 page_tabs = st.tabs(["🏠 ระบบผสมสูตร AI", "📊 สถิติ & ใบสั่งซื้อ PO", "📦 คลังวัตถุดิบ & จัดการข้อมูล SQL", "📈 เครื่องจำลองแผนการเติบโต"])
 
-# --- [แท็บ 1]: AI Solver (ปรับโครงสร้างสีตาม Database) ---
+# --- [แท็บ 1]: AI Solver ---
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     if not breeds_data or not targets_data:
-        st.warning("⚠️ มีโครงสร้างตารางเรียบร้อย แต่ตรวจไม่พบแถวข้อมูล กรุณารันสคริปต์ SQL บนเว็บ Supabase ก่อนครับ")
+        st.warning("⚠️ ตรวจไม่พบแถวข้อมูลในตาราง SQL ปัจจุบัน ระบบได้ทำการข้ามการดักจับเพื่อให้คุณใช้งานส่วนอื่น หรือตรวจสอบคลังวัตถุดิบที่แท็บ 3 ได้ครับ")
+        if st.button("🔄 บังคับเคลียร์ Cache และดึงข้อมูลใหม่"):
+            st.cache_data.clear()
+            st.rerun()
     else:
         c_group, c_breed = st.columns(2)
         with c_group:
@@ -148,7 +146,6 @@ with page_tabs[0]:
             selected_breed_label = st.selectbox("เลือกสายพันธุ์ไก่:", list(breed_options.keys()))
             selected_breed = breed_options[selected_breed_label]
             
-            # 🎨 ระบบ Dynamic Color Card ตบแต่งตามสีที่ตั้งไว้ใน SQL Database ของสายพันธุ์นั้นๆ
             bg_c = selected_breed['bg_color'] if selected_breed['bg_color'] else '#1e293b'
             tx_c = selected_breed['text_color'] if selected_breed['text_color'] else '#ffffff'
             st.markdown(
@@ -184,16 +181,12 @@ with page_tabs[0]:
                 for name, data in ingredients_data.items():
                     ing_vars[name] = pulp.LpVariable(name, lowBound=float(data["min_limit"])/100.0, upBound=float(data["max_limit"])/100.0)
                 
-                # Objective Function: ต้นทุนต่ำที่สุด
                 prob += pulp.lpSum([ing_vars[name] * float(data["price"]) for name, data in ingredients_data.items()]), "Total_Cost"
-                # Constraint: รวมกันต้องได้ 100% (1.0)
                 prob += pulp.lpSum([ing_vars[name] for name in ingredients_data.keys()]) == 1.0, "Total_Weight"
                 
-                # คำนวณการชดเชยของไฟเตส (ถ้าเปิดใช้งาน)
                 adj_p = float(req["phos"]) - 0.10 if st.session_state.use_phytase else float(req["phos"])
                 adj_ca = float(req["calcium"]) - 0.05 if st.session_state.use_phytase else float(req["calcium"])
                 
-                # Constraints ด้านโภชนาการ
                 prob += pulp.lpSum([ing_vars[name] * float(data["protein"]) for name, data in ingredients_data.items()]) >= float(req["protein"]), "Min_Protein"
                 prob += pulp.lpSum([ing_vars[name] * float(data["me"]) for name, data in ingredients_data.items()]) >= float(req["me"]), "Min_ME"
                 prob += pulp.lpSum([ing_vars[name] * float(data["calcium"]) for name, data in ingredients_data.items()]) >= adj_ca, "Min_Calcium"
@@ -213,7 +206,7 @@ with page_tabs[0]:
                     for name in ingredients_data.keys():
                         st.session_state.optimized_weights[name] = ing_vars[name].varValue * 100.0
                 else:
-                    st.error("❌ เงื่อนไขหรือขอบเขตโภชนาการแน่นเกินไป ไม่สามารถหาทางผสมอาหารให้ผ่านเกณฑ์นี้ได้ กรุณาผ่อนปรนข้อจำกัดคลังวัตถุดิบ")
+                    st.error("❌ เงื่อนไขหรือขอบเขตโภชนาการแน่นเกินไป ไม่สามารถหาทางผสมอาหารให้ผ่านเกณฑ์นี้ได้")
 
         if any(v > 0 for v in st.session_state.optimized_weights.values()):
             res_col1, res_col2 = st.columns([1.2, 1])
@@ -266,16 +259,17 @@ with page_tabs[1]:
     
     po_data = []
     total_po_cost = 0
-    for k, v in st.session_state.optimized_weights.items():
-        if v > 0.01:
-            amount_kg = (v / 100.0) * batch_size
-            est_price = amount_kg * float(ingredients_data[k]['price'])
-            total_po_cost += est_price
-            po_data.append({
-                "วัตถุดิบที่ต้องจัดซื้อ": k, 
-                "ปริมาณ (กก.)": round(amount_kg, 2), 
-                "ราคาประเมินรวม (บาท)": round(est_price, 2)
-            })
+    if ingredients_data:
+        for k, v in st.session_state.optimized_weights.items():
+            if v > 0.01 and k in ingredients_data:
+                amount_kg = (v / 100.0) * batch_size
+                est_price = amount_kg * float(ingredients_data[k]['price'])
+                total_po_cost += est_price
+                po_data.append({
+                    "วัตถุดิบที่ต้องจัดซื้อ": k, 
+                    "ปริมาณ (กก.)": round(amount_kg, 2), 
+                    "ราคาประเมินรวม (บาท)": round(est_price, 2)
+                })
             
     if po_data:
         df_po = pd.DataFrame(po_data)
@@ -305,7 +299,6 @@ with page_tabs[1]:
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ศูนย์ควบคุมคลังข้อมูลโภชนาการวัตถุดิบ & ปรับปรุงแบบสดผ่าน SQL")
-    st.info("คุณสามารถปรับแกราคา ข้อจำกัดขั้นต่ำ/สูงสุดได้จากฟอร์มนี้ และระบบจะส่งคำสั่ง UPDATE ไปยัง Supabase ให้ทันที")
     
     if ingredients_data:
         selected_ing_name = st.selectbox("เลือกวัตถุดิบที่ต้องการปรับปรุงข้อมูล:", list(ingredients_data.keys()))
@@ -329,7 +322,7 @@ with page_tabs[2]:
                         "max_limit": new_max
                     }).eq("name", selected_ing_name).execute()
                     
-                    st.success(f"🎉 บันทึกการอัปเดตข้อมูลของ '{selected_ing_name}' เรียบร้อยแล้ว ระบบกำลังดึงโครงสร้างใหม่...")
+                    st.success(f"🎉 บันทึกการอัปเดตข้อมูลของ '{selected_ing_name}' เรียบร้อยแล้ว ระบบกำลังรีเฟรช...")
                     st.cache_data.clear()
                     st.rerun()
                 except Exception as update_err:
@@ -338,16 +331,19 @@ with page_tabs[2]:
         st.markdown("---")
         st.markdown("### 📋 ตารางคลังสารอาหารและวัตถุดิบปัจจุบันทั้งหมด (Schema ล่าสุด)")
         df_ingredients = pd.DataFrame.from_dict(ingredients_data, orient='index')
-        cols_to_display = ["price", "protein", "me", "calcium", "phos", "lysine", "methionine", "threonine", "fat", "moisture", "fiber", "sodium", "chloride", "linoleic", "min_limit", "max_limit"]
-        df_ingredients = df_ingredients[cols_to_display]
-        df_ingredients.rename(columns={
-            "price": "ราคา", "protein": "โปรตีน(%)", "me": "พลังงาน(ME)",
-            "calcium": "แคลเซียม(%)", "phos": "ฟอสฟอรัส(%)", "lysine": "ไลซีน(%)",
-            "methionine": "เมท(%)", "threonine": "ทรีโอนีน(%)", "fat": "ไขมัน(%)", "moisture": "ความชื้น(%)",
-            "fiber": "ใย(%)", "sodium": "Na(%)", "chloride": "Cl(%)", "linoleic": "ไลโนเลอิก(%)",
-            "min_limit": "Min(%)", "max_limit": "Max(%)"
-        }, inplace=True)
-        st.dataframe(df_ingredients, use_container_width=True)
+        if not df_ingredients.empty:
+            cols_to_display = ["price", "protein", "me", "calcium", "phos", "lysine", "methionine", "threonine", "fat", "moisture", "fiber", "sodium", "chloride", "linoleic", "min_limit", "max_limit"]
+            df_ingredients = df_ingredients[cols_to_display]
+            df_ingredients.rename(columns={
+                "price": "ราคา", "protein": "โปรตีน(%)", "me": "พลังงาน(ME)",
+                "calcium": "แคลเซียม(%)", "phos": "ฟอสฟอรัส(%)", "lysine": "ไลซีน(%)",
+                "methionine": "เมท(%)", "threonine": "ทรีโอนีน(%)", "fat": "ไขมัน(%)", "moisture": "ความชื้น(%)",
+                "fiber": "ใย(%)", "sodium": "Na(%)", "chloride": "Cl(%)", "linoleic": "ไลโนเลอิก(%)",
+                "min_limit": "Min(%)", "max_limit": "Max(%)"
+            }, inplace=True)
+            st.dataframe(df_ingredients, use_container_width=True)
+    else:
+        st.info("💡 ไม่มีข้อมูลแสดงผลในคลังเนื่องจากตารางบน Supabase ยังไม่มีข้อมูล")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- [แท็บ 4]: เครื่องจำลองแผนการเติบโต ---
@@ -355,55 +351,54 @@ with page_tabs[3]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📈 เครื่องจำลองแผนการเติบโตรายสายพันธุ์ (Growth & Feed Intake Simulator)")
     
-    if breeds_data:
-        c_sim1, c_sim2 = st.columns(2)
-        with c_sim1:
-            sim_birds = st.number_input("ปริมาณตัวเลขจำนวนไก่ในฝูง (ตัว):", min_value=1, value=2000, step=500)
-            sim_days = st.slider("ช่วงอายุวันเลี้ยงที่ต้องการพยากรณ์ผลจำลอง (วัน):", min_value=7, max_value=105, value=42, step=7)
-        with c_sim2:
-            fcr_target = st.number_input("เป้าหมายสัมประสิทธิ์ FCR ล็อตนี้:", min_value=1.0, max_value=4.5, value=1.60, step=0.05)
-            chick_cost = st.number_input("ราคาพันธุ์ต้นทุนลูกไก่แรกเกิด (บาท/ตัว):", min_value=0.0, value=14.0, step=1.0)
+    c_sim1, c_sim2 = st.columns(2)
+    with c_sim1:
+        sim_birds = st.number_input("ปริมาณตัวเลขจำนวนไก่ในฝูง (ตัว):", min_value=1, value=2000, step=500)
+        sim_days = st.slider("ช่วงอายุวันเลี้ยงที่ต้องการพยากรณ์ผลจำลอง (วัน):", min_value=7, max_value=105, value=42, step=7)
+    with c_sim2:
+        fcr_target = st.number_input("เป้าหมายสัมประสิทธิ์ FCR ล็อตนี้:", min_value=1.0, max_value=4.5, value=1.60, step=0.05)
+        chick_cost = st.number_input("ราคาพันธุ์ต้นทุนลูกไก่แรกเกิด (บาท/ตัว):", min_value=0.0, value=14.0, step=1.0)
 
-        days_list = list(range(1, sim_days + 1))
-        weight_gain_daily = []
-        feed_intake_daily = []
-        
-        current_feed_price = 14.50
-        if any(v > 0 for v in st.session_state.optimized_weights.values()):
-            current_feed_price = 0
-            for name, weight in st.session_state.optimized_weights.items():
+    days_list = list(range(1, sim_days + 1))
+    weight_gain_daily = []
+    feed_intake_daily = []
+    
+    current_feed_price = 14.50
+    if ingredients_data and any(v > 0 for v in st.session_state.optimized_weights.values()):
+        current_feed_price = 0
+        for name, weight in st.session_state.optimized_weights.items():
+            if name in ingredients_data:
                 current_feed_price += (weight / 100.0) * float(ingredients_data[name]["price"])
 
-        for d in days_list:
-            # สมการ Sigmoid curve วิเคราะห์อัตราเติบโตน้ำหนักตัวไก่สะสม
-            est_weight = 42 + (3800 / (1 + 48 * (2.718 ** (-0.115 * d)))) 
-            weight_gain_daily.append(est_weight)
-            
-            cumulative_feed = (est_weight / 1000.0) * fcr_target
-            feed_intake_daily.append(cumulative_feed * 1000.0)
-            
-        df_sim = pd.DataFrame({
-            "ระยะเวลา (วัน)": days_list,
-            "น้ำหนักประเมินรายตัว (กรัม)": weight_gain_daily,
-            "ปริมาณอาหารกินสะสม (กรัม)": feed_intake_daily
-        })
+    for d in days_list:
+        est_weight = 42 + (3800 / (1 + 48 * (2.718 ** (-0.115 * d)))) 
+        weight_gain_daily.append(est_weight)
         
-        fig_sim = px.line(df_sim, x="ระยะเวลา (วัน)", y=["น้ำหนักประเมินรายตัว (กรัม)", "ปริมาณอาหารกินสะสม (กรัม)"],
-                          title="📊 แนวโน้มการเจริญเติบโตสอดคล้องกับพฤติกรรมการกินอาหาร")
-        fig_sim.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
-        st.plotly_chart(fig_sim, use_container_width=True)
+        cumulative_feed = (est_weight / 1000.0) * fcr_target
+        feed_intake_daily.append(cumulative_feed * 1000.0)
         
-        final_weight_kg = weight_gain_daily[-1] / 1000.0
-        total_feed_used_ton = (feed_intake_daily[-1] / 1000.0 * sim_birds) / 1000.0
-        total_feed_cost = total_feed_used_ton * 1000 * current_feed_price
-        total_investment = total_feed_cost + (sim_birds * chick_cost)
-        
-        st.markdown("### 📋 สรุปงบประมาณและข้อมูลตัวเลขเมื่อสิ้นสุดอายุโครงการ")
-        c_r1, c_r2, c_r3 = st.columns(3)
-        with c_r1:
-            st.metric("⚖️ น้ำหนักตัวจับขายเฉลี่ยรายตัว", f"{final_weight_kg:.2f} กก.")
-        with c_r2:
-            st.metric("🌾 ความต้องการยอดใช้อาหารรวม", f"{total_feed_used_ton:.3f} ตัน")
-        with c_r3:
-            st.metric("💰 ประมาณการทุนรวม (พันธุ์ไก่ + อาหารผสม)", f"{total_investment:,.2f} บาท")
+    df_sim = pd.DataFrame({
+        "ระยะเวลา (วัน)": days_list,
+        "น้ำหนักประเมินรายตัว (กรัม)": weight_gain_daily,
+        "ปริมาณอาหารกินสะสม (กรัม)": feed_intake_daily
+    })
+    
+    fig_sim = px.line(df_sim, x="ระยะเวลา (วัน)", y=["น้ำหนักประเมินรายตัว (กรัม)", "ปริมาณอาหารกินสะสม (กรัม)"],
+                      title="📊 แนวโน้มการเจริญเติบโตสอดคล้องกับพฤติกรรมการกินอาหาร")
+    fig_sim.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
+    st.plotly_chart(fig_sim, use_container_width=True)
+    
+    final_weight_kg = weight_gain_daily[-1] / 1000.0
+    total_feed_used_ton = (feed_intake_daily[-1] / 1000.0 * sim_birds) / 1000.0
+    total_feed_cost = total_feed_used_ton * 1000 * current_feed_price
+    total_investment = total_feed_cost + (sim_birds * chick_cost)
+    
+    st.markdown("### 📋 สรุปงบประมาณและข้อมูลตัวเลขเมื่อสิ้นสุดอายุโครงการ")
+    c_r1, c_r2, c_r3 = st.columns(3)
+    with c_r1:
+        st.metric("⚖️ น้ำหนักตัวจับขายเฉลี่ยรายตัว", f"{final_weight_kg:.2f} กก.")
+    with c_r2:
+        st.metric("🌾 ความต้องการยอดใช้อาหารรวม", f"{total_feed_used_ton:.3f} ตัน")
+    with c_r3:
+        st.metric("💰 ประมาณการทุนรวม (พันธุ์ไก่ + อาหารผสม)", f"{total_investment:,.2f} บาท")
     st.markdown("</div>", unsafe_allow_html=True)
