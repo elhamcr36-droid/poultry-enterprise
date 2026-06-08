@@ -69,9 +69,11 @@ if not st.session_state.is_authenticated:
     with st.expander("☁️ การเชื่อมต่อคลาวด์และฐานข้อมูลหลัก (Supabase Configuration)", expanded=False):
         c_db1, c_db2 = st.columns(2)
         with c_db1:
-            SUPABASE_URL = st.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-mega-project.supabase.co").strip()
+            # ⚠️ เปลี่ยน URL ตรงนี้ให้เป็นของโปรเจกต์คุณจริงๆ
+            SUPABASE_URL = st.text_input("ลิงก์โปรเจกต์ Supabase", "https://<รหัสโปรเจกต์ของคุณ>.supabase.co").strip()
         with c_db2:
-            SUPABASE_KEY = st.text_input("รหัสผ่าน API (Anon Key)", "your-anon-key", type="password").strip()
+            # ✔️ ฝัง Anon Key ที่คุณให้มาเป็นค่าเริ่มต้น
+            SUPABASE_KEY = st.text_input("รหัสผ่าน API (Anon Key)", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr", type="password").strip()
 
     st.markdown("---")
     
@@ -87,30 +89,32 @@ if not st.session_state.is_authenticated:
             pass_login = st.text_input("🔑 รหัสผ่าน (Password)", type="password", key="login_pass")
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-                # 1. เช็ครหัสแอดมิน (ข้ามระบบ Supabase ทันที)
-                # --- เปลี่ยนเงื่อนไขตรงนี้ให้รับ 222 ทั้งสองช่อง ---
-                if email_login == "222" and pass_login == "222":
+                # 1. เช็ครหัสแอดมิน (ใช้ user: admin และรหัสผ่านของคุณเพื่อ Bypass)
+                if email_login == "admin" and pass_login == "A0927442339zxc*":
                     st.session_state.is_authenticated = True
-                    st.session_state.user_email = "👑 Admin (222)"
+                    st.session_state.user_email = "👑 Admin (Superuser)"
                     st.success("✅ เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับผู้ดูแลระบบ...")
                     st.rerun()
                     
                 # 2. ถ้ารหัสแอดมินไม่ตรง ให้ไปเช็คกับฐานข้อมูล Supabase ตามปกติ
                 elif SUPABASE_URL and SUPABASE_KEY and email_login and pass_login:
-                    supabase: Client = init_supabase(SUPABASE_URL, SUPABASE_KEY)
-                    if supabase:
-                        try:
-                            res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
-                            st.session_state.is_authenticated = True
-                            st.session_state.user_email = res.user.email
-                            st.success("✅ เข้าสู่ระบบสำเร็จ! กำลังเข้าสู่แอปพลิเคชัน...")
-                            st.rerun()
-                        except Exception as e:
-                            st.error("❌ อีเมล/ชื่อผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง")
+                    if "<รหัสโปรเจกต์ของคุณ>" in SUPABASE_URL:
+                        st.error("❌ กรุณาเปลี่ยน URL ของ Supabase ให้เป็นลิงก์โปรเจกต์ของคุณจริงๆ ก่อนเข้าใช้งาน")
                     else:
-                        st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
+                        supabase: Client = init_supabase(SUPABASE_URL, SUPABASE_KEY)
+                        if supabase:
+                            try:
+                                res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
+                                st.session_state.is_authenticated = True
+                                st.session_state.user_email = res.user.email
+                                st.success("✅ เข้าสู่ระบบสำเร็จ! กำลังเข้าสู่แอปพลิเคชัน...")
+                                st.rerun()
+                            except Exception as e:
+                                st.error("❌ อีเมล หรือรหัสผ่านไม่ถูกต้อง")
+                        else:
+                            st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
                 else:
-                    st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน (หรือใช้รหัสแอดมินเพื่อข้ามระบบฐานข้อมูล)")
+                    st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน")
 
     # ---------------------------------
     # แท็บ: สมัครสมาชิก (Register)
@@ -128,6 +132,8 @@ if not st.session_state.is_authenticated:
                         st.error("❌ รหัสผ่านไม่ตรงกัน กรุณาพิมพ์ใหม่อีกครั้ง")
                     elif len(pass_reg) < 6:
                         st.error("❌ รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร")
+                    elif "<รหัสโปรเจกต์ของคุณ>" in SUPABASE_URL:
+                        st.error("❌ กรุณาเปลี่ยน URL ของ Supabase ให้เป็นลิงก์โปรเจกต์ของคุณจริงๆ ก่อนสมัครสมาชิก")
                     else:
                         supabase: Client = init_supabase(SUPABASE_URL, SUPABASE_KEY)
                         if supabase:
