@@ -95,8 +95,8 @@ if not st.session_state.is_authenticated:
             pass_login = st.text_input("🔑 รหัสผ่าน", type="password", key="login_pass")
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-                # Admin Bypass
-                if email_login == "admin" and pass_login == "A0927442339zxc*":
+                # Admin Bypass (อัปเดตตามคำขอ)
+                if email_login in ["222", "จีเมล222", "222@gmail.com"] and pass_login in ["222", "รหัส222"]:
                     st.session_state.is_authenticated = True
                     st.session_state.user_email = "👑 Admin (Superuser)"
                     st.session_state.supabase_url = input_url
