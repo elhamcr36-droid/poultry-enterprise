@@ -51,7 +51,7 @@ st.markdown(
 )
 
 # ==========================================
-# 🔐 2. ระบบล็อคอินและยืนยันตัวตนด้วย Supabase
+# 🔐 2. ระบบล็อคอินและยืนยันตัวตนด้วย Supabase (พร้อมระบบแอดมิน)
 # ==========================================
 if "is_authenticated" not in st.session_state:
     st.session_state.is_authenticated = False
@@ -64,9 +64,9 @@ def init_supabase(url, key):
 
 if not st.session_state.is_authenticated:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>🔐 เข้าสู่ระบบ Mega Feed & Breed Studio</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🔐 ยินดีต้อนรับสู่ Mega Feed & Breed Studio</h2>", unsafe_allow_html=True)
     
-    with st.expander("☁️ การเชื่อมต่อคลาวด์และฐานข้อมูลหลัก (Supabase Configuration)", expanded=True):
+    with st.expander("☁️ การเชื่อมต่อคลาวด์และฐานข้อมูลหลัก (Supabase Configuration)", expanded=False):
         c_db1, c_db2 = st.columns(2)
         with c_db1:
             SUPABASE_URL = st.text_input("ลิงก์โปรเจกต์ Supabase", "https://your-mega-project.supabase.co").strip()
@@ -75,40 +75,68 @@ if not st.session_state.is_authenticated:
 
     st.markdown("---")
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        email = st.text_input("📧 อีเมล (Email)")
-        password = st.text_input("🔑 รหัสผ่าน (Password)", type="password")
-        
-        c_btn1, c_btn2 = st.columns(2)
-        with c_btn1:
+    tab_login, tab_register = st.tabs(["🔑 เข้าสู่ระบบ (Login)", "📝 สมัครสมาชิก (Register)"])
+    
+    # ---------------------------------
+    # แท็บ: เข้าสู่ระบบ (Login)
+    # ---------------------------------
+    with tab_login:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            email_login = st.text_input("📧 อีเมล หรือ ชื่อผู้ใช้ (Email / Username)", key="login_email")
+            pass_login = st.text_input("🔑 รหัสผ่าน (Password)", type="password", key="login_pass")
+            
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-                if SUPABASE_URL and SUPABASE_KEY and email and password:
+                # 1. เช็ครหัสแอดมิน (Hardcoded Admin Bypass)
+                if email_login == "User222" and pass_login == "222":
+                    st.session_state.is_authenticated = True
+                    st.session_state.user_email = "👑 Admin (User222)"
+                    st.success("✅ เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับผู้ดูแลระบบ...")
+                    st.rerun()
+                    
+                # 2. ถ้ารหัสแอดมินไม่ตรง ให้ไปเช็คกับฐานข้อมูล Supabase ตามปกติ
+                elif SUPABASE_URL and SUPABASE_KEY and email_login and pass_login:
                     supabase: Client = init_supabase(SUPABASE_URL, SUPABASE_KEY)
                     if supabase:
                         try:
-                            res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                            res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
                             st.session_state.is_authenticated = True
                             st.session_state.user_email = res.user.email
                             st.success("✅ เข้าสู่ระบบสำเร็จ! กำลังเข้าสู่แอปพลิเคชัน...")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง ({str(e)})")
+                            st.error("❌ อีเมล/ชื่อผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง")
                     else:
                         st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
                 else:
                     st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน")
-                    
-        with c_btn2:
-            if st.button("สมัครสมาชิก (Register)", use_container_width=True):
-                if SUPABASE_URL and SUPABASE_KEY and email and password:
-                    supabase: Client = init_supabase(SUPABASE_URL, SUPABASE_KEY)
-                    if supabase:
-                        try:
-                            res = supabase.auth.sign_up({"email": email, "password": password})
-                            st.success("✅ สมัครสมาชิกสำเร็จ! (สามารถล็อคอินได้เลย หรือกดยืนยันอีเมลหากตั้งค่าไว้)")
-                        except Exception as e:
-                            st.error(f"❌ สมัครสมาชิกล้มเหลว: {str(e)}")
+
+    # ---------------------------------
+    # แท็บ: สมัครสมาชิก (Register)
+    # ---------------------------------
+    with tab_register:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            email_reg = st.text_input("📧 อีเมล (Email)", key="reg_email")
+            pass_reg = st.text_input("🔑 รหัสผ่าน (Password)", type="password", key="reg_pass")
+            pass_confirm = st.text_input("🔑 ยืนยันรหัสผ่าน (Confirm Password)", type="password", key="reg_pass_confirm")
+            
+            if st.button("สมัครสมาชิก (Register)", type="primary", use_container_width=True):
+                if SUPABASE_URL and SUPABASE_KEY and email_reg and pass_reg and pass_confirm:
+                    if pass_reg != pass_confirm:
+                        st.error("❌ รหัสผ่านไม่ตรงกัน กรุณาพิมพ์ใหม่อีกครั้ง")
+                    elif len(pass_reg) < 6:
+                        st.error("❌ รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร")
+                    else:
+                        supabase: Client = init_supabase(SUPABASE_URL, SUPABASE_KEY)
+                        if supabase:
+                            try:
+                                res = supabase.auth.sign_up({"email": email_reg, "password": pass_reg})
+                                st.success("✅ สมัครสมาชิกสำเร็จ! (คุณสามารถกลับไปที่หน้าเข้าสู่ระบบเพื่อใช้งานได้ทันที)")
+                            except Exception as e:
+                                st.error(f"❌ สมัครสมาชิกล้มเหลว: {str(e)}")
+                        else:
+                            st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
                 else:
                     st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน")
                     
@@ -209,9 +237,9 @@ with page_tabs[0]:
         # 1. กำหนดสมการ Minimize Cost
         prob = pulp.LpProblem("MegaPoultryLinearFeed", pulp.LpMinimize)
         
-        # 2. สร้างตัวแปร
-        ing_vars = {name: pulp.LpVariable(f"var_{name}", lowBound=data["min_limit"]/100.0, upBound=data["max_limit"]/100.0) 
-                    for name, data in st.session_state.ingredient_data.items()}
+        # 2. สร้างตัวแปร (แก้ไข Bug: ใช้ id ตัวเลขแทนชื่อภาษาไทยเพื่อป้องกัน PuLP error)
+        ing_vars = {name: pulp.LpVariable(f"var_{i}", lowBound=data["min_limit"]/100.0, upBound=data["max_limit"]/100.0) 
+                    for i, (name, data) in enumerate(st.session_state.ingredient_data.items())}
         
         # 3. Objective Function (ลดราคาให้ต่ำที่สุด)
         prob += pulp.lpSum([ing_vars[n] * data["price"] for n, data in st.session_state.ingredient_data.items()]), "Total_Cost"
