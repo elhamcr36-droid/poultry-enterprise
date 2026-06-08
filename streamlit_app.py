@@ -74,7 +74,8 @@ if not st.session_state.is_authenticated:
             try:
                 default_url = st.secrets["SUPABASE_URL"]
             except:
-                default_url = "https://<รหัสโปรเจกต์ของคุณ>.supabase.co"
+                # แก้ไขค่าเริ่มต้นเป็น URL ตรงที่ดึงจากรหัสโปรเจกต์ของคุณ
+                default_url = "https://nxyncxqbtntlpzqessou.supabase.co"
             input_url = st.text_input("ลิงก์โปรเจกต์ Supabase", default_url).strip()
             
         with c_db2:
@@ -95,16 +96,16 @@ if not st.session_state.is_authenticated:
             pass_login = st.text_input("🔑 รหัสผ่าน", type="password", key="login_pass")
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-                # Admin Bypass (อัปเดตตามคำขอ)
+                # Admin Bypass 
                 if email_login in ["222", "จีเมล222", "222@gmail.com"] and pass_login in ["222", "รหัส222"]:
                     st.session_state.is_authenticated = True
-                    st.session_state.user_email = "👑 Admin (Superuser)"
+                    st.session_state.user_email = "👑 Admin (Superuser Mode)"
                     st.session_state.supabase_url = input_url
                     st.session_state.supabase_key = input_key
                     st.success("✅ เข้าสู่ระบบแอดมินสำเร็จ!")
                     st.rerun()
                 elif input_url and input_key and email_login and pass_login:
-                    sb: Client = init_supabase(input_url, input_key)
+                    sb = init_supabase(input_url, input_key)
                     if sb:
                         try:
                             res = sb.auth.sign_in_with_password({"email": email_login, "password": pass_login})
@@ -114,7 +115,7 @@ if not st.session_state.is_authenticated:
                             st.session_state.supabase_key = input_key
                             st.success("✅ เข้าสู่ระบบสำเร็จ!")
                             st.rerun()
-                        except Exception as e:
+                        except Exception:
                             st.error("❌ อีเมล หรือรหัสผ่านไม่ถูกต้อง")
                     else:
                         st.error("❌ เชื่อมต่อ Supabase ไม่ได้")
@@ -136,7 +137,7 @@ if not st.session_state.is_authenticated:
                     elif len(pass_reg) < 6:
                         st.error("❌ รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร")
                     else:
-                        sb: Client = init_supabase(input_url, input_key)
+                        sb = init_supabase(input_url, input_key)
                         if sb:
                             try:
                                 res = sb.auth.sign_up({"email": email_reg, "password": pass_reg})
@@ -149,11 +150,33 @@ if not st.session_state.is_authenticated:
     st.stop()
 
 # ==========================================
-# 📥 3. ดึงข้อมูลจากฐานข้อมูล Supabase 
+# 📥 3. ดึงข้อมูลจากฐานข้อมูล Supabase (พร้อมระบบสำรองเมื่อ Error)
 # ==========================================
 @st.cache_data(ttl=600)
 def fetch_master_data(url, key):
+    # --- 📦 คลังข้อมูลสำรอง (Offline Fallback Data) ป้องกันหน้าเว็บค้าง ---
+    FALLBACK_INGREDIENTS = {
+        "ข้าวโพด": {"name": "ข้าวโพด", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "fiber": 2.2, "sodium": 0.02, "chloride": 0.04, "linoleic": 1.5, "min_limit": 10.0, "max_limit": 70.0},
+        "กากถั่วเหลือง": {"name": "กากถั่วเหลือง", "price": 18.5, "protein": 44.0, "me": 2420.0, "calcium": 0.25, "phos": 0.60, "lysine": 2.70, "methionine": 0.62, "fiber": 6.0, "sodium": 0.02, "chloride": 0.04, "linoleic": 0.5, "min_limit": 5.0, "max_limit": 40.0},
+        "ปลาป่น": {"name": "ปลาป่น", "price": 32.0, "protein": 60.0, "me": 2850.0, "calcium": 5.0, "phos": 3.0, "lysine": 4.5, "methionine": 1.8, "fiber": 1.0, "sodium": 0.5, "chloride": 0.5, "linoleic": 0.1, "min_limit": 0.0, "max_limit": 10.0},
+        "น้ำมันพืช": {"name": "น้ำมันพืช", "price": 35.0, "protein": 0.0, "me": 8400.0, "calcium": 0.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0, "sodium": 0.0, "chloride": 0.0, "linoleic": 50.0, "min_limit": 0.0, "max_limit": 5.0},
+        "แคลเซียมคาร์บอเนต": {"name": "แคลเซียมคาร์บอเนต", "price": 3.0, "protein": 0.0, "me": 0.0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0, "sodium": 0.0, "chloride": 0.0, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 10.0},
+        "ไดแคลเซียมฟอสเฟต": {"name": "ไดแคลเซียมฟอสเฟต", "price": 25.0, "protein": 0.0, "me": 0.0, "calcium": 22.0, "phos": 18.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0, "sodium": 0.0, "chloride": 0.0, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 5.0},
+        "เกลือ": {"name": "เกลือ", "price": 5.0, "protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0, "sodium": 39.0, "chloride": 60.0, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 0.5}
+    }
+    FALLBACK_TARGETS = {
+        "starter": {"stage_key": "starter", "stage_name": "ลูกไก่ (Starter)", "protein": 20.0, "me": 2900.0, "calcium": 1.0, "phos": 0.45, "lysine": 1.1, "methionine": 0.45, "fiber_max": 4.0, "sodium_min": 0.15, "chloride_min": 0.15, "linoleic_min": 1.0},
+        "layer": {"stage_key": "layer", "stage_name": "ไก่ไข่ (Layer)", "protein": 17.5, "me": 2750.0, "calcium": 4.1, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 5.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.2}
+    }
+    FALLBACK_BREEDS = [
+        {"breed_name": "Isa Brown (ไก่ไข่)", "description": "ทนร้อน แผงเปลือกไข่หนา", "default_feed": 115},
+        {"breed_name": "Cobb 500 (ไก่เนื้อ)", "description": "โตไว อกหนา", "default_feed": 160}
+    ]
+
     try:
+        if "รหัสโปรเจกต์" in url or "supabase.co" not in url:
+            raise ValueError("ลิงก์โปรเจกต์ยังไม่ได้ตั้งค่า")
+            
         supabase: Client = create_client(url, key)
         ing_res = supabase.table("ingredients").select("*").execute()
         tgt_res = supabase.table("nutrition_targets").select("*").execute()
@@ -161,19 +184,16 @@ def fetch_master_data(url, key):
         
         ing_dict = {item["name"]: item for item in ing_res.data}
         tgt_dict = {item["stage_key"]: item for item in tgt_res.data}
-        return ing_dict, tgt_dict, brd_res.data
-    except Exception as e:
-        st.error(f"เกิดข้อผิดพลาดในการดึงข้อมูลจาก Supabase: {e}")
-        return {}, {}, []
+        
+        if not ing_dict or not tgt_dict:
+            raise ValueError("ตารางข้อมูลว่างเปล่า")
+            
+        return ing_dict, tgt_dict, brd_res.data, True
+    except Exception:
+        # หากดึงข้อมูลล้มเหลว จะส่งชุดข้อมูลจำลองออกไปทำงานแทนทันทีเพื่อไม่ให้ระบบค้าง
+        return FALLBACK_INGREDIENTS, FALLBACK_TARGETS, FALLBACK_BREEDS, False
 
-ingredients_data, targets_data, breeds_data = fetch_master_data(st.session_state.supabase_url, st.session_state.supabase_key)
-
-if not ingredients_data or not targets_data:
-    st.warning("⏳ ไม่พบข้อมูลในระบบ หรือเชื่อมต่อฐานข้อมูลล้มเหลว กรุณาตรวจสอบข้อมูลใน Supabase")
-    if st.button("ออกจากระบบเพื่อตั้งค่าใหม่"):
-        st.session_state.is_authenticated = False
-        st.rerun()
-    st.stop()
+ingredients_data, targets_data, breeds_data, is_online = fetch_master_data(st.session_state.supabase_url, st.session_state.supabase_key)
 
 if "optimized_weights" not in st.session_state:
     st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
@@ -184,7 +204,10 @@ if "optimized_weights" not in st.session_state:
 col_h1, col_h2 = st.columns([8, 2])
 with col_h1:
     st.markdown("# 🐔 Mega Feed & Breed Studio")
-    st.markdown("### ระบบปัญญาประดิษฐ์คำนวณสูตรอาหาร โภชนาการขั้นสูง (14 พารามิเตอร์) และบริหารคลัง")
+    if is_online:
+        st.markdown("<p style='color:#10b981; font-weight:bold;'>🟢 เชื่อมต่อคลาวด์ฐานข้อมูล Supabase สำเร็จ</p>", unsafe_allow_html=True)
+    else:
+        st.markdown("<p style='color:#f59e0b; font-weight:bold;'>⚠️ โหมดจำลองข้อมูล (Offline Mode): ใช้ฐานข้อมูลสำรองเนื่องจากการเชื่อมต่อขัดข้อง</p>", unsafe_allow_html=True)
 with col_h2:
     st.markdown(f"<p style='text-align:right; margin-bottom:5px;'>👤 <b>{st.session_state.user_email}</b></p>", unsafe_allow_html=True)
     if st.button("ออกจากระบบ (Logout)", use_container_width=True):
@@ -335,7 +358,7 @@ with page_tabs[1]:
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ศูนย์จัดการคลังวัตถุดิบ (Master Database)")
-    st.markdown("ข้อมูลโภชนาการและข้อจำกัดวัตถุดิบ 14 พารามิเตอร์ที่ดึงสดจาก Supabase")
+    st.markdown("ข้อมูลโภชนาการและข้อจำกัดวัตถุดิบ 14 พารามิเตอร์ที่ดึงสดจากฐานข้อมูล")
     
     # ปรับรูปแบบ DataFrame ให้สวยงาม
     df_ingredients = pd.DataFrame.from_dict(ingredients_data, orient='index')
