@@ -88,9 +88,10 @@ if not st.session_state.is_authenticated:
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
                 # 1. เช็ครหัสแอดมิน (ข้ามระบบ Supabase ทันที)
-                if email_login == "User222" and pass_login == "222":
+                # --- เปลี่ยนเงื่อนไขตรงนี้ให้รับ 222 ทั้งสองช่อง ---
+                if email_login == "222" and pass_login == "222":
                     st.session_state.is_authenticated = True
-                    st.session_state.user_email = "👑 Admin (User222)"
+                    st.session_state.user_email = "👑 Admin (222)"
                     st.success("✅ เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับผู้ดูแลระบบ...")
                     st.rerun()
                     
