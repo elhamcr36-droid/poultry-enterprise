@@ -29,6 +29,11 @@ st.markdown(
         color: #ffffff !important;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9) !important;
     }
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(255, 255, 255, 0.12) !important;
+        padding: 10px; border-radius: 12px; backdrop-filter: blur(10px);
+    }
+    .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold !important; }
     .content-card {
         background-color: rgba(0, 0, 0, 0.75) !important; padding: 25px;
         border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.2);
@@ -46,15 +51,10 @@ st.markdown(
 )
 
 # ==========================================
-# 🔐 2. ระบบล็อคอินและยืนยันตัวตนด้วย Supabase
+# 🔐 2. ระบบล็อคอินและยืนยันตัวตนด้วย Supabase (พร้อมระบบแอดมิน)
 # ==========================================
 if "is_authenticated" not in st.session_state:
     st.session_state.is_authenticated = False
-if "auth_mode" not in st.session_state:
-    st.session_state.auth_mode = "login"  # สถานะหน้าต่าง: login, register, forgot
-
-def switch_auth_mode(mode):
-    st.session_state.auth_mode = mode
 
 def init_supabase(url, key):
     try:
@@ -75,18 +75,20 @@ if not st.session_state.is_authenticated:
 
     st.markdown("---")
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        # ---------------------------------
-        # โหมด: เข้าสู่ระบบ (Login)
-        # ---------------------------------
-        if st.session_state.auth_mode == "login":
-            st.markdown("<h3 style='text-align: center;'>🔑 เข้าสู่ระบบ</h3>", unsafe_allow_html=True)
+    tab_login, tab_register = st.tabs(["🔑 เข้าสู่ระบบ (Login)", "📝 สมัครสมาชิก (Register)"])
+    
+    # ---------------------------------
+    # แท็บ: เข้าสู่ระบบ (Login)
+    # ---------------------------------
+    with tab_login:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
             email_login = st.text_input("📧 อีเมล หรือ ชื่อผู้ใช้ (Email / Username)", key="login_email")
             pass_login = st.text_input("🔑 รหัสผ่าน (Password)", type="password", key="login_pass")
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
                 # 1. เช็ครหัสแอดมิน (ข้ามระบบ Supabase ทันที)
+                # --- เปลี่ยนเงื่อนไขตรงนี้ให้รับ 222 ทั้งสองช่อง ---
                 if email_login == "222" and pass_login == "222":
                     st.session_state.is_authenticated = True
                     st.session_state.user_email = "👑 Admin (222)"
@@ -109,24 +111,18 @@ if not st.session_state.is_authenticated:
                         st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
                 else:
                     st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน (หรือใช้รหัสแอดมินเพื่อข้ามระบบฐานข้อมูล)")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            c_btn1, c_btn2 = st.columns(2)
-            with c_btn1:
-                st.button("📝 สมัครสมาชิกใหม่", on_click=switch_auth_mode, args=("register",), use_container_width=True)
-            with c_btn2:
-                st.button("❓ ลืมรหัสผ่าน", on_click=switch_auth_mode, args=("forgot",), use_container_width=True)
 
-        # ---------------------------------
-        # โหมด: สมัครสมาชิก (Register)
-        # ---------------------------------
-        elif st.session_state.auth_mode == "register":
-            st.markdown("<h3 style='text-align: center;'>📝 สมัครสมาชิกใหม่</h3>", unsafe_allow_html=True)
+    # ---------------------------------
+    # แท็บ: สมัครสมาชิก (Register)
+    # ---------------------------------
+    with tab_register:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
             email_reg = st.text_input("📧 อีเมล (Email)", key="reg_email")
             pass_reg = st.text_input("🔑 รหัสผ่าน (Password)", type="password", key="reg_pass")
             pass_confirm = st.text_input("🔑 ยืนยันรหัสผ่าน (Confirm Password)", type="password", key="reg_pass_confirm")
             
-            if st.button("ยืนยันการสมัครสมาชิก", type="primary", use_container_width=True):
+            if st.button("สมัครสมาชิก (Register)", type="primary", use_container_width=True):
                 if SUPABASE_URL and SUPABASE_KEY and email_reg and pass_reg and pass_confirm:
                     if pass_reg != pass_confirm:
                         st.error("❌ รหัสผ่านไม่ตรงกัน กรุณาพิมพ์ใหม่อีกครั้ง")
@@ -137,42 +133,14 @@ if not st.session_state.is_authenticated:
                         if supabase:
                             try:
                                 res = supabase.auth.sign_up({"email": email_reg, "password": pass_reg})
-                                st.success("✅ สมัครสมาชิกสำเร็จ! กรุณายืนยันอีเมล (ถ้าตั้งค่าไว้) หรือล็อคอินได้เลย")
+                                st.success("✅ สมัครสมาชิกสำเร็จ! (คุณสามารถกลับไปที่หน้าเข้าสู่ระบบเพื่อใช้งานได้ทันที)")
                             except Exception as e:
                                 st.error(f"❌ สมัครสมาชิกล้มเหลว: {str(e)}")
                         else:
-                            st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้")
+                            st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
                 else:
                     st.warning("⚠️ กรุณากรอกข้อมูลการเชื่อมต่อ Supabase และข้อมูลสมัครสมาชิกให้ครบถ้วน")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.button("⬅️ กลับไปหน้าเข้าสู่ระบบ", on_click=switch_auth_mode, args=("login",), use_container_width=True)
-
-        # ---------------------------------
-        # โหมด: ลืมรหัสผ่าน (Forgot Password)
-        # ---------------------------------
-        elif st.session_state.auth_mode == "forgot":
-            st.markdown("<h3 style='text-align: center;'>❓ ลืมรหัสผ่าน</h3>", unsafe_allow_html=True)
-            st.info("ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ")
-            email_forgot = st.text_input("📧 กรอกอีเมลที่ใช้สมัคร (Email)", key="forgot_email")
-            
-            if st.button("ส่งลิงก์รีเซ็ตรหัสผ่าน", type="primary", use_container_width=True):
-                if SUPABASE_URL and SUPABASE_KEY and email_forgot:
-                    supabase: Client = init_supabase(SUPABASE_URL, SUPABASE_KEY)
-                    if supabase:
-                        try:
-                            supabase.auth.reset_password_email(email_forgot)
-                            st.success(f"✅ ส่งลิงก์ไปยัง {email_forgot} เรียบร้อยแล้ว! กรุณาตรวจสอบในกล่องจดหมายของคุณ")
-                        except Exception as e:
-                            st.error(f"❌ ไม่สามารถส่งอีเมลได้: {str(e)}")
-                    else:
-                        st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้")
-                else:
-                    st.warning("⚠️ กรุณากรอกอีเมลให้ครบถ้วน")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.button("⬅️ กลับไปหน้าเข้าสู่ระบบ", on_click=switch_auth_mode, args=("login",), use_container_width=True)
-
+                    
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
@@ -187,7 +155,6 @@ with col_h2:
     st.markdown(f"<p style='text-align:right; margin-bottom:5px;'>👤 <b>{st.session_state.user_email}</b></p>", unsafe_allow_html=True)
     if st.button("ออกจากระบบ (Logout)", use_container_width=True):
         st.session_state.is_authenticated = False
-        st.session_state.auth_mode = "login" # รีเซ็ตกลับไปหน้า login เสมอเมื่อออกจากระบบ
         st.rerun()
 
 # ==========================================
