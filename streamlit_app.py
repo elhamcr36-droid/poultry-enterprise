@@ -87,7 +87,7 @@ if not st.session_state.is_authenticated:
             pass_login = st.text_input("🔑 รหัสผ่าน (Password)", type="password", key="login_pass")
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-                # 1. เช็ครหัสแอดมิน (Hardcoded Admin Bypass)
+                # 1. เช็ครหัสแอดมิน (ข้ามระบบ Supabase ทันที)
                 if email_login == "User222" and pass_login == "222":
                     st.session_state.is_authenticated = True
                     st.session_state.user_email = "👑 Admin (User222)"
@@ -109,7 +109,7 @@ if not st.session_state.is_authenticated:
                     else:
                         st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
                 else:
-                    st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน")
+                    st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน (หรือใช้รหัสแอดมินเพื่อข้ามระบบฐานข้อมูล)")
 
     # ---------------------------------
     # แท็บ: สมัครสมาชิก (Register)
@@ -138,7 +138,7 @@ if not st.session_state.is_authenticated:
                         else:
                             st.error("❌ ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ URL/Key")
                 else:
-                    st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วน")
+                    st.warning("⚠️ กรุณากรอกข้อมูลการเชื่อมต่อ Supabase และข้อมูลสมัครสมาชิกให้ครบถ้วน")
                     
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
@@ -237,7 +237,7 @@ with page_tabs[0]:
         # 1. กำหนดสมการ Minimize Cost
         prob = pulp.LpProblem("MegaPoultryLinearFeed", pulp.LpMinimize)
         
-        # 2. สร้างตัวแปร (แก้ไข Bug: ใช้ id ตัวเลขแทนชื่อภาษาไทยเพื่อป้องกัน PuLP error)
+        # 2. สร้างตัวแปร
         ing_vars = {name: pulp.LpVariable(f"var_{i}", lowBound=data["min_limit"]/100.0, upBound=data["max_limit"]/100.0) 
                     for i, (name, data) in enumerate(st.session_state.ingredient_data.items())}
         
