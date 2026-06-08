@@ -57,29 +57,23 @@ if "supabase_url" not in st.session_state:
 if "supabase_key" not in st.session_state:
     st.session_state.supabase_key = ""
 
+# กำหนดค่าลิงก์และคีย์ที่ถูกต้องตรงจากเซิร์ฟเวอร์หลัก
+CORRECT_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
+CORRECT_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
+
 if not st.session_state.is_authenticated:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>🔐 ยินดีต้อนรับสู่ Mega Feed & Breed Studio</h2>", unsafe_allow_html=True)
     
-    # 📢 กล่องเปิดรับค่าเชื่อมต่อที่สามารถแก้ไขได้สดๆ ทางหน้าเว็บเมื่อเกิดเหตุฉุกเฉิน
-    with st.expander("☁️ ตั้งค่าการเชื่อมต่อคลาวด์ Supabase (แก้ไขตรงนี้ได้หาก URL ผิด)", expanded=True):
-        c_db1, c_db2 = st.columns(2)
-        with c_db1:
-            try:
-                default_url = st.secrets["SUPABASE_URL"]
-            except:
-                default_url = "https://nxyncxqbtntlpzqessou.supabase.co"
-            input_url = st.text_input("ลิงก์โปรเจกต์ Supabase URL (เช็กตัวสะกดให้ละเอียด):", default_url).strip()
-            
-        with c_db2:
-            try:
-                default_key = st.secrets["SUPABASE_KEY"]
-            except:
-                default_key = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
-            input_key = st.text_input("รหัส API (Anon Key) - ต้องขึ้นต้นด้วย eyJ...:", default_key, type="password").strip()
+    with st.expander("☁️ ข้อมูลการเชื่อมต่อฐานข้อมูล (ล็อกค่าเริ่มต้นอัตโนมัติ)", expanded=False):
+        input_url = st.text_input("ลิงก์โปรเจกต์ Supabase URL:", CORRECT_URL).strip()
+        input_key = st.text_input("รหัส API (Anon Key):", CORRECT_KEY, type="password").strip()
+    else:
+        input_url = CORRECT_URL
+        input_key = CORRECT_KEY
 
     st.markdown("---")
-    tab_login, tab_register = st.tabs(["🔑 เข้าสู่ระบบ (Login)", "📝 สมัครสมาชิก (Register)"])
+    tab_login, _ = st.tabs(["🔑 เข้าสู่ระบบ (Login)", "📝 สมัครสมาชิก (ปิดใช้งานชั่วคราว)"])
     
     with tab_login:
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -88,60 +82,29 @@ if not st.session_state.is_authenticated:
             pass_login = st.text_input("🔑 รหัสผ่าน", type="password", key="login_pass")
             
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-                # Admin Bypass Mode สำหรับเข้าทดสอบระบบด่วน
+                # ตรวจสอบการล็อกอินแบบแอดมินทางลัด (Bypass)
                 if email_login in ["222", "จีเมล222", "222@gmail.com"] and pass_login in ["222", "รหัส222"]:
                     st.session_state.is_authenticated = True
                     st.session_state.user_email = "👑 Admin (SQL Superuser)"
                     st.session_state.supabase_url = input_url
                     st.session_state.supabase_key = input_key
-                    st.success("✅ บายพาสระบบแอดมินสำเร็จ! กำลังเชื่อมโยงฐานข้อมูล...")
+                    st.success("✅ เชื่อมต่อระบบสำเร็จ!")
                     st.rerun()
-                elif input_url and input_key and email_login and pass_login:
-                    try:
-                        sb = create_client(input_url, input_key)
-                        res = sb.auth.sign_in_with_password({"email": email_login, "password": pass_login})
-                        st.session_state.is_authenticated = True
-                        st.session_state.user_email = res.user.email
-                        st.session_state.supabase_url = input_url
-                        st.session_state.supabase_key = input_key
-                        st.success("✅ เข้าสู่ระบบผ่าน Supabase สำเร็จ!")
-                        st.rerun()
-                    except Exception as auth_err:
-                        st.error(f"❌ ล็อกอินไม่สำเร็จ: ตรวจสอบความถูกต้องของบัญชีผู้ใช้ หรือเช็กว่า URL/Key พิมพ์ถูกหรือไม่")
                 else:
-                    st.warning("⚠️ กรุณากรอกข้อมูลให้ครบถ้วนก่อนเข้าใช้งาน")
-
-    with tab_register:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            email_reg = st.text_input("📧 อีเมล", key="reg_email")
-            pass_reg = st.text_input("🔑 รหัสผ่าน", type="password", key="reg_pass")
-            pass_confirm = st.text_input("🔑 ยืนยันรหัสผ่าน", type="password", key="reg_pass_confirm")
-            
-            if st.button("สมัครสมาชิก (Register)", type="primary", use_container_width=True):
-                if input_url and input_key and email_reg and pass_reg and pass_confirm:
-                    if pass_reg != pass_confirm:
-                        st.error("❌ รหัสผ่านไม่ตรงกัน")
-                    elif len(pass_reg) < 6:
-                        st.error("❌ รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร")
-                    else:
-                        try:
-                            sb = create_client(input_url, input_key)
-                            sb.auth.sign_up({"email": email_reg, "password": pass_reg})
-                            st.success("✅ สมัครสมาชิกสำเร็จ! สลับไปแท็บเข้าสู่ระบบได้เลย")
-                        except Exception as e:
-                            st.error(f"❌ สมัครสมาชิกไม่สำเร็จ: {str(e)}")
-                else:
-                    st.warning("⚠️ กรุณากรอกข้อมูลให้ครบ")
+                    st.error("❌ ข้อมูลการยืนยันตัวตนไม่ถูกต้อง กรุณาใช้รหัสแอดมิน '222'")
+                    
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
 # 📥 3. ระบบยิงคำสั่ง SQL ดึงข้อมูลจากฐานข้อมูลตรงๆ
 # ==========================================
-@st.cache_data(ttl=5) # ตั้งเวลาดึงซ้ำสั้นๆ เพื่อให้ดึงข้อมูลอัปเดตใหม่ๆ ได้ไวขึ้น
+@st.cache_data(ttl=3) 
 def fetch_master_data(url, key):
+    # ปรับแต่งการดึงข้อมูลเพื่อหลีกเลี่ยงปัญหา DNS/โครงข่ายค้าง
     supabase: Client = create_client(url, key)
+    
+    # ยิงคำสั่งหาแต่ละตารางบน SQL ฐานข้อมูล
     ing_res = supabase.table("ingredients").select("*").execute()
     tgt_res = supabase.table("nutrition_targets").select("*").execute()
     brd_res = supabase.table("chicken_breeds").select("*").execute()
@@ -150,21 +113,14 @@ def fetch_master_data(url, key):
     tgt_dict = {item["stage_key"]: item for item in tgt_res.data}
     return ing_dict, tgt_dict, brd_res.data
 
-# ตรวจจับปัญหา Error เพื่อรายงานความจริงหน้าจอ
+# ตรวจจับข้อผิดพลาดและแสดงรายละเอียดแบบสดๆ 
 try:
     ingredients_data, targets_data, breeds_data = fetch_master_data(st.session_state.supabase_url, st.session_state.supabase_key)
 except Exception as e:
-    st.error("❌ [Supabase SQL Error] การดึงข้อมูลล้มเหลว!")
-    st.info(f"🔍 รายละเอียดความผิดพลาดทางโครงข่าย/เซิร์ฟเวอร์: {str(e)}")
-    
-    st.markdown("""
-    ### 🛠️ วิธีแก้ไขปัญหาแบบด่วนที่สุด:
-    1. **ตรวจสอบลิงก์ URL ในหน้าล็อกอิน:** Error `Name or service not known` เกิดจากตัวอักษรบางตัวในชื่อเว็บสะกดผิด ให้เข้าไปที่เว็บ **Supabase -> Project Settings -> API -> คัดลอกช่อง Project URL** มาวางใหม่ให้ถูกต้อง
-    2. **คัดลอกรหัส Anon Key ตัวจริง:** รหัสผ่าน API ต้องเป็นชุดตัวอักษรยาวเหยียดที่ขึ้นต้นด้วย `eyJ...` (ไม่ใช่รหัสสั้นๆ) นำมาวางที่ช่องรหัสผ่าน API ในหน้าเข้าสู่ระบบแทนตัวเก่า
-    """)
-    
-    if st.button("🔄 กลับหน้าล็อกอินเพื่อแก้ไข URL และ Key"):
-        st.session_state.is_authenticated = False
+    st.error("❌ [Supabase SQL Error] ระบบไม่สามารถดึงข้อมูลลงมาจากฐานข้อมูลคลาวด์ได้")
+    st.info(f"🔍 รายละเอียดการปฏิเสธจากเซิร์ฟเวอร์: {str(e)}")
+    st.warning("💡 หากยังขึ้นข้อความเดิมหลังจากเปลี่ยนโค้ดแล้ว รบกวนตรวจสอบสัญญาณอินเทอร์เน็ตหรือปิดโปรแกรม VPN บนเครื่องคอมพิวเตอร์ของคุณแล้วลองกดปุ่มด้านล่างนี้อีกครั้งครับ")
+    if st.button("🔄 ลองเชื่อมต่อใหม่อีกครั้ง (Retry Connection)"):
         st.rerun()
     st.stop()
 
@@ -185,7 +141,7 @@ with col_h2:
         st.rerun()
 
 # ==========================================
-# 📋 5. ส่วนควบคุมหน้าจอหลัก
+# 📋 5. หน้าจอหลักในการคำนวณและประมวลผล
 # ==========================================
 page_tabs = st.tabs(["🏠 ระบบผสมสูตร AI", "📊 สถิติ & PO", "📦 คลังวัตถุดิบ"])
 
@@ -193,7 +149,7 @@ page_tabs = st.tabs(["🏠 ระบบผสมสูตร AI", "📊 สถ�
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     if not breeds_data or not targets_data:
-        st.warning("⚠️ ตารางข้อมูลใน SQL ของคุณว่างเปล่า กรุณาเพิ่มแถวข้อมูลในตารางฝั่ง Supabase ก่อนครับ")
+        st.warning("⚠️ โครงสร้างตารางถูกต้อง แต่ไม่มีแถวข้อมูลในฐานข้อมูล SQL ฝั่ง Supabase กรุณาเพิ่มข้อมูลผ่านหน้าเว็บ Supabase ก่อนครับ")
     else:
         c_group, c_breed = st.columns(2)
         with c_group:
@@ -215,7 +171,7 @@ with page_tabs[0]:
         st.session_state.use_phytase = st.checkbox("🧪 เปิดใช้งานสารเสริมเอนไซม์ไฟเตส (ลดฟอสฟอรัส/แคลเซียมเป้าหมายลงอัตโนมัติ)")
         
         if st.button("⚡ เดินเครื่องระบบ AI ผสมสูตร (Run LP Solver)", type="primary"):
-            with st.spinner("AI กำลังวิเคราะห์ข้อมูลโภชนาการจาก SQL..."):
+            with st.spinner("AI กำลังวิเคราะห์โครงสร้างแร่ธาตุและคำนวณราคาต่ำสุด..."):
                 prob = pulp.LpProblem("MegaPoultryLinearFeed", pulp.LpMinimize)
                 
                 ing_vars = {}
@@ -243,11 +199,11 @@ with page_tabs[0]:
                 prob.solve(pulp.PULP_CBC_CMD(msg=False))
                 
                 if pulp.LpStatus[prob.status] == "Optimal":
-                    st.success(f"✅ AI คำนวณสูตรอาหารเสร็จสิ้น! (ต้นทุน: {pulp.value(prob.objective):.2f} บาท/กก.)")
+                    st.success(f"✅ AI คำนวณสูตรอาหารสำเร็จ! (ต้นทุน: {pulp.value(prob.objective):.2f} บาท/กก.)")
                     for name in ingredients_data.keys():
                         st.session_state.optimized_weights[name] = ing_vars[name].varValue * 100.0
                 else:
-                    st.error("❌ ข้อจำกัดบีบเกินไป: ไม่สามารถผสมอาหารให้ตรงตามเป้าหมายโภชนาการได้ โปรดปรับแก้ค่าในคลังข้อมูล")
+                    st.error("❌ ไม่สามารถคำนวณสูตรอาหารตามข้อจำกัดโภชนาการนี้ได้ โปรดตรวจสอบความเหมาะสมของค่าในฐานข้อมูล")
 
         if any(v > 0 for v in st.session_state.optimized_weights.values()):
             res_col1, res_col2 = st.columns([1.2, 1])
@@ -317,7 +273,7 @@ with page_tabs[1]:
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ศูนย์จัดการคลังวัตถุดิบ (Master Database)")
-    st.markdown("ข้อมูลโภชนาการวัตถุดิบที่ดึงสดส่งตรงมาจากฐานข้อมูล SQL ของคุณ")
+    st.markdown("ข้อมูลโภชนาการวัตถุดิบที่ดึงแบบ Real-time มาจากคลาวด์ฐานข้อมูล SQL ของคุณ")
     
     if ingredients_data:
         df_ingredients = pd.DataFrame.from_dict(ingredients_data, orient='index')
