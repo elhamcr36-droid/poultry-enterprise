@@ -59,7 +59,6 @@ st.markdown(
     div[data-testid="stMetricValue"] { font-size: 2.2rem !important; color: #ffb703 !important; }
     [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.95) !important; border-radius: 8px; }
     
-    /* สไตล์จำลองกล่อง Facebook ล็อคอิน */
     .fb-subtitle {
         font-size: 14px !important;
         color: #bcc0c4 !important;
@@ -102,9 +101,10 @@ if "threshold_drop_rate" not in st.session_state: st.session_state.threshold_dro
 if "threshold_mortality_rate" not in st.session_state: st.session_state.threshold_mortality_rate = 0.1
 if "threshold_broken_egg" not in st.session_state: st.session_state.threshold_broken_egg = 2.0
 
+# 🔴 คืนค่าบัญชีแอดมินด้วยรหัสเดิม (admin1234) เรียบร้อยแล้วครับ
 if "user_database" not in st.session_state:
     st.session_state.user_database = {
-        "admin": {"password": "222", "name": "ผู้จัดการฟาร์ม/เจ้าของกิจการ", "role": "admin"},
+        "admin": {"password": "admin1234", "name": "ผู้จัดการฟาร์ม/เจ้าของกิจการ", "role": "admin"},
         "user": {"password": "123", "name": "สัตวบาลประจำกลุ่มเทคนิค", "role": "user"}
     }
 
@@ -129,7 +129,7 @@ if "farm_production_logs" not in st.session_state:
 
 db_targets = {
     "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะไข่พีค ช่วงที่ 1 (อายุ 19-45 สัปดาห์)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-    "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะไข่ ช่วงที่ 2 (อายุ 46-65 สัปณ์)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 4.5},
+    "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะไข่ ช่วงที่ 2 (อายุ 46-65 สัปดาห์)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 4.5},
     "layer_phase_3": {"stage_key": "layer_phase_3", "stage_name": "ระยะท้ายก่อนปลด (อายุ >65 สัปดาห์)", "protein": 15.5, "me": 2700.0, "calcium": 4.55, "phos": 0.34, "lysine": 0.76, "methionine": 0.36, "fiber_max": 5.0},
 }
 
@@ -244,7 +244,6 @@ if not st.session_state.is_authenticated:
                     if reg_username in st.session_state.user_database:
                         st.error("❌ ชื่อผู้ใช้งานนี้ระบบถูกเปิดใช้ไปแล้ว")
                     else:
-                        # บัญชีสมัครใหม่จะถูกกำหนดสิทธิ์เป็นพนักงานทั่วไป (user) อัตโนมัติเพื่อความปลอดภัย
                         st.session_state.user_database[reg_username] = {
                             "password": reg_password, "name": reg_name, "role": "user"
                         }
@@ -514,7 +513,7 @@ else:
         df_ing = pd.DataFrame(ing_table_data)
         st.dataframe(df_ing, use_container_width=True)
         
-        with st.expander("🛠️ แก้ไขราคา ข้อจำกัด หรือเติมยอดสต็อกวัตถุดิบเข้าฟาร์ม"):
+        with st.expander("🛠️ แก้ไขราคา ข้อจำกัด หรือเติมยอดสต็อกวัตถิบเข้าฟาร์ม"):
             target_ing = st.selectbox("เลือกวัตถุดิบที่ต้องการปรับค่าข้อมูล:", list(current_db_ingredients.keys()))
             ed = current_db_ingredients[target_ing]
             
