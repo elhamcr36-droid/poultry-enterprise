@@ -94,23 +94,20 @@ except Exception as e:
 if "is_authenticated" not in st.session_state: st.session_state.is_authenticated = False
 if "user_role" not in st.session_state: st.session_state.user_role = "user"  
 if "user_email" not in st.session_state: st.session_state.user_email = ""
-if "auth_mode" not in st.session_state: st.session_state.auth_mode = "login" # ควบคุมการสลับหน้าหลักย่อยเหมือน Facebook (login / register / forgot)
+if "auth_mode" not in st.session_state: st.session_state.auth_mode = "login" 
 if "audit_logs" not in st.session_state:
     st.session_state.audit_logs = [{"เวลา": "2026-06-09 08:00", "ผู้ใช้": "System", "กิจกรรม": "เปิดระบบรักษาความปลอดภัยเครือข่ายคลาวด์ฟาร์ม"}]
 
-# เกณฑ์ความปลอดภัยวิกฤตหลังบ้าน (Admin Configuration)
 if "threshold_drop_rate" not in st.session_state: st.session_state.threshold_drop_rate = 3.0
 if "threshold_mortality_rate" not in st.session_state: st.session_state.threshold_mortality_rate = 0.1
 if "threshold_broken_egg" not in st.session_state: st.session_state.threshold_broken_egg = 2.0
 
-# ฐานข้อมูลผู้ใช้หลักประจำระบบฟาร์ม (เพิ่มเข้าหน่วยความจำสถานะเพื่อให้สมัครใหม่ทำงานร่วมกันได้)
 if "user_database" not in st.session_state:
     st.session_state.user_database = {
         "admin": {"password": "222", "name": "ผู้จัดการฟาร์ม/เจ้าของกิจการ", "role": "admin"},
         "user": {"password": "123", "name": "สัตวบาลประจำกลุ่มเทคนิค", "role": "user"}
     }
 
-# ข้อมูลกลุ่มและสายพันธุ์ไก่ไข่
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = [
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)"},
@@ -124,7 +121,6 @@ if "db_breeds" not in st.session_state:
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ โลห์แมน แอลเอสแอล (Lohmann LSL White)", "std_curve": 93.0}
     ]
 
-# ข้อมูลบันทึกผลผลิตประจำเล้า
 if "farm_production_logs" not in st.session_state:
     st.session_state.farm_production_logs = [
         {"วันที่": "2026-06-07", "โรงเรือน": "House A", "จำนวนไก่ต้นวัน": 5000, "ไข่ดี(ฟอง)": 4450, "ไข่เสีย/แตก(ฟอง)": 45, "น้ำหนักไข่รวม(กก.)": 282.0, "ตาย(ตัว)": 1, "อาหาร(กก.)": 570.0, "น้ำ(ลิตร)": 1140.0, "อุณหภูมิ(°C)": 28.2, "หมายเหตุ": "ปกติ"},
@@ -192,7 +188,7 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     return {name: round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1) for name in current_db_ingredients.keys()}
 
 # ==========================================
-# 🔒 5. GATEWAY SCREEN (FACEBOOK STYLE AUTHENTICATION)
+# 🔒 5. GATEWAY SCREEN (FIXED METHOD)
 # ==========================================
 if not st.session_state.is_authenticated:
     
@@ -216,15 +212,14 @@ if not st.session_state.is_authenticated:
             else:
                 st.error("❌ อีเมลหรือรหัสผ่านที่คุณป้อนไม่ถูกต้อง")
                 
-        # ส่วนควบคุมปุ่มสลับลิงก์สไตล์ Facebook ลืมรหัสผ่าน
+        # [แก้ไขจุดนี้] นำ variant="secondary" ออก เปลี่ยนเป็นปุ่มปกติของ Streamlit เพื่อเลี่ยงจุดบั๊ก
         st.markdown("<div style='text-align: center; margin: 15px 0;'>", unsafe_allow_html=True)
-        if st.button("ลืมรหัสผ่านใช่หรือไม่?", variant="secondary"):
+        if st.button("ลืมรหัสผ่านใช่หรือไม่?", type="secondary", use_container_width=True):
             st.session_state.auth_mode = "forgot"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
-        # ปุ่มสร้างบัญชีใหม่สีเขียวแบบ Facebook
         st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
         if st.button("🟢 สร้างบัญชีผู้ใช้ใหม่", type="secondary"):
             st.session_state.auth_mode = "register"
@@ -308,7 +303,7 @@ with col_h2:
         if st.button("🔴 Logout", use_container_width=True):
             st.session_state.is_authenticated = False
             st.session_state.user_role = "user"
-            st.session_state.auth_mode = "login" # รีเซ็ตหน้ากลับเป็นหน้าล็อกอินเริ่มต้น
+            st.session_state.auth_mode = "login"
             st.rerun()
 st.markdown("---")
 
@@ -540,7 +535,7 @@ else:
                         "phos": ed["phos"], "lysine": ed["lysine"], "methionine": ed["methionine"],
                         "fiber": ed["fiber"], "min_limit": c_min, "max_limit": c_max
                     }).execute()
-                    add_audit_log(st.session_state.user_email, f"แก้ไขฐานข้อมูลวัตถุดิบ {target_ing}: ราคา={c_price}, คลัง={c_stock}กก.")
+                    add_audit_log(st.session_state.user_email, f"แก้ไขฐานข้อมูลวัตถิบ {target_ing}: ราคา={c_price}, คลัง={c_stock}กก.")
                     st.success("อัปเดตข้อมูลโครงสร้างวัตถุดิบหลักเสร็จสิ้นเรียบร้อย")
                     st.rerun()
                 except Exception as e:
