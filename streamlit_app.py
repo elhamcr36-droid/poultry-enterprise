@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import pulp
 import io
 import datetime
+import re  # สำหรับตรวจสอบ Regex ความปลอดภัยของรหัสผ่าน
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
@@ -83,12 +84,26 @@ if "saved_formulas" not in st.session_state:
 if "daily_logs" not in st.session_state:
     st.session_state.daily_logs = [] 
 
-# ฐานข้อมูลกลางเก็บข้อมูลผู้ใช้งานระบบ
+# ฟังก์ชันตรวจสอบระดับความปลอดภัยของรหัสผ่านตามมาตรฐานขั้นสูง
+def check_password_strength(password):
+    if len(password) < 8:
+        return False, "❌ รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร"
+    if not re.search("[a-z]", password):
+        return False, "❌ รหัสผ่านต้องมีอักษรพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว"
+    if not re.search("[A-Z]", password):
+        return False, "❌ รหัสผ่านต้องมีอักษรพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว"
+    if not re.search("[0-9]", password):
+        return False, "❌ รหัสผ่านต้องมีตัวเลข (0-9) อย่างน้อย 1 ตัว"
+    if not re.search("[_@$!%*#?&.]", password):
+        return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น @, #, $, %, ., !, _)"
+    return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
+
+# ฐานข้อมูลกลางเก็บข้อมูลผู้ใช้งานระบบ (รหัสผ่านของสมาชิกใหม่จะต้องเป็นแบบ Secure Password)
 if "user_database" not in st.session_state:
     st.session_state.user_database = {
-        "admin": {"password": "222", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง", "role": "admin", "tel": "089-999-9999", "reg_date": "2026-01-01"},
+        "admin": {"password": "AdminPassword@2026", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง", "role": "admin", "tel": "089-999-9999", "reg_date": "2026-01-01"},
         "222": {"password": "222", "name": "แอดมินทางลัด", "surname": "ระบบผสม", "role": "admin", "tel": "088-888-8888", "reg_date": "2026-01-02"},
-        "user": {"password": "123", "name": "สมชาย", "surname": "ใจดี", "role": "user", "tel": "081-234-5678", "reg_date": "2026-05-10"}
+        "user@farm.com": {"password": "UserPassword@2026", "name": "สมชาย", "surname": "ใจดี", "role": "user", "tel": "081-234-5678", "reg_date": "2026-05-10"}
     }
 
 # ฐานข้อมูลกลุ่มหลักสายพันธุ์ไก่ไข่
@@ -159,16 +174,18 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     return res
 
 # ==========================================
-# 🔒 4. SECURITY GATEWAY (LOGIN & SIGN UP)
+# 🔒 4. SECURITY GATEWAY (LOGIN, SIGN UP & FORGOT PASSWORD)
 # ==========================================
 if not st.session_state.is_authenticated:
+    
+    # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
-        email_login = st.text_input("📧 อีเมลเข้าใช้งาน (หรือพิมพ์ '222' สำหรับแอดมินทางลัด):", key="login_email")
-        pass_login = st.text_input("🔑 รหัสผ่านเข้าใช้งาน (ป้อน '222' หรือ '123'):", type="password", key="login_pass")
+        email_login = st.text_input("📧 อีเมลเข้าใช้งาน:", key="login_email")
+        pass_login = st.text_input("🔑 รหัสผ่านเข้าใช้งาน:", type="password", key="login_pass")
         
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
@@ -186,26 +203,54 @@ if not st.session_state.is_authenticated:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
                 st.session_state.auth_page_mode = "signup"
                 st.rerun()
+                
+        st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
+        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", variant="secondary"):
+            st.session_state.auth_page_mode = "forgot"
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
+    # --- 4.2 หน้า SIGN UP (สมัครสมาชิกใหม่ + เช็ครหัสผ่านปลอดภัยสูง) ---
     elif st.session_state.auth_page_mode == "signup":
         st.markdown("<div class='content-card' style='max-width: 600px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>📝 สมัครสมาชิกฟาร์มใหม่ (Sign Up)</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
-        su_name = st.text_input("👤 ชื่อจริง (First Name):")
-        su_surname = st.text_input("👤 นามสกุล (Last Name):")
-        su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ:")
+        su_name = st.text_input("👤 ชื่อจริง:")
+        su_surname = st.text_input("👤 นามสกุล:")
+        su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ (ใช้สำหรับกรณีกู้คืนรหัสผ่าน):")
         su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้ (ใช้เป็นไอดีสำหรับ Log In):")
-        su_pass = st.text_input("🔑 รหัสผ่านความปลอดภัยที่ต้องการ:", type="password")
         
+        st.markdown("<div style='background-color:#1e293b; padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; color:#94a3b8;'>"
+                    "🔒 **ข้อกำหนดรหัสผ่านความปลอดภัยสูง:**<br>"
+                    "- ความยาวไม่น้อยกว่า 8 ตัวอักษร<br>"
+                    "- มีอักษรพิมพ์ใหญ่ (A-Z) และพิมพ์เล็ก (a-z)<br>"
+                    "- มีตัวเลข (0-9) และอักขระพิเศษอย่างน้อย 1 ตัว (@, #, $, %, !, ., _)"
+                    "</div>", unsafe_allow_html=True)
+        
+        su_pass = st.text_input("🔑 ตั้งรหัสผ่านความปลอดภัยสูง:", type="password")
+        su_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านอีกครั้ง:", type="password")
+        
+        # ตรวจสอบความแรงของรหัสผ่านแบบ Real-time
+        is_strong, pass_msg = check_password_strength(su_pass) if su_pass else (False, "")
+        if su_pass:
+            if is_strong:
+                st.success(pass_msg)
+            else:
+                st.warning(pass_msg)
+                
         col_su1, col_su2 = st.columns(2)
         with col_su1:
             if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
-                if su_email and su_pass and su_name:
+                if su_email and su_pass and su_name and su_tel:
                     if su_email in st.session_state.user_database:
                         st.error("❌ อีเมลนี้เคยลงทะเบียนในระบบฟาร์มแล้ว")
+                    elif su_pass != su_pass_conf:
+                        st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
+                    elif not is_strong:
+                        st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
                     else:
                         st.session_state.user_database[su_email] = {
                             "password": su_pass, "name": su_name, "surname": su_surname,
@@ -220,6 +265,49 @@ if not st.session_state.is_authenticated:
             if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
                 st.session_state.auth_page_mode = "login"
                 st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
+
+    # --- 4.3 หน้า FORGOT PASSWORD (ลืมรหัสผ่าน/กู้คืนบัญชี) ---
+    elif st.session_state.auth_page_mode == "forgot":
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
+        fg_tel = st.text_input("📞 ป้อนเบอร์โทรศัพท์ที่ลงทะเบียนไว้เพื่อตรวจสอบสิทธิ์:")
+        
+        if fg_email in st.session_state.user_database:
+            user_found = st.session_state.user_database[fg_email]
+            if user_found.get("tel") == fg_tel:
+                st.info("🎯 ตรวจสอบข้อมูลถูกต้อง! กรุณาตั้งรหัสผ่านใหม่ที่ปลอดภัยด้านล่าง:")
+                
+                new_pass = st.text_input("🔑 กำหนดรหัสผ่านใหม่ความปลอดภัยสูง:", type="password", key="fg_new")
+                new_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านใหม่อีกครั้ง:", type="password", key="fg_conf")
+                
+                is_new_strong, new_pass_msg = check_password_strength(new_pass) if new_pass else (False, "")
+                if new_pass:
+                    if is_new_strong: st.success(new_pass_msg)
+                    else: st.warning(new_pass_msg)
+                
+                if st.button("💾 บันทึกเปลี่ยนรหัสผ่านใหม่", type="primary", use_container_width=True):
+                    if new_pass != new_pass_conf:
+                        st.error("❌ รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน")
+                    elif not is_new_strong:
+                        st.error("❌ รหัสผ่านใหม่ไม่ปลอดภัยตามเกณฑ์มาตรฐาน")
+                    else:
+                        st.session_state.user_database[fg_email]["password"] = new_pass
+                        st.success("🎉 เปลี่ยนรหัสผ่านสำเร็จ! ระบบกำลังนำคุณไปล็อกอิน...")
+                        st.session_state.auth_page_mode = "login"
+                        st.rerun()
+            else:
+                if fg_tel: st.error("❌ เบอร์โทรศัพท์ไม่ตรงกับข้อมูลในระบบ")
+        else:
+            if fg_email: st.error("❌ ไม่พบที่อยู่อีเมลนี้ในระบบ")
+            
+        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
+            st.session_state.auth_page_mode = "login"
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
@@ -501,7 +589,7 @@ else:
                     st.success(f"เพิ่มวัตถุดิบ '{new_ing}' สำเร็จ!")
                     st.rerun()
         with col_m2:
-            del_ing = st.selectbox("🗑️ เลือกลบวัตถิบออกจากสูตรคำนวณรอบนี้:", ["-- เลือกเพื่อลบ --"] + list(st.session_state.db_ingredients.keys()))
+            del_ing = st.selectbox("🗑️ เลือกลบวัติบออกจากสูตรคำนวณรอบนี้:", ["-- เลือกเพื่อลบ --"] + list(st.session_state.db_ingredients.keys()))
             if st.button("❌ ยืนยันการนำวัตถุดิบนี้ออกจากตารางสูตร", use_container_width=True):
                 if del_ing != "-- เลือกเพื่อลบ --":
                     if del_ing in st.session_state.db_ingredients: del st.session_state.db_ingredients[del_ing]
