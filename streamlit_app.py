@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 import pulp
 import io
 import datetime
@@ -81,6 +81,7 @@ if "user_role" not in st.session_state:
 if "saved_formulas" not in st.session_state:
     st.session_state.saved_formulas = []  
 
+# ฐานข้อมูลกลางเก็บข้อมูลผู้ใช้งานระบบ
 if "user_database" not in st.session_state:
     st.session_state.user_database = {
         "admin": {"password": "222", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง", "role": "admin", "tel": "089-999-9999", "reg_date": "2026-01-01"},
@@ -88,12 +89,14 @@ if "user_database" not in st.session_state:
         "user": {"password": "123", "name": "สมชาย", "surname": "ใจดี", "role": "user", "tel": "081-234-5678", "reg_date": "2026-05-10"}
     }
 
+# ฐานข้อมูลกลุ่มหลักสายพันธุ์ไก่ไข่
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = [
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309"},
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7"}
     ]
 
+# ฐานข้อมูลสายพันธุ์ย่อยภายใต้กลุ่มหลัก
 if "db_breeds" not in st.session_state:
     st.session_state.db_breeds = [
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0},
@@ -101,6 +104,7 @@ if "db_breeds" not in st.session_state:
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0}
     ]
 
+# ฐานข้อมูลสารอาหารวัตถุดิบ
 if "db_ingredients" not in st.session_state:
     st.session_state.db_ingredients = {
         "ข้าวโพดบดเม็ด (Ground Corn)": {"name": "ข้าวโพดบดเม็ด (Ground Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "fiber": 2.2, "min_limit": 0.0, "max_limit": 70.0},
@@ -110,10 +114,11 @@ if "db_ingredients" not in st.session_state:
         "ไดแคลเซียมฟอสเฟต (DCP 18%)": {"name": "ไดแคลเซียมฟอสเฟต (DCP 18%)", "price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 4.0},
         "เกลือแกงบริสุทธิ์ (Refined Salt)": {"name": "เกลือแกงบริสุทธิ์ (Refined Salt)", "price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.10, "max_limit": 0.50},
         "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)": {"name": "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)", "price": 160.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.20, "max_limit": 0.40},
-        "DL-Methionine (กรดอะมิโนสังเคราะห์)": {"name": "DL-Methionine (กรดอะมิโนสังเคราะห์)", "price": 145.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00},
-        "L-Lysine HCl (กรดอะมิโนสังเคราะห์)": {"name": "L-Lysine HCl (กรดอะมิโนสังเคราะห์)", "price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 78.40, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00}
+        "DL-Methionine": {"name": "DL-Methionine", "price": 145.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00},
+        "L-Lysine HCl": {"name": "L-Lysine HCl", "price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 78.40, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00}
     }
 
+# ฐานข้อมูลเป้าหมายความต้องการสารอาหารตามช่วงระยะการไข่
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
         "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
@@ -130,7 +135,6 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in st.session_state.db_ingredients.items()}
     
-    # เพิ่มกลไกความยืดหยุ่น (Soft Constraints) เพื่อป้องกันสมการขัดแย้งกันจนแอปเออร์เรอร์
     s_p = pulp.LpVariable("s_p", lowBound=0)
     s_m = pulp.LpVariable("s_m", lowBound=0)
     s_c = pulp.LpVariable("s_c", lowBound=0)
@@ -153,40 +157,88 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     return res
 
 # ==========================================
-# 🔒 4. SECURITY GATEWAY (LOGIN / SIGNUP)
+# 🔒 4. SECURITY GATEWAY (LOGIN & SIGN UP)
 # ==========================================
 if not st.session_state.is_authenticated:
     if st.session_state.auth_page_mode == "login":
-        st.markdown("<div class='content-card' style='max-width: 550px; margin: 80px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
-        email_login = st.text_input("📧 อีเมล หรือ รหัสผ่านทางลัด (แอดมินและยูสเซอร์ป้อน '222' ได้):", key="login_email")
+        email_login = st.text_input("📧 อีเมลเข้าใช้งาน (หรือพิมพ์ '222' สำหรับแอดมินทางลัด):", key="login_email")
         pass_login = st.text_input("🔑 รหัสผ่านเข้าใช้งาน (ป้อน '222' หรือ '123'):", type="password", key="login_pass")
         
-        if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
-            if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
-                user_info = st.session_state.user_database[email_login]
-                st.session_state.is_authenticated = True
-                st.session_state.user_role = user_info.get("role", "user")
-                st.session_state.user_email = f"{user_info['name']} [{user_info['role'].upper()}]"
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
+                if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
+                    user_info = st.session_state.user_database[email_login]
+                    st.session_state.is_authenticated = True
+                    st.session_state.user_role = user_info.get("role", "user")
+                    st.session_state.user_email = f"{user_info['name']} [{user_info['role'].upper()}]"
+                    st.rerun()
+                else:
+                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+        with col_btn2:
+            if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
+                st.session_state.auth_page_mode = "signup"
                 st.rerun()
-            else:
-                st.error("❌ ข้อมูลประจำตัวไม่ถูกต้อง")
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
+
+    elif st.session_state.auth_page_mode == "signup":
+        st.markdown("<div class='content-card' style='max-width: 600px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>📝 สมัครสมาชิกฟาร์มใหม่ (Sign Up)</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        su_name = st.text_input("👤 ชื่อจริง (First Name):")
+        su_surname = st.text_input("👤 นามสกุล (Last Name):")
+        su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ:")
+        su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้ (ใช้เป็นไอดีสำหรับ Log In):")
+        su_pass = st.text_input("🔑 รหัสผ่านความปลอดภัยที่ต้องการ:", type="password")
+        
+        col_su1, col_su2 = st.columns(2)
+        with col_su1:
+            if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
+                if su_email and su_pass and su_name:
+                    if su_email in st.session_state.user_database:
+                        st.error("❌ อีเมลนี้เคยลงทะเบียนในระบบฟาร์มแล้ว")
+                    else:
+                        st.session_state.user_database[su_email] = {
+                            "password": su_pass, "name": su_name, "surname": su_surname,
+                            "role": "user", "tel": su_tel, "reg_date": str(datetime.date.today())
+                        }
+                        st.success("🎉 สมัครสมาชิกสำเร็จ! ระบบพากลับหน้าเข้าสู่ระบบ...")
+                        st.session_state.auth_page_mode = "login"
+                        st.rerun()
+                else:
+                    st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
+        with col_su2:
+            if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
+                st.session_state.auth_page_mode = "login"
+                st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
 # ==========================================
-col_h1, col_h2 = st.columns([8, 2])
+col_h1, col_h2 = st.columns([7.5, 2.5])
 with col_h1:
-    st.markdown(f"# 🐔 Layer Nutrition Studio Pro <span style='font-size:1.2rem; color:#38bdf8;'>[ลงชื่อเข้าใช้: {st.session_state.user_email}]</span>", unsafe_allow_html=True)
+    st.markdown(f"# 🐔 Layer Nutrition Studio Pro <span style='font-size:1.1rem; color:#38bdf8;'>[สิทธิ์การใช้งาน: {st.session_state.user_email}]</span>", unsafe_allow_html=True)
 with col_h2:
-    if st.button("🔴 ออกจากระบบ", use_container_width=True):
-        st.session_state.is_authenticated = False
-        st.session_state.current_weights = {}
-        st.rerun()
+    cc1, cc2 = st.columns(2)
+    with cc1:
+        if st.session_state.user_role == "user" and "admin" in st.session_state.user_email.lower():
+            if st.button("🔄 หน้า Admin", use_container_width=True):
+                st.session_state.user_role = "admin"
+                st.rerun()
+    with cc2:
+        if st.button("🔴 ออกจากระบบ", use_container_width=True):
+            st.session_state.is_authenticated = False
+            st.session_state.current_weights = {}
+            st.session_state.auth_page_mode = "login"
+            st.rerun()
 st.markdown("---")
 
 # ==========================================
@@ -194,13 +246,13 @@ st.markdown("---")
 # ==========================================
 if st.session_state.user_role == "admin":
     # -----------------------------------------------------------------------------------------
-    # 🛠️ ADMIN ROUTE: FULL CRUD DATABASE CONTROL
+    # 🛠️ ADMIN ROUTE: FULL CRUD CONTROL PANEL
     # -----------------------------------------------------------------------------------------
     st.markdown("<div style='background-color:#1e3a8a; padding:15px; border-radius:10px; margin-bottom:20px;'><h3 style='margin:0; color:#93c5fd !important;'>🛠️ FULL CRUD CONTROL PANEL: หน้าบริหารจัดการฐานข้อมูลระบบฟาร์ม</h3></div>", unsafe_allow_html=True)
     admin_tabs = st.tabs(["🌽 จัดการวัตถุดิบอาหาร", "🐓 จัดการสายพันธุ์ไก่ไข่", "🧬 จัดการเกณฑ์โภชนาการอายุ"])
     
     with admin_tabs[0]:
-        st.markdown("<div class='content-card'>### 🌽 เพิ่ม/แก้ไขคลังวัตถุดิบหลัก</div>", unsafe_allow_html=True)
+        st.markdown("<div class='content-card'>### 🌽 เพิ่ม/แก้ไขคลังวัตถุดิบหลัก (Full CRUD)</div>", unsafe_allow_html=True)
         st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
         c1, c2 = st.columns(2)
         with c1:
@@ -219,43 +271,59 @@ if st.session_state.user_role == "admin":
             if st.button("💾 บันทึกวัตถุดิบลงเซิร์ฟเวอร์"):
                 if ing_name:
                     st.session_state.db_ingredients[ing_name] = {"name": ing_name, "price": ing_price, "protein": ing_prot, "me": ing_me, "calcium": ing_ca, "phos": ing_phos, "lysine": ing_lys, "methionine": ing_meth, "fiber": ing_fiber, "min_limit": ing_min, "max_limit": ing_max}
-                    st.success("บันทึกข้อมูลเรียบร้อย!"); st.rerun()
+                    st.success("บันทึกข้อมูลวัตถุดิบเรียบร้อย!"); st.rerun()
         with c2:
             st.markdown("#### ❌ ลบวัตถุดิบออกจากระบบ")
-            to_del = st.selectbox("เลือกวัตถุดิบที่จะลบ:", list(st.session_state.db_ingredients.keys()))
-            if st.button("🗑️ ยืนยันลบวัตถุดิบ"):
+            to_del = st.selectbox("เลือกวัตถุดิบที่จะลบออกจากคลัง:", list(st.session_state.db_ingredients.keys()))
+            if st.button("🗑 `Confirm` ยืนยันลบวัตถุดิบ"):
                 del st.session_state.db_ingredients[to_del]; st.warning("ลบข้อมูลเรียบร้อย!"); st.rerun()
 
     with admin_tabs[1]:
-        st.markdown("<div class='content-card'>### 🐓 จัดการข้อมูลสายพันธุ์ไก่ไข่</div>", unsafe_allow_html=True)
-        st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True)
+        st.markdown("<div class='content-card'>### 🐓 จัดการข้อมูลสายพันธุ์ไก่ไข่และกลุ่มหลัก (Full CRUD)</div>", unsafe_allow_html=True)
+        
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+            st.markdown("##### 📁 กลุ่มหลักปัจจุบันในระบบ")
+            st.dataframe(pd.DataFrame(st.session_state.db_groups), use_container_width=True)
+            new_g_name = st.text_input("➕ เพิ่มชื่อกลุ่มสายพันธุ์หลักใหม่:")
+            if st.button("💾 บันทึกกลุ่มใหม่"):
+                if new_g_name:
+                    st.session_state.db_groups.append({"group_name": new_g_name, "bg_color": "#475569"})
+                    st.success("เพิ่มกลุ่มสำเร็จ"); st.rerun()
+        with col_g2:
+            st.markdown("##### 🐔 รายชื่อสายพันธุ์ทั้งหมด")
+            st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True)
+            
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         bc1, bc2 = st.columns(2)
         with bc1:
-            b_group = st.selectbox("เลือกกลุ่มหลัก:", [g["group_name"] for g in st.session_state.db_groups])
-            b_name = st.text_input("ชื่อสายพันธุ์การค้าใหม่:")
-            b_egg = st.text_input("สีเปลือกไข่:")
-            b_feed = st.number_input("อัตรากินอาหารมาตรฐาน (กรัม/วัน):", value=115.0)
-            if st.button("➕ เพิ่มสายพันธุ์ใหม่"):
+            st.markdown("#### ➕ เพิ่มสายพันธุ์การค้า")
+            b_group = st.selectbox("เลือกกลุ่มหลักที่จะสังกัด:", [g["group_name"] for g in st.session_state.db_groups])
+            b_name = st.text_input("ชื่อทางการค้าของสายพันธุ์ใหม่:")
+            b_egg = st.text_input("สีของเปลือกไข่:")
+            b_feed = st.number_input("อัตรากินอาหารมาตรฐาน (กรัม/ตัว/วัน):", value=115.0)
+            if st.button("➕ ยืนยันเพิ่มสายพันธุ์ใหม่"):
                 if b_name:
                     st.session_state.db_breeds.append({"group_name": b_group, "breed_name": b_name, "egg_color": b_egg, "default_feed": b_feed})
-                    st.success("เพิ่มข้อมูลเรียบร้อย!"); st.rerun()
+                    st.success("เพิ่มข้อมูลสายพันธุ์เรียบร้อย!"); st.rerun()
         with bc2:
-            b_del = st.selectbox("เลือกสายพันธุ์ที่จะลบ:", [b["breed_name"] for b in st.session_state.db_breeds])
-            if st.button("🗑️ ยืนยันลบสายพันธุ์"):
+            st.markdown("#### ❌ ลบสายพันธุ์การค้า")
+            b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b["breed_name"] for b in st.session_state.db_breeds])
+            if st.button("🗑️ ยืนยันลบสายพันธุ์นี้"):
                 st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
-                st.warning("ลบออกแล้ว!"); st.rerun()
+                st.warning("ลบออกเรียบร้อยแล้ว!"); st.rerun()
 
     with admin_tabs[2]:
-        st.markdown("<div class='content-card'>### 🧬 จัดการเกณฑ์โภชนาการตามช่วงอายุสัตว์</div>", unsafe_allow_html=True)
+        st.markdown("<div class='content-card'>### 🧬 จัดการเกณฑ์โภชนาการเป้าหมายตามช่วงอายุสัตว์</div>", unsafe_allow_html=True)
         st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
         
-    if st.button("🔄 สลับไปใช้โหมดหน้าจอ User"):
+    if st.button("🔄 สลับกลับไปใช้โหมดหน้าจอปรับสูตร (User Menu)"):
         st.session_state.user_role = "user"
         st.rerun()
 
 else:
     # -----------------------------------------------------------------------------------------
-    # 👑 USER ROUTE: UNIFIED HYBRID MATRIX INTERFACE (AI-First & Two-Way Live Editing)
+    # 👑 USER ROUTE: UNIFIED HYBRID MATRIX INTERFACE
     # -----------------------------------------------------------------------------------------
     page_tabs = st.tabs([
         "🏠 หน้าจอคำนวณและผสมสูตรอาหาร (Unified Live Matrix)", 
@@ -264,47 +332,92 @@ else:
     ])
     
     with page_tabs[0]:
-        # ดึงรายชื่อระยะปลอดภัยของอาหารสัตว์เพื่อเตรียมการป้อนข้อมูล
+        # --- 🐓 ดึงกลุ่มหลักและสายพันธุ์แบบสลับสัมพันธ์ผกผัน (Dynamic Filter) ---
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("### 🐓 ข้อมูลฝูงและโครงสร้างสายพันธุ์ไก่ไข่")
+        
+        col_br1, col_br2, col_br3 = st.columns(3)
+        with col_br1:
+            list_groups = [g["group_name"] for g in st.session_state.db_groups]
+            selected_g = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", list_groups)
+        with col_br2:
+            # กรองสายพันธุ์ให้แสดงเฉพาะตัวที่อยู่ในกลุ่มหลักที่เลือกเท่านั้น
+            filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_g]
+            breed_names = [b["breed_name"] for b in filtered_breeds] if filtered_breeds else ["ไม่มีข้อมูลสายพันธุ์ในระบบ"]
+            selected_b_name = st.selectbox("🐔 เลือกสายพันธุ์ไก่ไข่ทางเศรษฐกิจ:", breed_names)
+            
+            # ค้นหาข้อมูลจำเพาะของสายพันธุ์ที่ถูกเลือก
+            current_breed_data = next((b for b in filtered_breeds if b["breed_name"] == selected_b_name), {"default_feed": 114.0, "egg_color": "ไม่ระบุ"})
+        with col_br3:
+            st.markdown(f"<p style='margin-top:25px; color:#38bdf8; font-weight:bold;'>🎨 ลักษณะสีเปลือกไข่: {current_breed_data['egg_color']}<br>🍽️ อัตรากินอาหารเฉลี่ย: {current_breed_data['default_feed']} กรัม/วัน</p>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # --- กล่องควบคุมตัวชี้วัดฝูงด้านสารอาหาร ---
         stage_options = {s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()}
         
-        # กล่องควบคุมด้านบนสุดของแผงหน้าจอ
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         col_top1, col_top2, col_top3 = st.columns(3)
         with col_top1:
-            selected_stage_label = st.selectbox("📋 เลือกช่วงระยะการออกไข่ของฝูง:", list(stage_options.keys()))
+            selected_stage_label = st.selectbox("📋 เลือกช่วงระยะการออกไข่ของฝูงปัจจุบัน:", list(stage_options.keys()))
             base_req = st.session_state.db_targets[stage_options[selected_stage_label]]
         with col_top2:
             egg_price = st.number_input("💰 ราคารับซื้อไข่หน้าฟาร์มปัจจุบัน (บาท/ฟอง):", min_value=1.0, value=4.10)
         with col_top3:
-            laying_rate = st.slider("📊 อัตราการให้ไข่เฉลี่ยของฝูงประจำสัปดาห์ (%):", 10, 100, 85)
+            laying_rate = st.slider("📊 อัตราการให้ไข่เฉลี่ยประจำสัปดาห์ของฝูง (%):", 10, 100, 85)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # ⚡ 🛑 CRITICAL AUTOMATION: สั่ง AI รันคำนวณสูตรอาหารต้นทุนต่ำสุดให้ก่อนเสมอเป็นค่าเริ่มต้น
+        # ⚡ 🛑 AUTOMATION FIRST: สั่ง AI คำนวณเป็นค่าตั้งต้นให้ทันทีเมื่อเปิดหน้าเว็บบอร์ดมาครั้งแรก
         if not st.session_state.current_weights:
             st.session_state.current_weights = run_ai_solver(
                 base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"]
             )
 
+        # --- 🌽 เครื่องมือจัดการรายวัตถุดิบหน้างาน (Quick Ingredient Add/Remove) ---
+        st.markdown("<div class='content-card' style='background-color: rgba(30, 41, 59, 0.8) !important;'>", unsafe_allow_html=True)
+        st.markdown("#### ⚡ เครื่องมือเพิ่ม/ลด วัตถุดิบในหน้าคำนวณผสมด่วน (Live Matrix Adjuster)")
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            new_ing = st.text_input("➕ ใส่ชื่อวัตถุดิบใหม่เข้าสูตรผสม (เช่น รำละเอียด, ปลายข้าว):", placeholder="พิมพ์ชื่อวัตถุดิบ...")
+            col_in1, col_in2, col_in3 = st.columns(3)
+            with col_in1: new_p = st.number_input("ราคา (บ./กก.):", min_value=0.0, value=10.0, key="ni_p")
+            with col_in2: new_prot = st.number_input("โปรตีน (%):", min_value=0.0, value=12.0, key="ni_pr")
+            with col_in3: new_me = st.number_input("พลังงาน (kcal):", min_value=0.0, value=2800.0, key="ni_me")
+            if st.button("📥 ยืนยันเพิ่มวัตถุดิบชิ้นนี้เข้าสูตรคำนวณ", use_container_width=True):
+                if new_ing:
+                    st.session_state.db_ingredients[new_ing] = {
+                        "name": new_ing, "price": new_p, "protein": new_prot, "me": new_me, 
+                        "calcium": 0.1, "phos": 0.2, "lysine": 0.1, "methionine": 0.1, "fiber": 2.0, "min_limit": 0.0, "max_limit": 100.0
+                    }
+                    st.session_state.current_weights[new_ing] = 0.0
+                    st.success(f"เพิ่มวัตถุดิบ '{new_ing}' สำเร็จ!")
+                    st.rerun()
+        with col_m2:
+            del_ing = st.selectbox("🗑️ เลือกลบวัตถุดิบออกจากสูตรคำนวณรอบนี้:", ["-- เลือกเพื่อลบ --"] + list(st.session_state.db_ingredients.keys()))
+            if st.button("❌ ยืนยันการนำวัตถุดิบนี้ออกจากตารางสูตร", use_container_width=True):
+                if del_ing != "-- เลือกเพื่อลบ --":
+                    if del_ing in st.session_state.db_ingredients: del st.session_state.db_ingredients[del_ing]
+                    if del_ing in st.session_state.current_weights: del st.session_state.current_weights[del_ing]
+                    st.warning(f"ลบวัตถุดิบ '{del_ing}' เรียบร้อยแล้ว")
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
         # -----------------------------------------------------------------------------------------
-        # 🔄 UNIFIED HYBRID TWO-WAY INTERFACE (ฝั่งซ้ายปรับวัตถุดิบ / ฝั่งขวาปรับแก้สารอาหารและประมวลผลตามจริง)
+        # 🔄 UNIFIED HYBRID TWO-WAY MATRIX (ซ้าย: ปรับน้ำหนักดิบ / ขวา: ตรวจคุณค่าสารอาหารเป้าหมาย)
         # -----------------------------------------------------------------------------------------
         col_left, col_right = st.columns([1.1, 0.9])
         
-        # --- 🎛️ ฝั่งซ้าย: แผงควบคุมและแก้ไขวัตถุดิบด้วยตัวเอง (User Manual Customization Slider) ---
+        # --- 🎛️ ฝั่งซ้าย: สไลเดอร์ปรับมือสดเรีนลไทม์ ---
         with col_left:
             st.markdown("<div class='content-card'>", unsafe_allow_html=True)
             st.markdown("### 🥣 1. สัดส่วนและปริมาณวัตถุดิบดิบที่ใช้ (%)")
-            st.markdown("<p style='color:#38bdf8;'>สูตรด้านล่างมาจากการคำนวณของ AI คุณสามารถ 'ขยับสไลเดอร์เพิ่มลดด้วยตนเอง' เพื่อแต่งสูตรอาหารได้ทันท่วงที</p>", unsafe_allow_html=True)
             
             temp_weights = {}
             running_total = 0.0
             
-            # วนลูปเพื่อแสดงรายการวัตถุดิบและค่าเปอร์เซ็นต์ที่ดึงมาจากถังข้อมูลปัจจุบัน
             for name, d in st.session_state.db_ingredients.items():
                 saved_w = float(st.session_state.current_weights.get(name, 0.0))
-                saved_w = max(0.0, min(100.0, saved_w))  # ป้องกันปัญหาน้ำหนักหลุดขอบเขตความปลอดภัย
+                saved_w = max(0.0, min(100.0, saved_w))
                 
-                # ตัวสไลเดอร์ที่ผู้ใช้สามารถปรับเลื่อนเพิ่ม/ลบวัตถุดิบได้เองสด ๆ บนหน้าเว็บบอร์ด
                 user_val = st.slider(
                     f"🌽 {name} (ราคา {d['price']} บ./กก.)",
                     min_value=0.0, max_value=100.0, value=saved_w, step=0.1, key=f"sld_user_{name}"
@@ -312,23 +425,19 @@ else:
                 temp_weights[name] = user_val
                 running_total += user_val
             
-            # ตรวจสอบความสมบูรณ์ของสูตรอาหาร (ต้องรวมได้ 100%)
             if abs(running_total - 100.0) > 0.1:
-                st.markdown(f"<div style='background-color:#991b1b; padding:10px; border-radius:8px; font-weight:bold; text-align:center;'>⚠️ สัดส่วนรวมได้: {running_total:.1f}% (กรุณาปรับลดส่วนผสมอื่นทดแทนให้ครบ 100% พอดี)</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:#991b1b; padding:10px; border-radius:8px; font-weight:bold; text-align:center;'>⚠️ สัดส่วนรวมได้: {running_total:.1f}% (กรุณาปรับแก้ให้ครบ 100% พอดี)</div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div style='background-color:#065f46; padding:10px; border-radius:8px; font-weight:bold; text-align:center;'>🟢 สัดส่วนรวมครบถ้วนสมบูรณ์: {running_total:.1f}%</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:#065f46; padding:10px; border-radius:8px; font-weight:bold; text-align:center;'>🟢 สัดส่วนรวมครบถ้วนสมบูรณ์: 100%</div>", unsafe_allow_html=True)
             
-            # บันทึกค่าที่ได้จากการเลื่อนสไลเดอร์กลับลงไปใน State ส่วนกลางทันที
             st.session_state.current_weights = temp_weights
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- 🧬 ฝั่งขวา: แสดงระดับสารอาหารจริงที่ได้รับสด ๆ & ช่องกรอกปรับแต่งโภชนาการเป้าหมาย ---
+        # --- 🧬 ฝั่งขวา: คำนวณผลลัพธ์สารอาหารพร้อมช่องกรอกสั่ง AI ประมวลผลย้อนกลับ ---
         with col_right:
             st.markdown("<div class='content-card'>", unsafe_allow_html=True)
             st.markdown("### 🧪 2. ตารางระดับโภชนาการเเละเป้าหมายควบคุม")
-            st.markdown("หากต้องการแก้ไขคุณค่าสารอาหารเป้าหมาย ให้ระบุตัวเลขใหม่ด้านล่างแล้วกดปุ่มสั่งให้ AI จัดวัตถุดิบขยับตาม")
             
-            # คำนวณสารอาหารและราคาจริง ณ วินาทีปัจจุบันที่ได้จากการเลื่อนแถบสไลเดอร์ฝั่งซ้ายมือ
             net_cost = 0.0
             act_nut = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
             total_w = sum(st.session_state.current_weights.values())
@@ -340,69 +449,76 @@ else:
                 for k in act_nut.keys():
                     act_nut[k] += ratio * float(st.session_state.db_ingredients[name].get(k, 0.0))
             
-            # บล็อกอินพุตป้อนแก้ไขเพื่อส่งเป้าหมายใหม่ให้ AI ประมวลผลย้อนกลับ
             col_cell1, col_cell2 = st.columns([1, 1])
             with col_cell1:
-                edit_p = st.number_input("🎯 แก้ไขเป้าโปรตีนดิบ (% CP):", min_value=10.0, value=float(base_req["protein"]), step=0.1)
-                edit_m = st.number_input("🎯 แก้ไขเป้าพลังงาน (ME kcal/kg):", min_value=2000.0, value=float(base_req["me"]), step=25.0)
-                edit_c = st.number_input("🎯 แก้ไขเป้าแคลเซียม (% Ca):", min_value=1.0, value=float(base_req["calcium"]), step=0.05)
+                edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (% CP):", min_value=5.0, value=float(base_req["protein"]), step=0.1)
+                edit_m = st.number_input("🎯 พลังงานเป้าหมาย (ME kcal/kg):", min_value=1000.0, value=float(base_req["me"]), step=25.0)
+                edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (% Ca):", min_value=0.5, value=float(base_req["calcium"]), step=0.05)
             with col_cell2:
-                edit_ph = st.number_input("🎯 แก้ไขเป้าฟอสฟอรัส (% P):", min_value=0.1, value=float(base_req["phos"]), step=0.02)
-                edit_ly = st.number_input("🎯 แก้ไขเป้าไลซีน (% Lys):", min_value=0.2, value=float(base_req["lysine"]), step=0.01)
-                edit_me = st.number_input("🎯 แก้ไขเป้าเมทไธโอนีน (% Met):", min_value=0.1, value=float(base_req["methionine"]), step=0.01)
+                edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (% P):", min_value=0.1, value=float(base_req["phos"]), step=0.02)
+                edit_ly = st.number_input("🎯 ไลซีนเป้าหมาย (% Lys):", min_value=0.1, value=float(base_req["lysine"]), step=0.01)
+                edit_me = st.number_input("🎯 เมทไธโอนีนเป้าหมาย (% Met):", min_value=0.1, value=float(base_req["methionine"]), step=0.01)
             
-            # ปุ่มกลไกสั่งการให้ AI จัดเรียงวัตถุดิบด้านซ้ายขยับสัดส่วนเปอร์เซ็นต์ตาม
-            if st.button("⚡ สั่ง AI จัดการวัตถุดิบให้ขยับสัดส่วนตามเป้าสารอาหารนี้", type="primary", use_container_width=True):
-                with st.spinner("AI กำลังจัดทัพสัดส่วนวัตถุดิบชิ้นใหม่..."):
+            if st.button("⚡ สั่ง AI คำนวณสัดส่วนใหม่ยึดตามค่าเป้าหมายด้านบนนี้", type="primary", use_container_width=True):
+                with st.spinner("AI กำลังปรับสัดส่วนโครงสร้างสูตร..."):
                     st.session_state.current_weights = run_ai_solver(edit_p, edit_m, edit_c, edit_ph, edit_ly, edit_me)
-                    st.success("🤖 AI ทำการจัดทัพสัดส่วนวัตถุดิบใหม่ให้สอดคล้องกันเรียบร้อยแล้ว!")
+                    st.success("🤖 AI ปรับสัดส่วนวัตถุดิบเรียบร้อยแล้ว!")
                     st.rerun()
             
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-            st.markdown("##### 📊 ตารางระดับสารอาหารที่ฝูงสัตว์ได้รับจริง ณ ปัจจุบัน (ขยับสดเรียลไทม์)")
             
+            # ตารางสรุปค่าสารอาหาร
             comparison_table = [
-                {"รายการโภชนาการหลัก": "โปรตีนดิบรวมในสูตร (Crude Protein %)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['protein']:.2f} %"},
-                {"รายการโภชนาการหลัก": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['me']:.0f} kcal/kg"},
-                {"รายการโภชนาการหลัก": "แคลเซียมหนุนความหนาเปลือกไข่ (% Ca)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['calcium']:.2f} %"},
-                {"รายการโภชนาการหลัก": "ฟอสฟอรัสที่เป็นประโยชน์ (% Avail. P)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['phos']:.2f} %"},
-                {"รายการโภชนาให้สำคัญ": "กรดอะมิโนจำเป็น ไลซีน (% Lysine)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['lysine']:.2f} %"},
-                {"รายการโภชนาให้สำคัญ": "กรดอะมิโนจำเป็น เมทไธโอนีน (% Methionine)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['methionine']:.2f} %"},
-                {"รายการโภชนาการหลัก": "กากใยอาหารรวมในกระเพาะ (% Fiber)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['fiber']:.2f} %"}
+                {"โภชนาการ": "โปรตีนดิบ (Crude Protein %)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
+                {"โภชนาการ": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
+                {"โภชนาการ": "แคลเซียม (% Calcium)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
+                {"โภชนาการ": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
+                {"โภชนาการ": "ไลซีน (% Lysine)", "เป้าหมาย": f"{edit_ly:.2f} %", "ได้จริงในสูตร": f"{act_nut['lysine']:.2f} %"},
+                {"โภชนาการ": "เมทไธโอนีน (% Methionine)", "เป้าหมาย": f"{edit_me:.2f} %", "ได้จริงในสูตร": f"{act_nut['methionine']:.2f} %"},
             ]
             st.dataframe(pd.DataFrame(comparison_table), use_container_width=True, hide_index=True)
             
-            # คำนวณดัชนีชี้วัดเศรษฐศาสตร์ฟาร์มแบบนาทีต่อนาที
+            # กราฟแท่งแสดงการเปรียบเทียบสารอาหารเป้าหมาย vs ได้จริง
+            categories = ['Protein', 'Calcium', 'Phos', 'Lysine', 'Methionine']
+            target_vals = [edit_p, edit_c, edit_ph, edit_ly, edit_me]
+            actual_vals = [act_nut['protein'], act_nut['calcium'], act_nut['phos'], act_nut['lysine'], act_nut['methionine']]
+            
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=categories, y=target_vals, name='เป้าหมาย (Target)', marker_color='#ffb703'))
+            fig.add_trace(go.Bar(x=categories, y=actual_vals, name='ได้จริง (Actual)', marker_color='#38bdf8'))
+            fig.update_layout(title="📈 กราฟเปรียบเทียบสัดส่วนโภชนาการ (%)", barmode='group', template="plotly_dark", height=250, margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig, use_container_width=True)
+
+            # ตัวชี้วัดทางเศรษฐศาสตร์ฟาร์มตามสายพันธุ์จริง
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-            st.markdown("##### 💵 ตัวชี้วัดประสิทธิภาพทางต้นทุนและกำไรฟาร์ม")
             ec1, ec2 = st.columns(2)
             with ec1: 
-                st.metric("💰 ต้นทุนค่าอาหารเฉลี่ย", f"{net_cost:.2f} บาท/กก.")
+                st.metric("💰 ต้นทุนค่าอาหารเฉลี่ยสูตรนี้", f"{net_cost:.2f} บาท/กก.")
             with ec2:
-                feed_consumed_kg = 114.0 / 1000.0
+                # ดึงอัตราการกินตามสายพันธุ์จริงมาคำนวณต้นทุนต่อตัว
+                feed_consumed_kg = float(current_breed_data["default_feed"]) / 1000.0
                 feed_cost_day = feed_consumed_kg * net_cost
                 revenue_day = (laying_rate / 100.0) * egg_price
                 iofc_profit = revenue_day - feed_cost_day
-                st.metric("📈 รายได้เหนือต้นทุนค่าอาหาร (IOFC)", f"{iofc_profit:.2f} บาท/ตัว/วัน")
+                st.metric(f"📈 กำไรเหนือค่าอาหาร (IOFC) ของ [{selected_b_name.split()[-2]}]", f"{iofc_profit:.2f} บาท/ตัว/วัน")
             
-            st.markdown("##### 💾 จัดเก็บสูตรอาหารปัจจุบันลงฐานข้อมูลคลังส่วนตัว")
-            save_name_input = st.text_input("ระบุชื่อเรียกของสูตรอาหารนี้เพื่อความจำจำง่าย:", value=f"สูตรปรับปรุง {net_cost:.1f} บาท")
-            if st.button("📥 ยืนยันบันทึกสูตรอาหารลงประวัติ"):
+            st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+            save_name_input = st.text_input("ตั้งชื่อเล่นของสูตรเพื่อกดจัดเก็บเข้าคลังประวัติ:", value=f"สูตร {selected_b_name.split()[-2]} {net_cost:.1f} บาท")
+            if st.button("📥 ยืนยันบันทึกสูตรอาหารนี้ลงคลัง"):
                 st.session_state.saved_formulas.append({
-                    "date": str(datetime.date.today()), "name": save_name_input, "cost": round(net_cost, 2), "breed": "Unified Matrix Model", "stage": "สูตรปรับแต่งไฮบริด",
+                    "date": str(datetime.date.today()), "name": save_name_input, "cost": round(net_cost, 2), "breed": selected_b_name, "stage": selected_stage_label,
                     "protein": round(act_nut["protein"], 2), "me": round(act_nut["me"], 0), "calcium": round(act_nut["calcium"], 2), "weights": st.session_state.current_weights.copy()
                 })
-                st.success("บันทึกข้อมูลสูตรอาหารลงระบบเรียบร้อยแล้ว!")
-                
+                st.success("บันทึกข้อมูลสูตรอาหารเรียบร้อยแล้ว!")
             st.markdown("</div>", unsafe_allow_html=True)
 
     with page_tabs[1]:
         # -----------------------------------------------------------------------------------------
-        # 📊 PROCUREMENT MODULE: คำนวณยอดจัดซื้อสินค้าและน้ำหนักจัดเตรียมใบผสมกระสอบ
+        # 📊 PROCUREMENT MODULE: คำนวณยอดจัดซื้อสินค้าจริงและน้ำหนักชั่งรวมกระสอบ
         # -----------------------------------------------------------------------------------------
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-        st.markdown("## 📊 ระบบออกเอกสารจัดเตรียมและคำนวณสัดส่วนสั่งซื้อวัตถุดิบ (Procurement Batch Matrix)")
-        total_tonnage = st.number_input("ระบุจำนวนปริมาณอาหารสัตว์รวมทั้งหมดที่ต้องการใช้ผสมในรอบงวดนี้ (หน่วย: กิโลกรัม):", min_value=100, value=1000, step=100)
+        st.markdown("<h2>📊 ระบบออกเอกสารจัดเตรียมและสั่งซื้อวัตถุดิบ (Procurement Batch Matrix)</h2>", unsafe_allow_html=True)
+        total_tonnage = st.number_input("ระบุปริมาณอาหารสัตว์รวมทั้งหมดที่ต้องการใช้ผสมในรอบนี้ (กิโลกรัม):", min_value=100, value=1000, step=100)
         
         po_buffer = []
         total_po_cost = 0
@@ -416,48 +532,45 @@ else:
                 cost_item = weight_kg * float(st.session_state.db_ingredients[ing_name]["price"])
                 total_po_cost += cost_item
                 po_buffer.append({
-                    "รายการคลังวัตถุดิบที่ต้องสั่งซื้อ": ing_name, 
-                    "สัดส่วนการผสมจริงในสูตร (%)": round(actual_pct, 2), 
-                    "น้ำหนักสุทธิที่ต้องใช้ชั่งตวง (KG)": round(weight_kg, 2), 
-                    "ประมาณการยอดงบประมาณจัดซื้อ (บาท)": round(cost_item, 2)
+                    "รายการวัตถุดิบที่ต้องจัดเตรียม": ing_name, 
+                    "สัดส่วนการผสมจริง (%)": round(actual_pct, 2), 
+                    "น้ำหนักที่ต้องแบ่งชั่งสุทธิ (KG)": round(weight_kg, 2), 
+                    "ประมาณการราคาทุนแยกชิ้น (บาท)": round(cost_item, 2)
                 })
                 
         if po_buffer:
             df_po = pd.DataFrame(po_buffer)
             st.dataframe(df_po, use_container_width=True, hide_index=True)
-            st.metric("💵 งบประมาณจัดซื้อรวมทั้งหมดประจำงวดผสมอาหารรอบนี้", f"{total_po_cost:,.2f} บาท")
+            st.metric("💵 งบประมาณจัดซื้อและเตรียมของรวมทั้งสิ้นรอบนี้", f"{total_po_cost:,.2f} บาท")
             
-            # ฟังก์ชันส่งออกไฟล์ตารางออกมาในรูปแบบไฟล์ Excel/CSV เพื่อใช้ทำใบสั่งของภายนอกฟาร์มได้ทันที
             csv_s = io.StringIO()
             df_po.to_csv(csv_s, index=False, encoding='utf-8-sig')
-            st.download_button("📥 ดาวน์โหลดเอกสารใบจัดเตรียมและสั่งซื้อวัตถุดิบ (Export PO to CSV File)", data=csv_s.getvalue(), file_name=f"PO_Order_Batch_Report.csv", mime="text/csv", use_container_width=True)
+            st.download_button("📥 ดาวน์โหลดใบจัดเตรียมและสั่งซื้อวัตถุดิบ (Export PO to CSV)", data=csv_s.getvalue(), file_name=f"PO_Order_Batch.csv", mime="text/csv", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with page_tabs[2]:
         # -----------------------------------------------------------------------------------------
-        # 📈 HISTORY STORAGE MODULE: คลังประวัติสูตรอาหารอดีตเพื่อใช้รีวิวย้อนหลัง
+        # 📈 HISTORY STORAGE MODULE: คลังเก็บประวัติสูตรอาหารอดีต
         # -----------------------------------------------------------------------------------------
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-        st.markdown("## 📈 คลังฐานข้อมูลประวัติสูตรอาหารที่เคยบันทึกไว้ (Saved Formula History Log)")
+        st.markdown("<h2>📈 คลังประวัติสูตรอาหารที่เคยบันทึกไว้ (Saved Formula History)</h2>", unsafe_allow_html=True)
         if not st.session_state.saved_formulas:
-            st.info("💡 ปัจจุบันฟาร์มของคุณยังไม่มีประวัติการจัดเก็บสูตรอาหารใด ๆ สามารถทำรายการบันทึกได้จากเมนูแท็บแรกครับ")
+            st.info("💡 ขณะนี้ยังไม่มีรายการสูตรอาหารในคลังประวัติ สามารถกดเซฟสูตรได้ที่แท็บแรก")
         else:
             df_history = pd.DataFrame(st.session_state.saved_formulas)
-            st.markdown("### 📑 ประวัติภาพรวมของสูตรอาหารที่บันทึกสำเร็จ")
             st.dataframe(df_history.drop(columns=["weights"]), use_container_width=True)
             
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-            st.markdown("### 🔍 ดึงข้อมูลสัดส่วนวัตถุดิบเก่าขึ้นมาเปรียบเทียบดูแบบลึก")
-            selected_f_name = st.selectbox("เลือกสูตรอาหารในอดีตที่ต้องการเปิดดูสูตรลับ:", [f["name"] for f in st.session_state.saved_formulas])
+            selected_f_name = st.selectbox("🔍 เลือกสูตรอาหารเก่าในอดีตที่ต้องการเปิดดูสูตรส่วนผสมเชิงลึก:", [f["name"] for f in st.session_state.saved_formulas])
             
             target_f = next(f for f in st.session_state.saved_formulas if f["name"] == selected_f_name)
-            st.markdown(f"**📝 รายละเอียดชื่อสูตรอาหาร:** {target_f['name']} | **💰 โครงสร้างต้นทุนเฉลี่ย ณ วันบันทึก:** {target_f['cost']} บาท/กก.")
+            st.markdown(f"**📝 โครงสร้างสัดส่วนวัตถุดิบอาหารของสูตร: {target_f['name']} (สายพันธุ์: {target_f['breed']})**")
             
-            sub_rows = [{"รายการวัตถุดิบ": k, "สัดส่วนเปอร์เซ็นต์ที่ใช้ (%)": v} for k, v in target_f["weights"].items() if v > 0.01]
-            st.dataframe(pd.DataFrame(sub_rows).sort_values(by="สัดส่วนเปอร์เซ็นต์ที่ใช้ (%)", ascending=False), use_container_width=True, hide_index=True)
+            sub_rows = [{"รายการวัตถุดิบ": k, "สัดส่วนที่ใช้ผสมจริง (%)": v} for k, v in target_f["weights"].items() if v > 0.01]
+            st.dataframe(pd.DataFrame(sub_rows).sort_values(by="สัดส่วนที่ใช้ผสมจริง (%)", ascending=False), use_container_width=True, hide_index=True)
             
-            if st.button("🗑️ ลบสูตรอาหารนี้ออกจากคลังบันทึก"):
+            if st.button("🗑️ ลบสูตรอาหารนี้ออกจากฐานข้อมูล"):
                 st.session_state.saved_formulas = [f for f in st.session_state.saved_formulas if f["name"] != selected_f_name]
-                st.success("ทำการลบสูตรอาหารออกจากประวัติเรียบร้อยแล้ว")
+                st.success("ลบสูตรออกจากประวัติเรียบร้อยแล้ว")
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
