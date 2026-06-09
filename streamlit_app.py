@@ -116,30 +116,29 @@ if "user_database" not in st.session_state:
 
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309", "text_color": "#ffffff", "market_trend": "ครองแชมป์ความนิยมอันดับ 1 ในทวีปเอเชีย ประเทศไทย และยุโรป โดดเด่นเรื่องขนาดฟองและเปลือกไข่หนา"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7", "text_color": "#ffffff", "market_trend": "ครองตลาดอเมริกาเหนือและโรงงานแปรรูปอุตสาหกรรม ให้ปริมาณไข่ดกสูงสุดและประหยัดต้นทุนอาหารดีเยี่ยม"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "bg_color": "#0d9488", "text_color": "#ffffff", "market_trend": "ตลาดพรีเมียมยุคใหม่ เปลือกสีนวลชมพู/ครีม เป็นที่ต้องการของตลาดโมเดิร์นเทรดและผู้บริโภคระดับสูง"}
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309", "text_color": "#ffffff", "market_trend": "ครองแชมป์ความนิยมอันดับ 1 ในไทยและเอเชีย โดดเด่นเรื่องขนาดฟองและเปลือกไข่หนา"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7", "text_color": "#ffffff", "market_trend": "อุตสาหกรรมแปรรูป ให้ปริมาณไข่ดกสูงสุดและประหยัดต้นทุนอาหารดีเยี่ยม"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "bg_color": "#0d9488", "text_color": "#ffffff", "market_trend": "ตลาดพรีเมียมยุคใหม่ เปลือกสีนวลชมพู/ครีม เป็นที่ต้องการของตลาดโมเดิร์นเทรด"}
     ]
 
 if "db_breeds" not in st.session_state:
     st.session_state.db_breeds = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Isa Brown", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0, "description": "สายพันธุ์ฝรั่งเศส ยอดนิยมอันดับ 1 ในไทย แข็งแรง ทนร้อนชื้นได้ดีเลิศ ผลผลิตนิ่งสม่ำเสมอ"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Lohmann Brown", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ เปอร์เซ็นต์ไข่ไซส์ XL สูงมาก เปลือกหนาเหนียวพิเศษ"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-36", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0, "description": "แชมป์โลกด้านความประหยัด กินอาหารน้อยที่สุดในโลก ให้ไข่ฟองสีขาวข้นแน่น ปริมาณไข่ขาวหนาตัวดีมาก"}
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Isa Brown", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0, "description": "สายพันธุ์ฝรั่งเศส ทนร้อนชื้นได้ดีเลิศ ผลผลิตนิ่งสม่ำเสมอ"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Lohmann Brown", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ เปลือกหนาเหนียวพิเศษ"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-36", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0, "description": "กินอาหารน้อยที่สุดในโลก ให้ปริมาณไข่ขาวหนาตัวดีมาก"}
     ]
 
-# ปรับเพิ่มวัตถุดิบและ Amino Acids สังเคราะห์ เพื่อช่วยแก้สมการตึงเครียดโดยอัตโนมัติ
 if "db_ingredients" not in st.session_state:
     st.session_state.db_ingredients = {
-        "ข้าวโพดบดเม็ด (Ground Corn)": {"name": "ข้าวโพดบดเม็ด (Ground Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "threonine": 0.29, "fat": 3.8, "moisture": 12.0, "fiber": 2.2, "min_limit": 0.0, "max_limit": 70.0},
-        "กากถั่วเหลือง 46% (Soybean Meal 46%)": {"name": "กากถั่วเหลือง 46% (Soybean Meal 46%)", "price": 19.5, "protein": 46.0, "me": 2440.0, "calcium": 0.25, "phos": 0.62, "lysine": 2.85, "methionine": 0.65, "threonine": 1.80, "fat": 1.5, "moisture": 11.0, "fiber": 3.5, "min_limit": 0.0, "max_limit": 50.0},
-        "ปลาป่นเกรด A 60% (Fish Meal 60%)": {"name": "ปลาป่นเกรด A 60% (Fish Meal 60%)", "price": 35.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "threonine": 2.40, "fat": 8.0, "moisture": 10.0, "fiber": 1.0, "min_limit": 0.0, "max_limit": 12.0},
-        "หินฝุ่นเม็ดหยาบ (Coarse Limestone)": {"name": "หินฝุ่นเม็ดหยาบ (Coarse Limestone)", "price": 2.5, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.5, "fiber": 0.0, "min_limit": 0.0, "max_limit": 15.0},
-        "ไดแคลเซียมฟอสเฟต (DCP 18%)": {"name": "ไดแคลเซียมฟอสเฟต (DCP 18%)", "price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 1.0, "fiber": 0.0, "min_limit": 0.0, "max_limit": 4.0},
-        "เกลือแกงบริสุทธิ์ (Refined Salt)": {"name": "เกลือแกงบริสุทธิ์ (Refined Salt)", "price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.3, "fiber": 0.0, "min_limit": 0.10, "max_limit": 0.50},
-        "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)": {"name": "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)", "price": 160.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 2.0, "fiber": 0.0, "min_limit": 0.20, "max_limit": 0.40},
-        "DL-Methionine (กรดอะมิโนสังเคราะห์)": {"name": "DL-Methionine (กรดอะมิโนสังเคราะห์)", "price": 145.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.5, "fiber": 0.0, "min_limit": 0.0, "max_limit": 0.50},
-        "L-Lysine HCl (กรดอะมิโนสังเคราะห์)": {"name": "L-Lysine HCl (กรดอะมิโนสังเคราะห์)", "price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 78.40, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.5, "fiber": 0.0, "min_limit": 0.0, "max_limit": 0.50}
+        "ข้าวโพดบดเม็ด (Ground Corn)": {"name": "ข้าวโพดบดเม็ด (Ground Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "fiber": 2.2, "min_limit": 0.0, "max_limit": 70.0},
+        "กากถั่วเหลือง 46% (Soybean Meal 46%)": {"name": "กากถั่วเหลือง 46% (Soybean Meal 46%)", "price": 19.5, "protein": 46.0, "me": 2440.0, "calcium": 0.25, "phos": 0.62, "lysine": 2.85, "methionine": 0.65, "fiber": 3.5, "min_limit": 0.0, "max_limit": 50.0},
+        "ปลาป่นเกรด A 60% (Fish Meal 60%)": {"name": "ปลาป่นเกรด A 60% (Fish Meal 60%)", "price": 35.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "fiber": 1.0, "min_limit": 0.0, "max_limit": 12.0},
+        "หินฝุ่นเม็ดหยาบ (Coarse Limestone)": {"name": "หินฝุ่นเม็ดหยาบ (Coarse Limestone)", "price": 2.5, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 15.0},
+        "ไดแคลเซียมฟอสเฟต (DCP 18%)": {"name": "ไดแคลเซียมฟอสเฟต (DCP 18%)", "price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 4.0},
+        "เกลือแกงบริสุทธิ์ (Refined Salt)": {"name": "เกลือแกงบริสุทธิ์ (Refined Salt)", "price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.10, "max_limit": 0.50},
+        "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)": {"name": "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)", "price": 160.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.20, "max_limit": 0.40},
+        "DL-Methionine (กรดอะมิโนสังเคราะห์)": {"name": "DL-Methionine (กรดอะมิโนสังเคราะห์)", "price": 145.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00},
+        "L-Lysine HCl (กรดอะมิโนสังเคราะห์)": {"name": "L-Lysine HCl (กรดอะมิโนสังเคราะห์)", "price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 78.40, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00}
     }
 
 if "db_targets" not in st.session_state:
@@ -149,9 +148,16 @@ if "db_targets" not in st.session_state:
     }
 
 if "optimized_weights" not in st.session_state:
-    st.session_state.optimized_weights = {}
+    st.session_state.optimized_weights = {k: 0.0 for k in st.session_state.db_ingredients.keys()}
+    # ให้ค่าเริ่มต้นมีสารอาหารบ้างป้องกันกราฟว่างเปล่าก่อนคำนวณ
+    st.session_state.optimized_weights["ข้าวโพดบดเม็ด (Ground Corn)"] = 60.0
+    st.session_state.optimized_weights["กากถั่วเหลือง 46% (Soybean Meal 46%)"] = 28.0
+    st.session_state.optimized_weights["หินฝุ่นเม็ดหยาบ (Coarse Limestone)"] = 12.0
+
 if "current_formula_metadata" not in st.session_state:
-    st.session_state.current_formula_metadata = {}
+    st.session_state.current_formula_metadata = {
+        "formula_name": "สูตรเริ่มต้นระบบ", "breed": "Isa Brown", "stage": "layer_phase_1", "climate": "🟢", "egg_price": 4.1, "laying_rate": 85, "default_feed": 114.0
+    }
 
 # ==========================================
 # 🔒 3. SECURITY GATEWAY (LOGIN / SIGNUP)
@@ -174,7 +180,6 @@ if not st.session_state.is_authenticated:
                 st.rerun()
             else:
                 st.error("❌ ไอดีหรือรหัสผ่านไม่ถูกต้อง (แอดมินทดสอบระบบ ป้อนไอดี '222' และรหัสผ่าน '222')")
-        
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         col_b1, col_b2 = st.columns(2)
         with col_b1:
@@ -232,13 +237,10 @@ st.markdown("---")
 # ==========================================
 # 🛠️ 5. INTERACTION ROUTER
 # ==========================================
-
 if st.session_state.user_role == "admin":
-    # -----------------------------------------------------------------------------------------
-    # 🛠️ ADMIN CONTROL PANEL (CRUD 1-Click Control)
-    # -----------------------------------------------------------------------------------------
+    # Admin Control Panel คงเดิมสำหรับการแก้ไขฐานข้อมูลหลักแบบเสถียร
     st.markdown("<div style='background-color:#1e3a8a; padding:15px; border-radius:10px; margin-bottom:20px;'><h3 style='margin:0; color:#93c5fd !important;'>🛠️ FULL CRUD CONTROL PANEL: หน้าบริหารจัดการฐานข้อมูลระบบฟาร์ม</h3></div>", unsafe_allow_html=True)
-    admin_tabs = st.tabs(["🌽 1. จัดการสารอาหารวัตถุดิบ", "🐓 2. จัดการสายพันธุ์ไก่ไข่", "🧬 3. จัดการเกณฑ์โภชนาการอายุ", "👥 4. จัดการผู้ใช้งาน (Quick Access)"])
+    admin_tabs = st.tabs(["🌽 1. จัดการสารอาหารวัตถุดิบ", "🐓 2. จัดการสายพันธุ์ไก่ไข่", "🧬 3. จัดการเกณฑ์โภชนาการอายุ", "👥 4. จัดการผู้ใช้งาน"])
     
     with admin_tabs[0]:
         st.markdown("<div class='content-card'>### 🌽 บริหารจัดการวัตถุดิบและคุณค่าทางโภชนาการ</div>", unsafe_allow_html=True)
@@ -311,56 +313,22 @@ if st.session_state.user_role == "admin":
                 del st.session_state.db_targets[t_del]; st.warning("ลบออกแล้ว!"); st.rerun()
 
     with admin_tabs[3]:
-        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-        st.markdown("### 👥 บัญชีผู้ใช้และจัดการสิทธิ์เข้าถึง (Quick User Access Dashboard)")
-        total_users = len(st.session_state.user_database)
-        admin_count = sum(1 for u in st.session_state.user_database.values() if u.get("role") == "admin")
-        regular_count = total_users - admin_count
-        
-        c_m1, c_m2, c_m3 = st.columns(3)
-        with c_m1: st.metric("👥 บัญชีทั้งหมด", f"{total_users} รายชื่อ")
-        with c_m2: st.metric("🛠️ แอดมิน", f"{admin_count} ท่าน")
-        with c_m3: st.metric("👑 ผู้ใช้งานทั่วไป", f"{regular_count} ท่าน")
-        
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([2.5, 2.5, 1.5, 2.2, 1.3])
-        with h_col1: st.markdown("**Username**")
-        with h_col2: st.markdown("**ชื่อ-นามสกุล**")
-        with h_col3: st.markdown("**สิทธิ์ปัจจุบัน**")
-        with h_col4: st.markdown("**สลับสิทธิ์ด่วน (1-Click)**")
-        with h_col5: st.markdown("**ลบผู้ใช้**")
-        st.markdown("<hr style='margin: 8px 0; border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
-        
+        st.markdown("<div class='content-card'>### 👥 บัญชีผู้ใช้และจัดการสิทธิ์เข้าถึง</div>", unsafe_allow_html=True)
         for idx, (username, u_info) in enumerate(st.session_state.user_database.items()):
-            r1, r2, r3, r4, r5 = st.columns([2.5, 2.5, 1.5, 2.2, 1.3])
-            with r1: st.write(username)
-            with r2: st.write(f"{u_info.get('name')} {u_info.get('surname')}")
-            with r3: 
-                c_role = u_info.get("role")
-                st.markdown("<span style='color:#fca5a5; font-weight:bold;'>🔴 Admin</span>" if c_role == "admin" else "<span style='color:#86efac;'>🟢 User</span>", unsafe_allow_html=True)
-            with r4:
-                if c_role == "user":
-                    if st.button("🔄 สลับเป็น Admin", key=f"tg_adm_{idx}", use_container_width=True):
-                        st.session_state.user_database[username]["role"] = "admin"; st.rerun()
-                else:
-                    if username in ["admin", "222"]: st.button("🔒 ระบบหลัก", key=f"lock_{idx}", disabled=True, use_container_width=True)
-                    else:
-                        if st.button("🔄 สลับเป็น User", key=f"tg_usr_{idx}", use_container_width=True):
-                            st.session_state.user_database[username]["role"] = "user"; st.rerun()
-            with r5:
-                if username in ["admin", "222"]: st.button("❌ ลบไม่ได้", key=f"dellock_{idx}", disabled=True, use_container_width=True)
-                else:
-                    if st.button("🗑️ ลบ", key=f"delu_{idx}", type="secondary", use_container_width=True):
+            col_u1, col_u2, col_u3 = st.columns([4, 4, 2])
+            with col_u1: st.write(f"👤 {username} ({u_info.get('name')})")
+            with col_u2: st.write(f"สิทธิ์: {u_info.get('role')}")
+            with col_u3:
+                if username not in ["admin", "222"]:
+                    if st.button("🗑️ ลบผู้ใช้", key=f"del_u_{idx}"):
                         del st.session_state.user_database[username]; st.rerun()
-            st.markdown("<hr style='margin:4px 0; border-color:rgba(255,255,255,0.05);'>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
 else:
     # -----------------------------------------------------------------------------------------
-    # 🐔 USER CONTROL PANEL (ยืดหยุ่นสูง ป้องกันการ Infeasible 100%)
+    # 🐔 USER CONTROL PANEL (ระบบปรับเปลี่ยนสารอาหารเเละวัตถุดิบสองทางแบบ Interactive)
     # -----------------------------------------------------------------------------------------
     page_tabs = st.tabs([
-        "🏠 ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (AI Feed Optimization)", 
+        "🏠 ระบบผสมสูตรอาหารแบบสลับสองทาง (Interactive Two-Way Matrix)", 
         "📊 ใบส่งสั่งซื้อวัตถุดิบ (Procurement PO Sheet)", 
         "📈 คลังประวัติสูตรอาหารที่บันทึก (Saved Formula History Log)"
     ])
@@ -368,204 +336,173 @@ else:
     with page_tabs[0]:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         
-        # --- SECTION A: CLIMATE STRESS CONTROLLER ---
-        st.markdown("### 🌡️ 1. ระบบปรับระดับโภชนาการตามสภาวะอากาศ (Climate Stress Adjuster)")
-        st.markdown("อุณหภูมิโรงเรือนมีผลต่ออัตราการกินได้ของแม่ไก่ AI จะทำการชดเชยระดับกรดอะมิโนและแร่ธาตุตามสภาวะจริง")
-        climate_mode = st.radio(
-            "ระบุสภาวะอากาศและอุณหภูมิเฉลี่ยในโรงเรือนปัจจุบัน:",
-            ["🟢 สภาวะปกติ (อุณหภูมิห้องต่ำกว่า 27°C) - กินอาหารได้ตามมาตรฐานสายพันธุ์", 
-             "🟡 สภาวะอบอ้าว (อุณหภูมิ 28°C - 32°C) - ไก่กินอาหารลดลง 5% (ระบบจะชดเชยเพิ่มความเข้มข้นสารอาหาร +5%)", 
-             "🔴 สภาวะร้อนวิกฤต/Heat Stress (อุณหภูมิสูงกว่า 33°C) - ไก่กินอาหารลดลง 10% (ระบบจะชดเชยความเข้มข้น +10% และเพิ่ม Calcium ป้องกันไข่บาง)"],
+        # --- CONTROL MODE SELECTOR ---
+        st.markdown("### 🔄 เลือกโหมดการทำงานของระบบควบคุม")
+        control_mode = st.radio(
+            "โปรดเลือกกลไกการคำนวณอาหารสัตว์:",
+            ["🤖 โหมด AI Dynamic Goal-Seeking (แก้ไขระดับสารอาหารเป้าหมาย ➡️ แล้วให้วัตถุดิบขยับตามอัตโนมัติ)", 
+             "🎛️ โหมด DIY Manual Override (ปรับลบ-เพิ่มสัดส่วนวัตถุดิบเองด้วยมือ ➡️ แล้วให้ระดับสารอาหารขยับคำนวณตามสด ๆ)"],
             index=0
         )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # --- SECTION A: INPUT SIDE (LEFT) vs OUTPUT SIDE (RIGHT) ---
+        col_main_left, col_main_right = st.columns([1.1, 0.9])
         
-        nutrient_multiplier = 1.0
-        calcium_boost = 0.0
-        is_heat_stress = False
-        if "🟡" in climate_mode:
-            nutrient_multiplier = 1.05
-        elif "🔴" in climate_mode:
-            nutrient_multiplier = 1.10
-            calcium_boost = 0.20 
-            is_heat_stress = True
+        with col_main_left:
+            st.markdown("<div class='content-card'>", unsafe_allow_html=True)
             
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        
-        # --- SECTION B: GENETIC MATRIX ---
-        st.markdown("### 🐓 2. ส่วนการเลือกโครงสร้างพันธุกรรมสายพันธุ์ (Genetic Selection)")
-        group_names = [g["group_name"] for g in st.session_state.db_groups]
-        selected_group = st.selectbox("เลือกกลุ่มประเภทไก่ไข่หลัก:", group_names, index=0)
-        
-        g_meta = next(g for g in st.session_state.db_groups if g["group_name"] == selected_group)
-        filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_group]
-        breed_options_map = {b["breed_name"]: b for b in filtered_breeds}
-        
-        if breed_options_map:
-            selected_breed_name = st.selectbox("เลือกสายพันธุ์การค้าเพื่อดึงค่ามาตรฐานฟีดต่อวัน:", list(breed_options_map.keys()))
-            b_meta = breed_options_map[selected_breed_name]
-            st.markdown(f"<div style='background-color:{g_meta['bg_color']}; padding:15px; border-radius:10px;'><b>🥚 สีเปลือกไข่:</b> {b_meta['egg_color']} | <b>🍽️ อัตรากินอาหารปกติ:</b> {b_meta['default_feed']} กรัม/วัน/ตัว <br> <i>รายละเอียด: {b_meta['description']}</i></div>", unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ย่อยในกลุ่มนี้")
-            b_meta = {"default_feed": 115.0, "breed_name": "ไม่ระบุ"}
+            if "🤖" in control_mode:
+                st.markdown("### 🧬 ปรับแก้สารอาหารเป้าหมาย (AI จะหาวัตถุดิบให้ขยับตาม)")
+                st.markdown("คุณสามารถปรับแกิตัวเลขคุณค่าทางอาหารที่ต้องการได้อิสระ AI จะคำนวณหาจุดคุ้มทุนวัตถุดิบใหม่ให้ทันที")
+                
+                # ดึงเกณฑ์ตั้งต้น
+                stage_options = {s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()}
+                selected_stage_label = st.selectbox("ดึงฐานข้อมูลระยะอายุเริ่มต้นจากระบบ:", list(stage_options.keys()))
+                base_req = st.session_state.db_targets[stage_options[selected_stage_label]]
+                
+                # ฟิลด์ป้อนสารอาหารแบบแปรผันยืดหยุ่นสูง
+                req_protein = st.number_input("ต้องการโปรตีนดิบเป้าหมาย (Crude Protein %):", min_value=10.0, max_value=30.0, value=float(base_req["protein"]), step=0.1)
+                req_me = st.number_input("ต้องการพลังงานสัตว์เป้าหมาย (ME kcal/kg):", min_value=2000.0, max_value=3500.0, value=float(base_req["me"]), step=25.0)
+                req_ca = st.number_input("ต้องการแคลเซียมเพื่อเปลือกไข่เป้าหมาย (% Calcium):", min_value=1.0, max_value=6.0, value=float(base_req["calcium"]), step=0.05)
+                req_p = st.number_input("ต้องการฟอสฟอรัสที่เป็นประโยชน์เป้าหมาย (% Avail. Phosphorus):", min_value=0.1, max_value=2.0, value=float(base_req["phos"]), step=0.02)
+                req_lys = st.number_input("ต้องการกรดอะมิโนไลซีนเป้าหมาย (% Lysine):", min_value=0.2, max_value=2.0, value=float(base_req["lysine"]), step=0.01)
+                req_meth = st.number_input("ต้องการกรดอะมิโนเมทไธโอนีนเป้าหมาย (% Methionine):", min_value=0.1, max_value=1.5, value=float(base_req["methionine"]), step=0.01)
+                
+                st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+                st.markdown("### 🐓 ข้อมูลสายพันธุ์และเศรษฐศาสตร์")
+                egg_price_per_piece = st.number_input("ราคารับซื้อไข่หน้าฟาร์ม (บาท/ฟอง):", min_value=1.0, value=4.10)
+                laying_rate = st.slider("เปอร์เซ็นต์การไข่ของฝูง (% Laying Rate):", 10, 100, 85)
+                feed_per_day = st.number_input("ปริมาณการกินมาตรฐาน (กรัม/ตัว/วัน):", value=114.0)
 
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        
-        # --- SECTION C: STAGE REQ & ECONOMIC INPUTS ---
-        st.markdown("### 🧬 3. ระยะการไข่และฐานข้อมูลประเมินราคาตลาด (Economic Inputs)")
-        col_inp1, col_inp2 = st.columns(2)
-        
-        with col_inp1:
-            stage_options = {s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()}
-            selected_stage_label = st.selectbox("เลือกระยะอายุการให้ผลผลิตของฝูง:", list(stage_options.keys()))
-            active_req = st.session_state.db_targets[stage_options[selected_stage_label]]
-            st.session_state.use_phytase = st.checkbox("🧪 เสริมเอนไซม์ไฟเตส (ลดความต้องการ Ca ลง 0.05% และ P ลง 0.10% ในสมการ)")
-        
-        with col_inp2:
-            st.markdown("<p style='color:#34d399; font-weight:bold; margin-bottom:2px;'>💰 ระบุราคารับซื้อไข่ไก่หน้าฟาร์มปัจจุบัน เพื่อประเมินกำไรสูงสุด</p>", unsafe_allow_html=True)
-            egg_price_per_piece = st.number_input("ราคาขายไข่ไก่เฉลี่ยคละไซส์ (บาท/ฟอง):", min_value=1.0, value=4.10, step=0.10)
-            laying_rate = st.slider("เปอร์เซ็นต์การให้ไข่ของฝูงในฟาร์มปัจจุบัน (% Laying Rate):", min_value=10, max_value=100, value=85)
-
-        # --- SECTION D: AI SOLVER CORE ENGINE (SOFT CONSTRAINTS FOR FLEXIBILITY) ---
-        if st.button("⚡ เริ่มเดินเครื่องคำนวณสูตรอาหารต้นทุนต่ำสุด (Run AI Solver Matrix)", type="primary", use_container_width=True):
-            with st.spinner("กำลังประมวลผลระบบคณิตศาสตร์เชิงเส้นแบบยืดหยุ่นสูงสุด..."):
-                prob = pulp.LpProblem("AdvancedFlexibleLayerSolver", pulp.LpMinimize)
-                
-                # Dynamic Safety Margin: ปลดขีดจำกัดวัตถุดิบหลักโดยอัตโนมัติหากเจอความร้อนจัด ป้องกันสูตรพัง
-                current_ingredients = {}
-                for name, d in st.session_state.db_ingredients.items():
-                    copied_d = d.copy()
-                    if is_heat_stress and name == "กากถั่วเหลือง 46% (Soybean Meal 46%)":
-                        copied_d["max_limit"] = max(float(d["max_limit"]), 48.0)
-                    if is_heat_stress and name == "ปลาป่นเกรด A 60% (Fish Meal 60%)":
-                        copied_d["max_limit"] = max(float(d["max_limit"]), 10.0)
-                    current_ingredients[name] = copied_d
-
-                # กำหนดตัวแปรวัตถุดิบอาหาร
-                ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in current_ingredients.items()}
-                
-                # Elastic Boundaries (Slack Variables): ตัวแปรผ่อนปรนในกรณีที่สารอาหารตึงเกินไป ป้องกันสมการพัง!
-                slack_protein = pulp.LpVariable("slack_protein", lowBound=0)
-                slack_me = pulp.LpVariable("slack_me", lowBound=0)
-                slack_ca = pulp.LpVariable("slack_ca", lowBound=0)
-                slack_phos = pulp.LpVariable("slack_phos", lowBound=0)
-                
-                # Penalty Cost: ค่าปรับทางคณิตศาสตร์ (ตั้งไว้สูงมากเพื่อให้ AI พยายามทำตัวเลขจริงให้ถึงเป้าก่อน แต่ยอมให้ขาดได้ถ้ารันไม่ผ่านจริง ๆ)
-                penalty_weight = 1000.0
-                
-                # Objective Function: ต้นทุนวัตถุดิบ + ค่าปรับหากจำเป็นต้องขยับเกณฑ์ให้ยืดหยุ่น
-                prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in current_ingredients.items()]) + \
-                        penalty_weight * (slack_protein + (slack_me / 100.0) + slack_ca + slack_phos), "Total_Flexible_Cost"
-                
-                # เงื่อนไขน้ำหนักสัดส่วนรวมต้องเท่ากับ 100% (1.0)
-                prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Total_Weight"
-                
-                # ปรับเป้าหมายสารอาหารตามข้อตกลงและสภาพอากาศ
-                final_p = (float(active_req["phos"]) - 0.10) if st.session_state.use_phytase else float(active_req["phos"])
-                final_ca = (float(active_req["calcium"]) - 0.05) if st.session_state.use_phytase else float(active_req["calcium"])
-                
-                req_protein = float(active_req["protein"]) * nutrient_multiplier
-                req_me = float(active_req["me"]) 
-                req_ca = (final_ca * nutrient_multiplier) + calcium_boost
-                req_p = final_p * nutrient_multiplier
-                req_lys = float(active_req["lysine"]) * nutrient_multiplier
-                req_meth = float(active_req["methionine"]) * nutrient_multiplier
-                
-                # ข้อจำกัดโภชนาการแบบยืดหยุ่น (Soft Constraints ด้วย Slack Variables)
-                prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + slack_protein >= req_protein
-                prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in current_ingredients.items()]) + slack_me >= req_me
-                prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in current_ingredients.items()]) + slack_ca >= req_ca
-                prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in current_ingredients.items()]) + slack_phos >= req_p
-                
-                # ข้อจำกัดแบบปกติ
-                prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= req_lys
-                prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= req_meth
-                prob += pulp.lpSum([ing_vars[name] * float(d["fiber"]) for name, d in current_ingredients.items()]) <= float(active_req["fiber_max"])
-
-                prob.solve(pulp.PULP_CBC_CMD(msg=False))
-                
-                # เช็กผลลัพธ์ (รองรับทั้ง Optimal และสูตรยืดหยุ่นคลายล็อก)
-                if pulp.LpStatus[prob.status] in ["Optimal", "Unbounded"] or True:
-                    st.session_state.optimized_weights = {name: ing_vars[name].varValue * 100.0 for name in current_ingredients.keys() if ing_vars[name].varValue is not None}
-                    
-                    # ตรวจสอบว่าระบบมีการเปิดใช้ความยืดหยุ่น (ผ่อนปรนเกณฑ์) หรือไม่
-                    has_slacked = (slack_protein.varValue > 0.01 or slack_me.varValue > 0.01 or slack_ca.varValue > 0.01 or slack_phos.varValue > 0.01)
-                    
-                    if has_slacked:
-                        st.warning("⚠️ ระบบตรวจพบความตึงเครียดของตัวแปรสูงเกินไป! AI ได้ทำการเปิด 'ระบบยืดหยุ่นพิเศษ' เพื่อคลายล็อกเกณฑ์อาหารบางตัวให้ลดลงเล็กน้อยในจุดที่ปลอดภัย เพื่อให้ฟาร์มสามารถผลิตอาหารสัตว์ต่อได้โดยไม่สะดุด")
-                    else:
-                        st.success("✅ AI ประมวลผลสูตรอาหารเสร็จสิ้น! โภชนาการสมบูรณ์แบบตรงตามเกณฑ์ 100%")
+                if st.button("⚡ เดินเครื่องคำนวณสูตรอาหาร (Run AI Matrix)", type="primary", use_container_width=True):
+                    with st.spinner("AI กำลังปรับสัดส่วนวัตถุดิบให้ขยับตามเป้าหมายโภชนาการของคุณ..."):
+                        prob = pulp.LpProblem("DynamicTwoWaySolver", pulp.LpMinimize)
+                        ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in st.session_state.db_ingredients.items()}
                         
-                    st.session_state.current_formula_metadata = {
-                        "formula_name": f"สูตรผสมวันที่ {datetime.date.today()} ({selected_breed_name})",
-                        "breed": selected_breed_name,
-                        "stage": selected_stage_label,
-                        "climate": climate_mode.split(" ")[0],
-                        "egg_price": egg_price_per_piece,
-                        "laying_rate": laying_rate,
-                        "default_feed": b_meta["default_feed"]
-                    }
+                        # เพิ่มกลไกความยืดหยุ่น ป้องกันสมการขัดแย้งพังทลาย
+                        slack_pr = pulp.LpVariable("s_pr", lowBound=0)
+                        slack_me = pulp.LpVariable("s_me", lowBound=0)
+                        slack_ca = pulp.LpVariable("s_ca", lowBound=0)
+                        
+                        prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in st.session_state.db_ingredients.items()]) + 1000.0 * (slack_pr + slack_me/100.0 + slack_ca), "Cost"
+                        prob += pulp.lpSum([ing_vars[name] for name in st.session_state.db_ingredients.keys()]) == 1.0, "TotalWeight"
+                        
+                        prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in st.session_state.db_ingredients.items()]) + slack_pr >= req_protein
+                        prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in st.session_state.db_ingredients.items()]) + slack_me >= req_me
+                        prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in st.session_state.db_ingredients.items()]) + slack_ca >= req_ca
+                        prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in st.session_state.db_ingredients.items()]) >= req_p
+                        prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in st.session_state.db_ingredients.items()]) >= req_lys
+                        prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in st.session_state.db_ingredients.items()]) >= req_meth
+                        
+                        prob.solve(pulp.PULP_CBC_CMD(msg=False))
+                        
+                        # เซฟผลลัพธ์ลง Session State ให้สัดส่วนวัตถุดิบขยับตามทันที
+                        for name in st.session_state.db_ingredients.keys():
+                            st.session_state.optimized_weights[name] = ing_vars[name].varValue * 100.0 if ing_vars[name].varValue is not None else 0.0
+                        
+                        st.session_state.current_formula_metadata.update({
+                            "egg_price": egg_price_per_piece, "laying_rate": laying_rate, "default_feed": feed_per_day
+                        })
+                        st.success("🎉 วัตถุดิบขยับสัดส่วนตามเกณฑ์สารอาหารใหม่เรียบร้อยแล้ว!")
+                        st.rerun()
 
-        # --- SECTION E: DUAL MATRIX DISPLAY ---
-        if st.session_state.optimized_weights and any(v > 0 for v in st.session_state.optimized_weights.values()):
-            meta = st.session_state.current_formula_metadata
+            else:
+                st.markdown("### 🎛️ ปรับ/ลบ/เพิ่ม เปอร์เซ็นต์วัตถุดิบ (สารอาหารด้านขวาจะคำนวณตาม)")
+                st.markdown("ปรับสไลเดอร์วัตถุดิบแต่ละชนิดด้วยตัวคุณเองได้อิสระ **(ผลรวมต้องเท่ากับ 100%)** เพื่อวิเคราะห์สูตรตามใจชอบ")
+                
+                accumulated_weights = {}
+                running_total = 0.0
+                
+                # วนลูปสร้างตัวปรับวัตถุดิบแบบเรียลไทม์
+                for name, d in st.session_state.db_ingredients.items():
+                    current_saved_val = float(st.session_state.optimized_weights.get(name, 0.0))
+                    # บังคับให้อยู่ในขอบเขต 0-100
+                    current_saved_val = max(0.0, min(100.0, current_saved_val))
+                    
+                    user_val = st.slider(
+                        f"🥣 {name} (ราคา {d['price']} บาท/กก.)", 
+                        min_value=0.0, max_value=100.0, 
+                        value=current_saved_val, step=0.1, key=f"manual_ing_{name}"
+                    )
+                    accumulated_weights[name] = user_val
+                    running_total += user_val
+                
+                # แสดงสถานะผลรวมเปอร์เซ็นต์วัตถุดิบ
+                if abs(running_total - 100.0) > 0.01:
+                    st.markdown(f"<div style='background-color:#991b1b; padding:10px; border-radius:5px;'>⚠️ สัดส่วนวัตถุดิบรวมกันได้: <b>{running_total:.1f}%</b> (กรุณาปรับให้ครบ 100% เพื่อความแม่นยำของสารอาหาร)</div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div style='background-color:#065f46; padding:10px; border-radius:5px;'>🟢 สัดส่วนผสมครบถ้วนสมบูรณ์: <b>{running_total:.1f}%</b></div>", unsafe_allow_html=True)
+                
+                # อัปเดตค่าลงถังข้อมูลส่วนกลางเพื่อสะท้อนกลับทันที
+                st.session_state.optimized_weights = accumulated_weights
+
+            st.markdown("</div>", unsafe_allow_html=True)
             
+        with col_main_right:
+            st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+            st.markdown("### 🧪 คุณค่าทางโภชนาการจริงที่ได้รับและผลลัพธ์")
+            st.markdown("สารอาหารเหล่านี้จะ**ขยับตามทันที**ไม่ว่าจะปรับทางฝั่ง AI หรือปรับเพิ่มลดวัตถุดิบด้วยตัวเอง")
+            
+            # คำนวณสารอาหารและราคาจากน้ำหนักจริง ณ ปัจจุบัน
             net_cost_per_kg = 0.0
-            act_nut = {"protein": 0, "me": 0, "calcium": 0, "phos": 0, "lysine": 0, "methionine": 0}
+            act_nut = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
+            
+            total_w = sum(st.session_state.optimized_weights.values())
+            # ทำนอร์มัลไลซ์เพื่อหาค่าสัดส่วนจริง
+            divisor = total_w if total_w > 0 else 1.0
+            
             for name, w in st.session_state.optimized_weights.items():
-                ratio = w / 100.0
+                ratio = w / divisor
                 net_cost_per_kg += ratio * float(st.session_state.db_ingredients[name]["price"])
                 for k in act_nut.keys():
-                    act_nut[k] += ratio * float(st.session_state.db_ingredients[name].get(k, 0))
+                    act_nut[k] += ratio * float(st.session_state.db_ingredients[name].get(k, 0.0))
             
-            st.markdown("#### 💵 ผลลัพธ์ทางเศรษฐศาสตร์และการทำกำไรของฟาร์ม (Farm Profitability Summary)")
+            # แสดงตารางสารอาหารขยับตามจริง
+            comparison_rows = [
+                {"รายการโภชนาการ": "โปรตีนดิบรวม (Crude Protein %)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['protein']:.2f} %"},
+                {"รายการโภชนาการ": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['me']:.0f} kcal/kg"},
+                {"รายการโภชนาการ": "แคลเซียมหนุนเปลือกไข่ (% Calcium)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['calcium']:.2f} %"},
+                {"รายการโภชนาการ": "ฟอสฟอรัสที่เป็นประโยชน์ (% Avail. Phos)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['phos']:.2f} %"},
+                {"รายการโภชนาการ": "กรดอะมิโน ไลซีน (% Lysine)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['lysine']:.2f} %"},
+                {"รายการโภชนาการ": "กรดอะมิโน เมทไธโอนีน (% Methionine)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['methionine']:.2f} %"},
+                {"รายการโภชนาการ": "กากใยอาหารรวม (% Crude Fiber)", "ระดับสารอาหารที่ได้จริง": f"{act_nut['fiber']:.2f} %"}
+            ]
+            st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
             
-            feed_consumed_kg_per_bird_day = meta["default_feed"] / 1000.0
-            feed_cost_per_bird_day = feed_consumed_kg_per_bird_day * net_cost_per_kg
-            revenue_per_bird_day = (meta["laying_rate"] / 100.0) * meta["egg_price"]
-            iofc_profit_per_bird_day = revenue_per_bird_day - feed_cost_per_bird_day
-            
-            econ_col1, econ_col2, econ_col3, econ_col4 = st.columns(4)
-            with econ_col1: st.metric("💰 ต้นทุนค่าอาหารสัตว์", f"{net_cost_per_kg:.2f} บาท/กก.")
-            with econ_col2: st.metric("🍽️ ค่าอาหารเฉลี่ย", f"{feed_cost_per_bird_day:.2f} บาท/ตัว/วัน")
-            with econ_col3: st.metric("🥚 รายรับจากการขายไข่", f"{revenue_per_bird_day:.2f} บาท/ตัว/วัน")
-            with econ_col4: st.metric("📈 กำไรเหนือค่าอาหาร (IOFC)", f"{iofc_profit_per_bird_day:.2f} บาท/ตัว/วัน", delta=f"คิดเป็น {iofc_profit_per_bird_day * 10000:,.0f} บาท/วัน/ต่อไก่หมื่นตัว")
+            # ประเมินโครงสร้างทางเศรษฐศาสตร์แบบ Real-time
+            meta = st.session_state.current_formula_metadata
+            feed_consumed_kg = float(meta.get("default_feed", 114.0)) / 1000.0
+            feed_cost_bird_day = feed_consumed_kg * net_cost_per_kg
+            revenue_bird_day = (float(meta.get("laying_rate", 85)) / 100.0) * float(meta.get("egg_price", 4.1))
+            iofc_profit = revenue_bird_day - feed_cost_bird_day
             
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+            st.markdown("##### 💵 ตัวชี้วัดทางเศรษฐศาสตร์")
+            ec1, ec2 = st.columns(2)
+            with ec1: st.metric("💰 ต้นทุนรวมสูตรนี้", f"{net_cost_per_kg:.2f} บาท/กก.")
+            with ec2: st.metric("📈 กำไรเหนือค่าอาหาร (IOFC)", f"{iofc_profit:.2f} บาท/ตัว/วัน")
             
-            col_res1, col_res2 = st.columns([1.2, 1])
-            with col_res1:
-                st.markdown("##### 📊 อัตราส่วนผสมวัตถุดิบอาหารดิบที่คุ้มค่าที่สุด (%)")
-                clean_plot = [{"วัตถุดิบ": k, "สัดส่วน (%)": v} for k, v in st.session_state.optimized_weights.items() if v > 0.01]
-                df_cp = pd.DataFrame(clean_plot).sort_values(by="สัดส่วน (%)", ascending=False)
-                fig_p = px.pie(df_cp, names="วัตถุดิบ", values="สัดส่วน (%)", hole=0.4, color_discrete_sequence=px.colors.sequential.YlOrBr)
-                fig_p.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
+            # แสดงกราฟสัดส่วนการใช้วัตถุดิบปัจจุบัน
+            st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+            st.markdown("##### 📊 แผนภูมิวงกลมสัดส่วนวัตถุดิบปัจจุบัน")
+            clean_plot = [{"วัตถุดิบ": k, "สัดส่วน (%)": v} for k, v in st.session_state.optimized_weights.items() if v > 0.01]
+            if clean_plot:
+                fig_p = px.pie(pd.DataFrame(clean_plot), names="วัตถุดิบ", values="สัดส่วน (%)", hole=0.4, color_discrete_sequence=px.colors.sequential.YlOrBr)
+                fig_p.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"), margin=dict(t=10, b=10, l=10, r=10), height=250)
                 st.plotly_chart(fig_p, use_container_width=True)
-                st.dataframe(df_cp, use_container_width=True, hide_index=True)
                 
-                st.markdown("##### 💾 บันทึกสูตรนี้เข้าคลังประวัติส่วนตัว")
-                f_save_name = st.text_input("ตั้งชื่อสูตรสำหรับบันทึกความจำ:", value=f"สูตรต้นทุน {net_cost_per_kg:.2f} บาท - {meta['breed']}")
-                if st.button("📥 ยืนยันบันทึกสูตรอาหารลงประวัติคลัง"):
-                    st.session_state.saved_formulas.append({
-                        "date": str(datetime.date.today()),
-                        "name": f_save_name, "cost": round(net_cost_per_kg, 2), "breed": meta['breed'],
-                        "stage": meta['stage'], "protein": round(act_nut["protein"], 2), "me": round(act_nut["me"], 0),
-                        "calcium": round(act_nut["calcium"], 2), "weights": st.session_state.optimized_weights.copy()
-                    })
-                    st.success("💾 จัดเก็บสูตรลงคลังประวัติเรียบร้อยแล้ว!")
-
-            with col_res2:
-                st.markdown("##### 🧪 ตารางตรวจสอบคุณค่าทางอาหารจริงที่ได้รับ (Nutrient Verification)")
-                comparison_rows = [
-                    {"โภชนาการ": "โปรตีนดิบรวม (Crude Protein %)", "ระดับสารอาหารในสูตรจริง": round(act_nut["protein"], 2)},
-                    {"โภชนาการ": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "ระดับสารอาหารในสูตรจริง": round(act_nut["me"], 0)},
-                    {"โภชนาการ": "แคลเซียมเพื่อเปลือกไข่ (%)", "ระดับสารอาหารในสูตรจริง": round(act_nut["calcium"], 2)},
-                    {"โภชนาการ": "ฟอสฟอรัสที่เป็นประโยชน์ (%)", "ระดับสารอาหารในสูตรจริง": round(act_nut["phos"], 2)},
-                    {"โภชนาการ": "กรดอะมิโน ไลซีน (%)", "ระดับสารอาหารในสูตรจริง": round(act_nut["lysine"], 2)},
-                    {"โภชนาการ": "กรดอะมิโน เมทไธโอนีน (%)", "ระดับสารอาหารในสูตรจริง": round(act_nut["methionine"], 2)}
-                ]
-                st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
-                st.caption(f"*หมายเหตุ: ระบบทำงานภายใต้โหมดรักษาสมดุลความยืดหยุ่นอัตโนมัติ")
-        st.markdown("</div>", unsafe_allow_html=True)
+            # ฟังก์ชันจัดเก็บสูตรอาหารลงประวัติคลัง
+            st.markdown("##### 💾 บันทึกสูตรปัจจุบันนี้")
+            f_save_name = st.text_input("ตั้งชื่อเล่นสำหรับจำสูตรนี้:", value=f"สูตรดีไอวาย {net_cost_per_kg:.1f} บาท")
+            if st.button("📥 ยืนยันบันทึกสูตรอาหารลงคลังประวัติ"):
+                st.session_state.saved_formulas.append({
+                    "date": str(datetime.date.today()), "name": f_save_name, "cost": round(net_cost_per_kg, 2), "breed": "Customized", "stage": "พิกัดปรับแต่งเอง",
+                    "protein": round(act_nut["protein"], 2), "me": round(act_nut["me"], 0), "calcium": round(act_nut["calcium"], 2), "weights": st.session_state.optimized_weights.copy()
+                })
+                st.success("💾 จัดเก็บสูตรลงคลังเรียบร้อยแล้ว!")
+                
+            st.markdown("</div>", unsafe_allow_html=True)
 
     with page_tabs[1]:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
@@ -574,12 +511,16 @@ else:
         
         po_buffer = []
         total_po_cost = 0
+        total_w = sum(st.session_state.optimized_weights.values())
+        divisor = total_w if total_w > 0 else 1.0
+        
         for ing_name, w_pct in st.session_state.optimized_weights.items():
-            if w_pct > 0.01:
-                weight_kg = (w_pct / 100.0) * total_tonnage
+            actual_pct = (w_pct / divisor) * 100.0
+            if actual_pct > 0.01:
+                weight_kg = (actual_pct / 100.0) * total_tonnage
                 cost_item = weight_kg * float(st.session_state.db_ingredients[ing_name]["price"])
                 total_po_cost += cost_item
-                po_buffer.append({"รายการวัตถุดิบสั่งซื้อ": ing_name, "สัดส่วนใช้ (%)": round(w_pct, 2), "น้ำหนักสุทธิที่ต้องเตรียม (KG)": round(weight_kg, 2), "ประมาณการยอดเงิน (บาท)": round(cost_item, 2)})
+                po_buffer.append({"รายการวัตถุดิบสั่งซื้อ": ing_name, "สัดส่วนใช้ (%)": round(actual_pct, 2), "น้ำหนักสุทธิที่ต้องเตรียม (KG)": round(weight_kg, 2), "ประมาณการยอดเงิน (บาท)": round(cost_item, 2)})
                 
         if po_buffer:
             df_po = pd.DataFrame(po_buffer)
@@ -589,8 +530,6 @@ else:
             csv_s = io.StringIO()
             df_po.to_csv(csv_s, index=False, encoding='utf-8-sig')
             st.download_button("📥 ดาวน์โหลดใบสั่งซื้อวัตถุดิบ (Export PO to CSV File)", data=csv_s.getvalue(), file_name=f"PO_Order_Batch_{total_tonnage}KG.csv", mime="text/csv", use_container_width=True)
-        else:
-            st.warning("⚠️ กรุณากดปุ่มคำนวณสูตรที่แท็บแรกก่อน จึงจะสามารถออกเอกสารใบสั่งซื้อวัตถุดิบได้")
         st.markdown("</div>", unsafe_allow_html=True)
 
     with page_tabs[2]:
@@ -609,7 +548,7 @@ else:
             selected_f_name = st.selectbox("เลือกสูตรอาหารในอดีตเพื่อดึงสัดส่วนวัตถุดิบขึ้นมาดู:", [f["name"] for f in st.session_state.saved_formulas])
             
             target_f = next(f for f in st.session_state.saved_formulas if f["name"] == selected_f_name)
-            st.markdown(f"**📝 รายละเอียดสูตร:** {target_f['name']} | **💰 ต้นทุนเดิม:** {target_f['cost']} บาท/กก. | **🐓 สายพันธุ์:** {target_f['breed']}")
+            st.markdown(f"**📝 รายละเอียดสูตร:** {target_f['name']} | **💰 ต้นทุนเดิม:** {target_f['cost']} บาท/กก.")
             
             sub_rows = [{"วัตถุดิบ": k, "เปอร์เซ็นต์ที่ใช้ (%)": v} for k, v in target_f["weights"].items() if v > 0.01]
             st.dataframe(pd.DataFrame(sub_rows).sort_values(by="เปอร์เซ็นต์ที่ใช้ (%)", ascending=False), use_container_width=True, hide_index=True)
