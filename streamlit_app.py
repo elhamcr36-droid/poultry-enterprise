@@ -14,46 +14,47 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ปรับแต่งธีมสไตล์ Cyber Dark พร้อมสไตล์เพิ่มขนาด Radio Buttons ให้ใหญ่พิเศษ สะดวกต่อการเลือกกด
+# ปรับแต่งธีมสไตล์ Cyber Dark และยกระดับกล่อง Selectbox ทุกจุดให้ขยายขนาดใหญ่เป็นพิเศษ (Enormous Box Selectors)
 st.markdown(
     """
     <style>
     [data-testid="collapsedControl"] { display: none; }
     .stApp {
-        background-image: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), 
+        background-image: linear-gradient(rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.82)), 
                           url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
         background-size: cover; background-position: center;
         background-repeat: no-repeat; background-attachment: fixed;
     }
     h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, [data-testid="stHeader"] {
         color: #ffffff !important;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9) !important;
+        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.95) !important;
     }
     
-    /* 🎯 จุดปรับแต่งขนาดปุ่มตัวเลือก (Radio Buttons) ให้ใหญ่เป็นพิเศษ */
-    div[data-testid="stRadio"] > label {
-        font-size: 1.35rem !important;
+    /* 🎯 🎯 🎯 จุดปรับโครงสร้างกล่องตัวเลือก (Selectbox) ทั้งระบบให้ใหญ่ยักษ์และกดง่าย 🎯 🎯 🎯 */
+    div[data-testid="stSelectbox"] > label {
+        font-size: 1.45rem !important;
+        font-weight: 800 !important;
+        color: #ffb703 !important;
+        margin-bottom: 12px !important;
+        display: block;
+    }
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+        font-size: 1.35rem !important; /* ขนาดตัวอักษรภายในกล่อง */
         font-weight: bold !important;
-        color: #f59e0b !important;
-        margin-bottom: 10px !important;
+        background-color: rgba(26, 26, 26, 0.9) !important;
+        border: 3px solid #ffb703 !important; /* เส้นขอบสีทองเด่นชัด */
+        border-radius: 14px !important;
+        padding: 8px 12px !important;
+        box-shadow: 0px 4px 15px rgba(245, 158, 11, 0.25) !important;
+        transition: all 0.3s ease-in-out;
     }
-    div[data-testid="stRadio"] div[role="radiogroup"] label {
-        background-color: rgba(255, 255, 255, 0.08) !important;
-        padding: 14px 24px !important;
-        border-radius: 12px !important;
-        border: 2px solid rgba(255, 255, 255, 0.2) !important;
-        margin-right: 12px !important;
-        margin-bottom: 10px !important;
-        transition: all 0.25s ease-in-out;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
-        background-color: rgba(245, 158, 11, 0.15) !important;
+    div[data-testid="stSelectbox"] div[data-baseweb="select"]:hover {
         border-color: #f59e0b !important;
-        cursor: pointer;
+        box-shadow: 0px 6px 20px rgba(245, 158, 11, 0.45) !important;
     }
-    div[data-testid="stRadio"] div[role="radiogroup"] label p {
-        font-size: 1.25rem !important; /* ปรับตัวหนังสือของตัวเลือกให้ใหญ่เด่นชัด */
-        font-weight: 600 !important;
+    div[data-baseweb="popover"] ul {
+        background-color: #1e1e1e !important;
+        font-size: 1.25rem !important;
     }
     
     .stTabs [data-baseweb="tab-list"] {
@@ -62,9 +63,9 @@ st.markdown(
     }
     .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold !important; font-size:1.1rem !important; }
     .content-card {
-        background-color: rgba(0, 0, 0, 0.85) !important; padding: 25px;
-        border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(8px); margin-bottom: 20px;
+        background-color: rgba(0, 0, 0, 0.88) !important; padding: 30px;
+        border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(10px); margin-bottom: 25px;
     }
     div[data-testid="stMetricValue"] {
         font-size: 2.2rem !important; color: #ffb703 !important;
@@ -108,7 +109,7 @@ if not st.session_state.is_authenticated:
     st.stop()
 
 # ==========================================
-# 📥 3. DATA ACQUISITION & BIG-DATA FAILSAFE
+# 📥 3. DATA ACQUISITION & BIG-DATA FAILSAFE (เวอร์ชันขยายคลังข้อมูลจุใจ)
 # ==========================================
 @st.cache_data(ttl=2)
 def fetch_complete_layer_data(url, key):
@@ -125,21 +126,37 @@ def fetch_complete_layer_data(url, key):
         except: pass
     except: pass
 
-    # --- โครงสร้างข้อมูลสำรองเมื่อระบบ Cloud ขัดข้อง (Failsafe Backup Dataset) ---
+    # --- โครงสร้างข้อมูลสํารองขนาดใหญ่พิเศษเมื่อระะบบคลาวด์ขัดข้อง (Expanded Failsafe Dataset) ---
     if not groups_data:
         groups_data = [
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309", "text_color": "#ffffff", "market_trend": "ได้รับความนิยมสูงเป็นอันดับ 1 ในทวีปเอเชีย ประเทศไทย และยุโรป ผู้บริโภคเชื่อมั่นในคุณภาพเนื้อไข่แดงและขนาดฟอง"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7", "text_color": "#ffffff", "market_trend": "ครองตลาดใหญ่ในอเมริกาเหนือ โดดเด่นด้านการประหยัดต้นทุนค่าอาหาร เหมาะกับโรงงานอุตสาหกรรมแปรรูปไข่เหลว"},
-            {"group_name": "กลุ่มไก่ไข่ทางเลือกและตลาดพรีเมียม (Specialty Layers Market)", "bg_color": "#475569", "text_color": "#ffffff", "market_trend": "เซกเมนต์การเติบโตยุคใหม่ ตอบโจทย์วิถีฟาร์มปล่อยอิสระ (Free-Range) และไข่ไก่ออร์แกนิกมูลค่าสูง"}
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309", "text_color": "#ffffff", "market_trend": "ครองแชมป์ความนิยมอันดับ 1 ในทวีปเอเชีย ประเทศไทย และยุโรป โดดเด่นเรื่องขนาดฟองและเปลือกไข่หนา"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7", "text_color": "#ffffff", "market_trend": "ครองตลาดอเมริกาเหนือและโรงงานแปรรูปอุตสาหกรรม ให้ปริมาณไข่ดกสูงสุดและประหยัดต้นทุนอาหารดีเยี่ยม"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "bg_color": "#0d9488", "text_color": "#ffffff", "market_trend": "ตลาดพรีเมียมยุคใหม่ เปลือกสีนวลชมพู/ครีม เป็นที่ต้องการของตลาดโมเดิร์นเทรดและผู้บริโภคระดับสูง"},
+            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "bg_color": "#4f46e5", "text_color": "#ffffff", "market_trend": "เหมาะสำหรับฟาร์มปล่อยลาน ปศุสัตว์อินทรีย์ (Organic) และระบบขยายพันธุ์พึ่งพาตนเอง ทนทานโรคสูง"}
         ]
     if not breeds_data:
         breeds_data = [
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Isa Brown", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม (Dark Brown Egg)", "default_feed": 114, "description": "สายพันธุ์ฝรั่งเศส ยอดนิยมอันดับ 1 ในไทย แข็งแรง ทนสภาพอากาศร้อนชื้นได้ดีเลิศ ไข่ดกยาวนานสม่ำเสมอ"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Lohmann Brown", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม (Glossy Brown Egg)", "default_feed": 116, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ ให้เปอร์เซ็นต์ไข่ไซส์ใหญ่พิเศษ (XL) สูงมาก เปลือกหนาเหนียว"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Hy-Line Brown", "breed_name": "สายพันธุ์ ไฮ-ไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "สีน้ำตาลประกายทอง (Golden Brown Egg)", "default_feed": 112, "description": "สายพันธุ์อเมริกา นิ่ง ไม่ตื่นตกใจง่าย อัตราการเปลี่ยนอาหารเป็นน้ำหนักไข่ดีเยี่ยม เหมาะกับฟาร์มระบบปิด"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-36", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา (Pure White Egg)", "default_feed": 101, "description": "แชมป์โลกความประหยัด กินอาหารน้อยที่สุดในอุตสาหกรรม ให้ไข่ฟองสีขาวข้นแน่นสูง ปริมาณไข่ขาวหนาตัวดีมาก"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Dekalb White", "breed_name": "สายพันธุ์ เดคัลบ์ ไวท์ (Dekalb White)", "egg_color": "สีขาวพรีเมียม (Premium White Egg)", "default_feed": 103, "description": "ลดปัญหาไข่บุบสลายระหว่างคัดแยก ขนส่งทางไกลได้ดีเยี่ยม ยืนกรงทำผลผลิตพีคได้ยาวนาน"},
-            {"group_name": "กลุ่มไก่ไข่ทางเลือกและตลาดพรีเมียม (Specialty Layers Market)", "breed_key": "Novogen Tinted", "breed_name": "สายพันธุ์ โนโวเจน ทินต์ (Novogen Tinted)", "egg_color": "สีครีมพาสเทล (Creamy Tinted Egg)", "default_feed": 110, "description": "ผลิตไข่เปลือกสีนวลครีมแปลกใหม่ ตลาดพรีเมียมให้ราคาดี พฤติกรรมเรียบร้อย เหมาะกับการเลี้ยงปล่อยลาน"}
+            # 1. น้ำตาล
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Isa Brown", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม (Dark Brown Egg)", "default_feed": 114, "description": "สายพันธุ์ฝรั่งเศส ยอดนิยมอันดับ 1 ในไทย แข็งแรง ทนร้อนชื้นได้ดีเลิศ ผลผลิตนิ่งสม่ำเสมอ"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Lohmann Brown", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม (Glossy Brown Egg)", "default_feed": 116, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ เปอร์เซ็นต์ไข่ไซส์ XL สูงมาก เปลือกหนาเหนียวพิเศษ"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Hy-Line Brown", "breed_name": "สายพันธุ์ ไฮ-ไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "สีน้ำตาลประกายทอง (Golden Brown Egg)", "default_feed": 112, "description": "สายพันธุ์อเมริกา อารมณ์นิ่ง ไม่ตื่นตกใจง่าย อัตราเปลี่ยนอาหารเป็นน้ำหนักไข่ดีเยี่ยม เหมาะกับฟาร์มปิด"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Bovans Brown", "breed_name": "สายพันธุ์ โบแวนส์ บราวน์ (Bovans Brown)", "egg_color": "สีน้ำตาลเข้มจัด (Deep Brown Egg)", "default_feed": 113, "description": "สายพันธุ์เนเธอร์แลนด์ มีความสมบูรณ์พันธุ์สูง ทนทานต่อความเครียดรอบด้าน โครงสร้างกระดูกขาแข็งแรงมาก"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Shaver Brown", "breed_name": "สายพันธุ์ เชฟเวอร์ บราวน์ (Shaver Brown)", "egg_color": "สีน้ำตาลคลาสสิก (Classic Brown Egg)", "default_feed": 115, "description": "สายพันธุ์แคนาดา ยืนระยะการไข่ช่วงพีคได้ยาวนาน ปรับตัวเข้ากับวัตถุดิบท้องถิ่นได้ดีเยี่ยม"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Novogen Brown", "breed_name": "สายพันธุ์ โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "สีน้ำตาลเข้มมันวาว (Intense Brown Egg)", "default_feed": 112, "description": "สายพันธุ์ยุโรปยุคใหม่ ปริมาณไข่สะสมต่อแม่สูงมาก กินอาหารน้อยแต่ให้ประสิทธิภาพไข่เกรดเอสูง"},
+            # 2. ขาว
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-36", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา (Pure White Egg)", "default_feed": 101, "description": "แชมป์โลกด้านความประหยัด กินอาหารน้อยที่สุดในโลก ให้ไข่ฟองสีขาวข้นแน่น ปริมาณไข่ขาวหนาตัวดีมาก"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-80", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-80 (Hy-Line W-80)", "egg_color": "สีขาวชอล์ก (Chalk White Egg)", "default_feed": 104, "description": "พัฒนาเพื่อการยืนกรงระยะยาว ผลิตไข่ได้มากกว่า 500 ฟองต่อแม่ ทนสภาพแวดล้อมที่แปรปรวนได้ดีกว่า W-36"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Lohmann LSL-Lite", "breed_name": "สายพันธุ์ โลห์แมน แอลเอสแอล ไลต์ (Lohmann LSL-Lite)", "egg_color": "สีขาวบริสุทธิ์ (Pure White Egg)", "default_feed": 103, "description": "สายพันธุ์ผิวขาวจากเยอรมัน เปอร์เซ็นต์การไข่สม่ำเสมอเป็นเส้นตรงยาวนาน เปลือกไข่มีความเหนียว ไม่แตกง่าย"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Dekalb White", "breed_name": "สายพันธุ์ เดคัลบ์ ไวท์ (Dekalb White)", "egg_color": "สีขาวพรีเมียม (Premium White Egg)", "default_feed": 102, "description": "พฤติกรรมเรียบร้อย ไม่จิกกัน ลดปัญหาไข่บุบสลายระหว่างคัดแยก ขนส่งทางไกลได้ดีเยี่ยม"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Bovans White", "breed_name": "สายพันธุ์ โบแวนส์ ไวท์ (Bovans White)", "egg_color": "สีขาวนวล (Soft White Egg)", "default_feed": 103, "description": "โดดเด่นด้านความแข็งแรงในช่วงต้นของการให้ผลผลิต ปรับสมดุลโภชนาการง่าย มีสัดส่วนไข่แดงต่อน้ำหนักฟองดีเยี่ยม"},
+            # 3. พาสเทล
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Novogen Tinted", "breed_name": "สายพันธุ์ โนโวเจน ทินต์ (Novogen Tinted)", "egg_color": "สีครีมพาสเทล (Creamy Tinted Egg)", "default_feed": 108, "description": "ผลิตไข่เปลือกสีนวลครีมแปลกใหม่ ตลาดพรีเมียมให้ราคาดี พฤติกรรมเรียบร้อย เหมาะกับการเลี้ยงปล่อยลาน"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Lohmann Sandy", "breed_name": "สายพันธุ์ โลห์แมน แซนดี้ (Lohmann Sandy)", "egg_color": "สีครีมเม็ดทราย (Sandy Tinted Egg)", "default_feed": 110, "description": "ให้ผลผลิตไข่สีครีมพาสเทลอมชมพูสวยงาม อัตราการเปลี่ยนอาหารเป็นไข่ (FCR) ดีเยี่ยม นิยมมากในตลาดยุโรป"},
+            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Hy-Line Sonia", "breed_name": "สายพันธุ์ ไฮ-ไลน์ โซเนีย (Hy-Line Sonia)", "egg_color": "สีชมพูอ่อนพาสเทล (Tinted Pinkish Egg)", "default_feed": 111, "description": "สายพันธุ์พิเศษเปลือกไข่ติดสีชมพูระเรื่อ ดึงดูดสายตาผู้ซื้อ มีอัตราการเติบโตและสมบูรณ์พันธุ์ที่เสถียร"},
+            # 4. ทางเลือก/ไทย
+            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Rhode Island Red", "breed_name": "สายพันธุ์ โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "สีน้ำตาลนวล (Light Brown Egg)", "default_feed": 125, "description": "สายพันธุ์แท้ดั้งเดิม แข็งแรงทนทานเป็นเลิศ เลี้ยงง่าย กินเก่ง เนื้อแน่น สามารถใช้เป็นพ่อแม่พันธุ์ผสมต่อยอดได้"},
+            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Pradu Hang Dam Egg-Line", "breed_name": "สายพันธุ์ ประดู่หางดำเชียงใหม่ สายไข่ (Pradu Hang Dam)", "egg_color": "สีน้ำตาลอ่อนนวล (Native Cream-Brown Egg)", "default_feed": 120, "description": "สายพันธุ์ปรับปรุงโดยปศุสัตว์ไทย ทนร้อน ทนโรคสัตว์ปีกได้ดีเลิศ ไข่แดงฟองใหญ่ รสชาติมันเข้มข้น ตอบโจทย์วิถีไก่บ้าน"},
+            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Australorp", "breed_name": "สายพันธุ์ ออสตร้าลอป (Black Australorp)", "egg_color": "สีน้ำตาลอ่อน (Medium Brown Egg)", "default_feed": 128, "description": "สายพันธุ์ออสเตรเลีย ขนสีดำเหลือบเขียวมะกอก ให้ไข่ดกต่อเนื่องดีที่สุดในบรรดาสายพันธุ์แท้ดั้งเดิม เหมาะกับระบบ Free-range"}
         ]
     if not ing_data:
         ing_data = [
@@ -182,17 +199,19 @@ with col_h2:
 page_tabs = st.tabs(["🏠 ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (AI Feed Optimization)", "📊 แผนสถิติและใบสั่งซื้อวัตถุดิบ (Procurement & PO Sheet)", "📦 คลังข้อมูลระบบและตารางโครงสร้าง (SQL Editor Control)"])
 
 # =========================================================================================
-# 🏠 [แท็บที่ 1]: ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (ปรับปรุงระบบคัดกรองอัตโนมัติ Cascade Filter)
+# 🏠 [แท็บที่ 1]: ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (ปรับโครงสร้างกล่องตัวเลือกแบบยักษ์คู่ขนาน)
 # =========================================================================================
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     
-    st.markdown("### 🧬 1. เลือกคัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode)")
+    st.markdown("## 📊 ส่วนการเลือกโครงสร้างพันธุกรรมสายพันธุ์ (Genetic Matrix Selection)")
+    st.markdown("---")
+    
     group_names = [g["group_name"] for g in groups_list]
     
-    # 📌 ปุ่มกดวิทยุขนาดใหญ่พิเศษสำหรับเลือกกลุ่มหลักหลัก (Large Radio Buttons)
-    selected_group = st.radio(
-        "🔘 คลิกเลือกกลุ่มประเภทไก่ไข่หลักของคุณ (Select Primary Breeding Group):", 
+    # 📌 กล่องที่ 1: เลือกกลุ่มประเภทไก่ไข่หลัก ปรับปรุงเป็นกล่อง Selectbox ขอบทองขนาดใหญ่พิเศษ
+    selected_group = st.selectbox(
+        "🗂️ 1. เลือกคัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode):", 
         group_names,
         index=0
     )
@@ -200,36 +219,35 @@ with page_tabs[0]:
     # ดึงค่าข้อมูล Meta ของกลุ่มที่เลือก
     g_meta = next(g for g in groups_list if g["group_name"] == selected_group)
     
-    # 🔄 ตัวกรองอัตโนมัติ: ดึงเฉพาะรายชื่อสายพันธุ์ที่อยู่ภายใต้กลุ่มหลักที่เลือกข้างต้นเท่านั้น
+    # 🔄 กลไกประมวลผลอัตโนมัติ: ดึงเฉพาะสายพันธุ์ย่อยที่สังกัดอยู่ในกลุ่มที่ผู้ใช้กดเลือกเท่านั้น
     filtered_breeds = [b for b in breeds_list if b["group_name"] == selected_group]
     breed_options_map = {b["breed_name"]: b for b in filtered_breeds}
     
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 🐓 2. คัดกรองเจาะลึกรายสายพันธุ์การค้าอัตโนมัติ (Commercial Breeds Mode)")
     
-    # ช่อง Selectbox จะเปลี่ยนรายชื่อสายพันธุ์ตามกลุ่มที่กดด้านบนทันทีโดยอัตโนมัติ
+    # 📌 กล่องที่ 2: เลือกรายสายพันธุ์การค้า ปรับปรุงเป็นกล่อง Selectbox ขนาดใหญ่คู่ขนานกันและกรองผลอัตโนมัติ
     if breed_options_map:
         selected_breed_name = st.selectbox(
-            f"👇 รายชื่อสายพันธุ์การค้าที่สอดคล้องกับ {selected_group} (Select Linked Commercial Breed):", 
+            "🐓 2. คัดกรองเจาะลึกรายสายพันธุ์การค้าอัตโนมัติ (Commercial Breeds Mode):", 
             list(breed_options_map.keys())
         )
         b_meta = breed_options_map[selected_breed_name]
         
-        # 📊 แสดงผลข้อมูลกล่องสายพันธุ์แบบไดนามิก
+        # 📊 แผงหน้าปัดแสดงข้อมูลเชิงลึกทางเทคนิคของสายพันธุ์ที่เลือก
         st.markdown(f"""
-        <div style='background-color: {g_meta["bg_color"]}; padding: 22px; border-radius: 14px; border: 2px solid rgba(255,255,255,0.2);'>
-            <h4 style='margin:0; color:{g_meta["text_color"]} !important;'>🐓 โปรไฟล์สายพันธุ์ปัจจุบัน: {b_meta["breed_name"]}</h4>
-            <p style='margin:10px 0 0 0; color:{g_meta["text_color"]} !important; font-size:1.15rem; line-height: 1.6;'>
+        <div style='background-color: {g_meta["bg_color"]}; padding: 25px; border-radius: 16px; border: 2.5px solid rgba(255,255,255,0.25); margin-top:15px;'>
+            <h4 style='margin:0; color:{g_meta["text_color"]} !important; font-size:1.3rem;'>📋 รายละเอียดโปรไฟล์พันธุกรรม: {b_meta["breed_name"]}</h4>
+            <p style='margin:12px 0 0 0; color:{g_meta["text_color"]} !important; font-size:1.18rem; line-height: 1.6;'>
                 <b>🧬 กลุ่มหลักสังกัด (Breeding Group):</b> {b_meta["group_name"]}<br>
-                <b>🥚 มาตรฐานสีเปลือกไข่ (Egg Shell Color):</b> {b_meta["egg_color"]}<br>
-                <b>🍽️ ปริมาณการกินอาหารมาตรฐาน (Default Daily Feed Intake):</b> <span style='color:#f59e0b; font-weight:bold;'>{b_meta["default_feed"]}</span> กรัม/วัน/ตัว (g/day/bird)<br>
-                <b>💡 คำแนะนำเชิงพฤติกรรมศาสตร์ (Technical Description):</b> {b_meta["description"]}
+                <b>🥚 สีเปลือกไข่เป้าหมาย (Target Shell Color):</b> {b_meta["egg_color"]}<br>
+                <b>🍽️ เกณฑ์การกินอาหารมาตรฐาน (Standard Feed Intake):</b> <span style='color:#ffb703; font-weight:bold; font-size:1.3rem;'>{b_meta["default_feed"]}</span> กรัม/วัน/ตัว (g/day/bird)<br>
+                <b>💡 ข้อมูลเชิงลึกประจำสายพันธุ์ (Breed Insight):</b> {b_meta["description"]}
             </p>
         </div>
         """, unsafe_allow_html=True)
         active_breed_profile = b_meta
     else:
-        st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ที่เชื่อมโยงกับกลุ่มนี้ในฐานข้อมูล")
+        st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ย่อยที่เชื่อมโยงกับกลุ่มหลักนี้ในระบบคลังข้อมูล")
         active_breed_profile = {"breed_name": "Unknown", "default_feed": 110}
 
     st.markdown("---")
@@ -313,7 +331,7 @@ with page_tabs[0]:
 # =========================================================
 with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📊 ระบบประเมินน้ำหนักวัตถิบและส่งออกใบสั่งซื้อ (Purchase Order Document)")
+    st.markdown("## 📊 ระบบประเมินน้ำหนักวัตถุดิบและส่งออกใบสั่งซื้อ (Purchase Order Document)")
     
     total_tonnage = st.number_input("ป้อนจำนวนยอดการผลิตอาหารสัตว์รวมสำหรับล๊อตนี้ (น้ำหนักกิโลกรัม / Total Batch Weight KG):", min_value=100, max_value=10000000, value=2000, step=1000)
     
@@ -361,13 +379,12 @@ with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ส่วนประสานงานข้อมูลระบบ SQL และเขียนทับคลาวด์ข้อมูล (SQL Sync & Database Management)")
     
-    database_action_mode = st.radio(
+    database_action_mode = st.selectbox(
         "⚡ เลือกเป้าหมายโครงสร้างตารางที่คุณต้องการปรับแต่ง (Select Target SQL Table to Update):",
         [
             "📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)", 
             "🪶 ปรับเปลี่ยนพารามิเตอร์ตารางรายสายพันธุ์เดี่ยว (Chicken Breeds Table)"
-        ],
-        horizontal=True
+        ]
     )
     st.markdown("<br>", unsafe_allow_html=True)
     
