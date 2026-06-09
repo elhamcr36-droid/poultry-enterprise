@@ -4,7 +4,24 @@ import plotly.graph_objects as go
 import pulp
 import io
 import datetime
-import re  # สำหรับตรวจสอบ Regex ความปลอดภัยของรหัสผ่าน
+import re
+from supabase import create_client, Client
+
+# ==========================================
+# 🔌 SUPABASE CONNECTION INITIALIZATION
+# ==========================================
+# ⚠️ เปลี่ยนค่า URL และ KEY ด้านล่างนี้ให้ตรงกับของคุณที่ได้จากหน้า Settings > API ของ Supabase
+SUPABASE_URL = "https://your-project-id.supabase.co"
+SUPABASE_KEY = "your-anon-key-here"
+
+@st.cache_resource
+def init_supabase() -> Client:
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+try:
+    supabase = init_supabase()
+except Exception as e:
+    st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
@@ -79,12 +96,16 @@ if "auth_page_mode" not in st.session_state:
     st.session_state.auth_page_mode = "login"  
 if "user_role" not in st.session_state:
     st.session_state.user_role = "user"  
+if "user_email" not in st.session_state:
+    st.session_state.user_email = ""
 if "saved_formulas" not in st.session_state:
     st.session_state.saved_formulas = []  
 if "daily_logs" not in st.session_state:
     st.session_state.daily_logs = [] 
+if "current_weights" not in st.session_state:
+    st.session_state.current_weights = {}
 
-# ฟังก์ชันตรวจสอบระดับความปลอดภัยของรหัสผ่านตามมาตรฐานขั้นสูง
+# ฟังก์ชันตรวจสอบระดับความปลอดภัยของรหัสผ่าน
 def check_password_strength(password):
     if len(password) < 8:
         return False, "❌ รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร"
@@ -97,14 +118,6 @@ def check_password_strength(password):
     if not re.search("[_@$!%*#?&.]", password):
         return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น @, #, $, %, ., !, _)"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
-
-# ฐานข้อมูลกลางเก็บข้อมูลผู้ใช้งานระบบ (รหัสผ่านของสมาชิกใหม่จะต้องเป็นแบบ Secure Password)
-if "user_database" not in st.session_state:
-    st.session_state.user_database = {
-        "admin": {"password": "AdminPassword@2026", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง", "role": "admin", "tel": "089-999-9999", "reg_date": "2026-01-01"},
-        "222": {"password": "222", "name": "แอดมินทางลัด", "surname": "ระบบผสม", "role": "admin", "tel": "088-888-8888", "reg_date": "2026-01-02"},
-        "user@farm.com": {"password": "UserPassword@2026", "name": "สมชาย", "surname": "ใจดี", "role": "user", "tel": "081-234-5678", "reg_date": "2026-05-10"}
-    }
 
 # ฐานข้อมูลกลุ่มหลักสายพันธุ์ไก่ไข่
 if "db_groups" not in st.session_state:
@@ -121,20 +134,6 @@ if "db_breeds" not in st.session_state:
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0}
     ]
 
-# ฐานข้อมูลสารอาหารวัตถุดิบ
-if "db_ingredients" not in st.session_state:
-    st.session_state.db_ingredients = {
-        "ข้าวโพดบดเม็ด (Ground Corn)": {"name": "ข้าวโพดบดเม็ด (Ground Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "fiber": 2.2, "min_limit": 0.0, "max_limit": 70.0},
-        "กากถั่วเหลือง 46% (Soybean Meal 46%)": {"name": "กากถั่วเหลือง 46% (Soybean Meal 46%)", "price": 19.5, "protein": 46.0, "me": 2440.0, "calcium": 0.25, "phos": 0.62, "lysine": 2.85, "methionine": 0.65, "fiber": 3.5, "min_limit": 0.0, "max_limit": 50.0},
-        "ปลาป่นเกรด A 60% (Fish Meal 60%)": {"name": "ปลาป่นเกรด A 60% (Fish Meal 60%)", "price": 35.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "fiber": 1.0, "min_limit": 0.0, "max_limit": 12.0},
-        "หินฝุ่นเม็ดหยาบ (Coarse Limestone)": {"name": "หินฝุ่นเม็ดหยาบ (Coarse Limestone)", "price": 2.5, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 15.0},
-        "ไดแคลเซียมฟอสเฟต (DCP 18%)": {"name": "ไดแคลเซียมฟอสเฟต (DCP 18%)", "price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 4.0},
-        "เกลือแกงบริสุทธิ์ (Refined Salt)": {"name": "เกลือแกงบริสุทธิ์ (Refined Salt)", "price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.10, "max_limit": 0.50},
-        "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)": {"name": "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)", "price": 160.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.20, "max_limit": 0.40},
-        "DL-Methionine": {"name": "DL-Methionine", "price": 145.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00},
-        "L-Lysine HCl": {"name": "L-Lysine HCl", "price": 95.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 78.40, "methionine": 0.00, "fiber": 0.0, "min_limit": 0.0, "max_limit": 1.00}
-    }
-
 # ฐานข้อมูลเป้าหมายความต้องการสารอาหารตามช่วงระยะการไข่
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
@@ -142,43 +141,61 @@ if "db_targets" not in st.session_state:
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
 
-if "current_weights" not in st.session_state:
-    st.session_state.current_weights = {}
+# 🔄 ฟังก์ชันดึงข้อมูลวัตถุดิบแบบ Real-time จาก Supabase
+def fetch_ingredients_from_supabase():
+    try:
+        response = supabase.table("db_ingredients").select("*").execute()
+        if response.data:
+            # แปลงรูปแบบจาก List เป็น Dict ให้เข้ากับโค้ดการคำนวณเดิมของคุณ
+            ingredients_dict = {}
+            for item in response.data:
+                ingredients_dict[item["name"]] = item
+            return ingredients_dict
+    except Exception as e:
+        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลวัตถุดิบจากคลาวด์ได้: {e}")
+    return {}
 
 # ==========================================
 # 🧮 3. CORE AI SOLVER ENGINE
 # ==========================================
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
-    ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in st.session_state.db_ingredients.items()}
+    
+    # 🔴 เปลี่ยนมาดึงข้อมูลสดจาก Supabase เพื่อให้สูตรคำนวณอัปเดตตามคลาวด์ตลอดเวลา
+    current_ingredients = fetch_ingredients_from_supabase()
+    if not current_ingredients:
+        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
+        return {}
+
+    ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in current_ingredients.items()}
     
     s_p = pulp.LpVariable("s_p", lowBound=0)
     s_m = pulp.LpVariable("s_m", lowBound=0)
     s_c = pulp.LpVariable("s_c", lowBound=0)
     
-    prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in st.session_state.db_ingredients.items()]) + 1000.0 * (s_p + s_m/100.0 + s_c), "Cost"
-    prob += pulp.lpSum([ing_vars[name] for name in st.session_state.db_ingredients.keys()]) == 1.0, "Weight"
+    prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in current_ingredients.items()]) + 1000.0 * (s_p + s_m/100.0 + s_c), "Cost"
+    prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
     
-    prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in st.session_state.db_ingredients.items()]) + s_p >= req_p
-    prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in st.session_state.db_ingredients.items()]) + s_m >= req_m
-    prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in st.session_state.db_ingredients.items()]) + s_c >= req_c
-    prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in st.session_state.db_ingredients.items()]) >= req_ph
-    prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in st.session_state.db_ingredients.items()]) >= req_ly
-    prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in st.session_state.db_ingredients.items()]) >= req_me
+    prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= req_p
+    prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= req_m
+    prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in current_ingredients.items()]) + s_c >= req_c
+    prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in current_ingredients.items()]) >= req_ph
+    prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= req_ly
+    prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= req_me
     
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
     res = {}
-    for name in st.session_state.db_ingredients.keys():
+    for name in current_ingredients.keys():
         res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
     return res
 
 # ==========================================
-# 🔒 4. SECURITY GATEWAY (LOGIN, SIGN UP & FORGOT PASSWORD)
+# 🔒 4. SECURITY GATEWAY (SUPABASE AUTH INTEGRATION)
 # ==========================================
 if not st.session_state.is_authenticated:
     
-    # --- 4.1 หน้า LOGIN ---
+    # --- 4.1 หน้า LOGIN (ผ่าน Supabase Auth) ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
@@ -190,29 +207,38 @@ if not st.session_state.is_authenticated:
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
-                if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
-                    user_info = st.session_state.user_database[email_login]
-                    st.session_state.is_authenticated = True
-                    st.session_state.user_role = user_info.get("role", "user")
-                    st.session_state.user_email = f"{user_info['name']} [{user_info['role'].upper()}]"
-                    st.session_state.current_user_key = email_login
-                    st.rerun()
-                else:
-                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+                try:
+                    # 🔐 ล็อกอินโดยยิงไปเช็คที่ตัวจัดการสิทธิ์ของ Supabase
+                    auth_res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
+                    if auth_res.user:
+                        st.session_state.is_authenticated = True
+                        st.session_state.current_user_key = email_login
+                        
+                        # แยกสิทธิ์ผู้ใช้ (เช่นถ้าอีเมลมีคำว่า admin หรือระบุไว้ จะได้สิทธิ์ควบคุมระบบ)
+                        if "admin" in email_login.lower() or email_login == "admin@farm.com":
+                            st.session_state.user_role = "admin"
+                        else:
+                            st.session_state.user_role = "user"
+                            
+                        st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
+                        st.success("🎉 เข้าสู่ระบบสำเร็จ")
+                        st.rerun()
+                except Exception as error:
+                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
         with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
                 st.session_state.auth_page_mode = "signup"
                 st.rerun()
                 
         st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
-        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):  # แก้ไขจุดที่ 1 ตรงนี้
+        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
             st.session_state.auth_page_mode = "forgot"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.2 หน้า SIGN UP (สมัครสมาชิกใหม่ + เช็ครหัสผ่านปลอดภัยสูง) ---
+    # --- 4.2 หน้า SIGN UP (สมัครสมาชิกและบันทึกบน Supabase Auth) ---
     elif st.session_state.auth_page_mode == "signup":
         st.markdown("<div class='content-card' style='max-width: 600px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>📝 สมัครสมาชิกฟาร์มใหม่ (Sign Up)</h2>", unsafe_allow_html=True)
@@ -220,7 +246,7 @@ if not st.session_state.is_authenticated:
         
         su_name = st.text_input("👤 ชื่อจริง:")
         su_surname = st.text_input("👤 นามสกุล:")
-        su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ (ใช้สำหรับกรณีกู้คืนรหัสผ่าน):")
+        su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ:")
         su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้ (ใช้เป็นไอดีสำหรับ Log In):")
         
         st.markdown("<div style='background-color:#1e293b; padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; color:#94a3b8;'>"
@@ -233,32 +259,38 @@ if not st.session_state.is_authenticated:
         su_pass = st.text_input("🔑 ตั้งรหัสผ่านความปลอดภัยสูง:", type="password")
         su_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านอีกครั้ง:", type="password")
         
-        # ตรวจสอบความแรงของรหัสผ่านแบบ Real-time
         is_strong, pass_msg = check_password_strength(su_pass) if su_pass else (False, "")
         if su_pass:
-            if is_strong:
-                st.success(pass_msg)
-            else:
-                st.warning(pass_msg)
+            if is_strong: st.success(pass_msg)
+            else: st.warning(pass_msg)
                 
         col_su1, col_su2 = st.columns(2)
         with col_su1:
             if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
                 if su_email and su_pass and su_name and su_tel:
-                    if su_email in st.session_state.user_database:
-                        st.error("❌ อีเมลนี้เคยลงทะเบียนในระบบฟาร์มแล้ว")
-                    elif su_pass != su_pass_conf:
+                    if su_pass != su_pass_conf:
                         st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
                     elif not is_strong:
                         st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
                     else:
-                        st.session_state.user_database[su_email] = {
-                            "password": su_pass, "name": su_name, "surname": su_surname,
-                            "role": "user", "tel": su_tel, "reg_date": str(datetime.date.today())
-                        }
-                        st.success("🎉 สมัครสมาชิกสำเร็จ! ระบบพากลับหน้าเข้าสู่ระบบ...")
-                        st.session_state.auth_page_mode = "login"
-                        st.rerun()
+                        try:
+                            # 📝 ยิงคำสั่งสร้าง User ใหม่เข้าไปในระบบความปลอดภัยของ Supabase Auth
+                            supabase.auth.sign_up({
+                                "email": su_email, 
+                                "password": su_pass,
+                                "options": {
+                                    "data": {
+                                        "first_name": su_name,
+                                        "last_name": su_surname,
+                                        "phone": su_tel
+                                    }
+                                }
+                            })
+                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ จากนั้นระบบจะพากลับหน้าล็อกอิน")
+                            st.session_state.auth_page_mode = "login"
+                            st.rerun()
+                        except Exception as error:
+                            st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
                 else:
                     st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
         with col_su2:
@@ -268,44 +300,26 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.3 หน้า FORGOT PASSWORD (ลืมรหัสผ่าน/กู้คืนบัญชี) ---
+    # --- 4.3 หน้า FORGOT PASSWORD (กู้คืนรหัสผ่านด้วยบริการของ Supabase) ---
     elif st.session_state.auth_page_mode == "forgot":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
         fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
-        fg_tel = st.text_input("📞 ป้อนเบอร์โทรศัพท์ที่ลงทะเบียนไว้เพื่อตรวจสอบสิทธิ์:")
         
-        if fg_email in st.session_state.user_database:
-            user_found = st.session_state.user_database[fg_email]
-            if user_found.get("tel") == fg_tel:
-                st.info("🎯 ตรวจสอบข้อมูลถูกต้อง! กรุณาตั้งรหัสผ่านใหม่ที่ปลอดภัยด้านล่าง:")
-                
-                new_pass = st.text_input("🔑 กำหนดรหัสผ่านใหม่ความปลอดภัยสูง:", type="password", key="fg_new")
-                new_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านใหม่อีกครั้ง:", type="password", key="fg_conf")
-                
-                is_new_strong, new_pass_msg = check_password_strength(new_pass) if new_pass else (False, "")
-                if new_pass:
-                    if is_new_strong: st.success(new_pass_msg)
-                    else: st.warning(new_pass_msg)
-                
-                if st.button("💾 บันทึกเปลี่ยนรหัสผ่านใหม่", type="primary", use_container_width=True):
-                    if new_pass != new_pass_conf:
-                        st.error("❌ รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน")
-                    elif not is_new_strong:
-                        st.error("❌ รหัสผ่านใหม่ไม่ปลอดภัยตามเกณฑ์มาตรฐาน")
-                    else:
-                        st.session_state.user_database[fg_email]["password"] = new_pass
-                        st.success("🎉 เปลี่ยนรหัสผ่านสำเร็จ! ระบบกำลังนำคุณไปล็อกอิน...")
-                        st.session_state.auth_page_mode = "login"
-                        st.rerun()
+        st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
+        if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
+            if fg_email:
+                try:
+                    supabase.auth.reset_password_for_email(fg_email)
+                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คกล่องข้อความในอีเมลของคุณเพื่อตั้งรหัสผ่านใหม่")
+                except Exception as error:
+                    st.error(f"❌ เกิดข้อผิดพลาด: {error}")
             else:
-                if fg_tel: st.error("❌ เบอร์โทรศัพท์ไม่ตรงกับข้อมูลในระบบ")
-        else:
-            if fg_email: st.error("❌ ไม่พบที่อยู่อีเมลนี้ในระบบ")
+                st.warning("⚠️ กรุณากรอกอีเมล")
             
-        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True, type="secondary"):  # แก้ไขจุดที่ 2 ตรงนี้
+        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True, type="secondary"):
             st.session_state.auth_page_mode = "login"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -331,11 +345,17 @@ with col_h2:
                     st.rerun()
     with cc2:
         if st.button("🔴 ออกจากระบบ", use_container_width=True):
+            try:
+                supabase.auth.sign_out()  # ทำการทำลาย Session ฝั่งเซิร์ฟเวอร์คลาวด์
+            except:
+                pass
             st.session_state.is_authenticated = False
             st.session_state.current_weights = {}
             st.session_state.auth_page_mode = "login"
             st.rerun()
 st.markdown("---")
+
+# [คุณสามารถนำแท็บเนื้อหาเดิม (Tab 1, Tab 2, Tab 3) ของคุณมาต่อท้ายตรงนี้ เพื่อใช้งานตัวแปรโภชนาการแบบคลาวด์ได้ทันที]
 
 # ==========================================
 # 🧠 SYSTEM INITIALIZATION (ระบบจำลองโครงสร้างสารอาหารเริ่มต้น)
