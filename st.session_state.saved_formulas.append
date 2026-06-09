@@ -949,20 +949,25 @@ else:
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ------------------------------------------
-    # TAB 2: DAILY LOG & CASHFLOW
+   # ------------------------------------------
+    # TAB 2: DAILY LOG & CASHFLOW (เชื่อมต่อ Supabase สมบูรณ์)
     # ------------------------------------------
     with page_tabs[1]:
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("<h2>☀️ บันทึกตัวชี้วัดฟาร์ม & รายรับ-รายจ่ายประจำวัน</h2>", unsafe_allow_html=True)
         st.markdown("<div style='border-bottom: 2px solid #475569; margin:15px 0;'></div>", unsafe_allow_html=True)
         
-        # ปุ่มทางลัด: ดึงข้อมูลเมื่อวานมาเติมอัตโนมัติ เพื่อลดเวลาพิมพ์เอกสารหน้าฟาร์ม
+        # ปุ่มทางลัด: 🔗 ดึงข้อมูลเมื่อวานมาเติมอัตโนมัติจากบันทึกบน Supabase
         if st.session_state.daily_logs:
             if st.button("📋 ดึงข้อมูลจากประวัติล่าสุด (ไม่ต้องพิมพ์ใหม่หมด)", use_container_width=True):
                 last_log = st.session_state.daily_logs[-1]
-                st.session_state["shortcut_birds"] = last_log["จำนวนไก่ (ตัว)"]
-                st.session_state["shortcut_price"] = last_log["รายได้ขายไข่ (บาท)"] / last_log["ไข่ที่เก็บได้ (ฟอง)"] if last_log["ไข่ที่เก็บได้ (ฟอง)"] > 0 else 4.10
+                # รองรับการดึงคีย์ทั้งรูปแบบเก่า (ภาษาไทย) และรูปแบบใหม่ (ภาษาอังกฤษใน Supabase)
+                birds_val = last_log.get("bird_count", last_log.get("จำนวนไก่ (ตัว)", 5000))
+                revenue_val = last_log.get("total_revenue", last_log.get("รายได้ขายไข่ (บาท)", 0))
+                eggs_val = last_log.get("collected_eggs", last_log.get("ไข่ที่เก็บได้ (ฟอง)", 1))
+                
+                st.session_state["shortcut_birds"] = birds_val
+                st.session_state["shortcut_price"] = revenue_val / eggs_val if eggs_val > 0 else 4.10
                 st.success("ดึงข้อมูลเดิมเรียบร้อย! กรุณาตรวจสอบและอัปเดตจำนวนไข่ประจำวันนี้")
 
         log_col1, log_col2 = st.columns(2)
@@ -975,7 +980,6 @@ else:
             bird_count = st.number_input("จำนวนไก่ไข่ทั้งหมดในเล้าวันนี้ (ตัว):", min_value=1, value=int(default_birds), step=100)
             env_temp = st.slider("🌡️ อุณหภูมิสูงสุดในเล้าวันนี้ (°C):", 15.0, 45.0, 28.0, step=0.5, key="temp_slider")
             
-            # เรียกใช้ค่าแนะนำจากที่เราเซฟลง session_state ไว้เพื่อความปลอดภัย
             breed_default_feed = st.session_state.get('current_breed_default_feed', 114.0)
             recommended_feed = float(bird_count * breed_default_feed / 1000.0)
             st.markdown(f"<p style='color:#6366f1; font-size:16px; font-weight:bold; margin-bottom:-5px;'>💡 ปริมาณอาหารแนะนำตามสายพันธุ์: {recommended_feed:,.1f} กก.</p>", unsafe_allow_html=True)
@@ -996,7 +1000,7 @@ else:
             else: water_per_bird_ml = 320.0 + (env_temp - 32.0) * 25.0
             total_water_needed_liters = (water_per_bird_ml * bird_count) / 1000.0
 
-        # 🚨 ระบบปฏิทินเตือนความจำวัคซีนและงานรูทีนตามช่วงอายุไก่
+        # 🚨 ระบบปฏิทินเตือนความจำวัคซีนและงานรูทีนตามช่วงอายุไก่ (คงเดิม)
         st.markdown("<div style='background-color:#1e1b4b; padding:20px; border-radius:12px; border:2px solid #6366f1; margin: 20px 0;'>", unsafe_allow_html=True)
         st.markdown(f"### 📋 ปฏิทินเตือนงานสำคัญสำหรับไก่อายุ {flock_age_weeks} สัปดาห์:")
         if flock_age_weeks <= 3:
@@ -1006,7 +1010,7 @@ else:
         elif flock_age_weeks <= 16:
             st.markdown("<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องถ่ายพยาธิไก่ก่อนย้ายเข้ากรงตับ และทำวัคซีนรวมก่อนเริ่มไข่</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 24:
-            st.markdown("<p style='color:#fbbf24; font-size:22px; font-weight:bold;'>• ไก่เริ่มไข่แล้ว: [ระวัง] ห้ามลดแสงสว่างในเล้าเด็ดขาด! แงต้องสม่ำเสมอ</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color:#fbbf24; font-size:22px; font-weight:bold;'>• ไก่เริ่มไข่แล้ว: [ระวัง] ห้ามลดแสงสว่างในเล้าเด็ดขาด! แสงต้องสม่ำเสมอ</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 60:
             st.markdown("<p style='color:#10b981; font-size:22px; font-weight:bold;'>• ช่วงไข่ดก: สุ่มเช็กความหนาเปลือกไข่ และล้างทำความสะอาดหัวนิปเปิ้ลน้ำทุกสัปดาห์</p>", unsafe_allow_html=True)
         else:
@@ -1025,7 +1029,7 @@ else:
         fcr_ratio = actual_feed_given_kg / total_egg_mass_kg if total_egg_mass_kg > 0 else 0.0
         cost_per_egg = total_feed_cost / collected_eggs if collected_eggs > 0 else 0.0
 
-        # 🚨 SAFETY GUARDRAILS: ตรวจจับสัญญาณอันตรายหน้าฟาร์มอัตโนมัติ
+        # 🚨 SAFETY GUARDRAILS (คงเดิม)
         if henday_pct < 65.0 and henday_pct > 0:
             st.markdown(f"<div style='background-color:#7c2d12; padding:15px; border-radius:8px; font-size:18px; font-weight:bold; margin-bottom:15px;'>⚠️ เตือน: เปอร์เซ็นต์การไข่ต่ำกว่าเกณฑ์มาตรฐาน ({henday_pct:.1f}%) ตรวจเช็กพฤติกรรมการกินและสุ่มคัดไก่ป่วยด่วน</div>", unsafe_allow_html=True)
         if dead_birds > (bird_count * 0.001):
@@ -1047,26 +1051,53 @@ else:
             
         st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
             
+        # 🔗 🟢 สลับเชื่อม Supabase: ปุ่มบันทึกประวัติฟาร์มลงระบบคลาวด์
         if st.button("💾 กดปุ่มนี้เพื่อบันทึกประวัติประจำวัน", use_container_width=True):
-            st.session_state.daily_logs.append({
-                "วันที่": str(log_date), "อายุฝูง (สัปดาห์)": flock_age_weeks, "จำนวนไก่ (ตัว)": bird_count, "อุณหภูมิ (°C)": env_temp,
-                "อาหารที่กิน (KG)": actual_feed_given_kg, "ไข่ที่เก็บได้ (ฟอง)": collected_eggs, 
-                "รายได้ขายไข่ (บาท)": round(total_revenue, 2), "ต้นทุนอาหาร (บาท)": round(total_feed_cost, 2),
-                "กำไรสุทธิ (บาท)": round(net_profit_day, 2), "อัตราไข่ (%)": round(henday_pct, 1), "FCR": round(fcr_ratio, 2)
-            })
-            st.success("บันทึกข้อมูลเรียบร้อย!")
-            st.rerun()
+            log_payload = {
+                "user_email": st.session_state.user_email,
+                "log_date": str(log_date),
+                "flock_age_weeks": int(flock_age_weeks),
+                "bird_count": int(bird_count),
+                "env_temp": float(env_temp),
+                "actual_feed_given_kg": float(actual_feed_given_kg),
+                "collected_eggs": int(collected_eggs),
+                "total_revenue": round(total_revenue, 2),
+                "total_feed_cost": round(total_feed_cost, 2),
+                "net_profit_day": round(net_profit_day, 2),
+                "henday_pct": round(henday_pct, 1),
+                "fcr_ratio": round(fcr_ratio, 2)
+            }
+            try:
+                # บันทึกขึ้นระบบฐานข้อมูล Supabase
+                supabase.table("daily_logs").insert(log_payload).execute()
+                
+                # อัปเดต Local State ชุดเดียวกันเพื่อความเข้ากันได้ของระบบเดิม
+                legacy_format = {
+                    "วันที่": str(log_date), "อายุฝูง (สัปดาห์)": flock_age_weeks, "จำนวนไก่ (ตัว)": bird_count, "อุณหภูมิ (°C)": env_temp,
+                    "อาหารที่กิน (KG)": actual_feed_given_kg, "ไข่ที่เก็บได้ (ฟอง)": collected_eggs, 
+                    "รายได้ขายไข่ (บาท)": round(total_revenue, 2), "ต้นทุนอาหาร (บาท)": round(total_feed_cost, 2),
+                    "กำไรสุทธิ (บาท)": round(net_profit_day, 2), "อัตราไข่ (%)": round(henday_pct, 1), "FCR": round(fcr_ratio, 2)
+                }
+                if "daily_logs" not in st.session_state:
+                    st.session_state.daily_logs = []
+                st.session_state.daily_logs.append(legacy_format)
+                
+                st.success("บันทึกข้อมูลลงฐานข้อมูลคลาวด์เรียบร้อย!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ ไม่สามารถเซฟลงระบบคลาวด์ได้: {e}")
             
         st.markdown("<div style='border-bottom: 2px dashed #475569; margin:25px 0;'></div>", unsafe_allow_html=True)
         st.markdown("### 📋 ตารางประวัติฟาร์มย้อนหลัง")
         if not st.session_state.daily_logs:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
+            # แปลงสถิติทั้งหมดมาออกรายงานแบบ DataFrame ให้เกษตรกรอ่าน
             st.dataframe(pd.DataFrame(st.session_state.daily_logs), use_container_width=True, hide_index=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ------------------------------------------
-    # TAB 3: PROCUREMENT & WORKER SHEET
+    # TAB 3: PROCUREMENT & WORKER SHEET (คงโครงสร้าง UI ตักอาหารและปุ่มส่ง LINE เดิม)
     # ------------------------------------------
     with page_tabs[2]:
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
@@ -1089,7 +1120,6 @@ else:
                     bags = int(weight_kg // 50)
                     rem_kg = weight_kg % 50
                     
-                    # ปรับสัญลักษณ์ให้คนงานในโรงเรือนอ่านง่าย ไม่ตักสัดส่วนผิดพลาด
                     bag_txt = f"🟢 ยก {bags} กระสอบ + ⚖️ ตักเศษ {rem_kg:.1f} กก." if bags > 0 else f"⚖️ ตักเศษสุทธิ {rem_kg:.1f} กิโลกรัม"
                     
                     po_buffer.append({
@@ -1104,7 +1134,7 @@ else:
             
             st.markdown(f"<div style='background-color:#1e293b; padding:15px; border-radius:10px; border:2px dashed #10b981; font-size:24px; font-weight:bold; text-align:center; margin:15px 0;'>💵 งบประมาณค่าวัตถุดิบรวมรอบนี้: {total_po_cost:,.2f} บาท</div>", unsafe_allow_html=True)
             
-            # --- ฟีเจอร์ใหม่: ปุ่มด่วนสำหรับก๊อปปี้ข้อความภาษาไทยส่งเข้ากลุ่ม LINE ---
+            # --- ปุ่มด่วนสำหรับก๊อปปี้ข้อความส่งเข้ากลุ่ม LINE (คงพฤติกรรมเดิมไว้ครบถ้วน) ---
             line_text = f"📋 *ใบสั่งผสมอาหารสัตว์รวม: {total_tonnage:,} กก.*\n"
             line_text += f"สูตรสำหรับ: {selected_b_name} ({selected_stage_label})\n"
             line_text += "--------------------------------------\n"
@@ -1114,9 +1144,9 @@ else:
             line_text += f"💰 งบประมาณรวมรอบนี้: {total_po_cost:,.0f} บาท"
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
-            st.code(line_text, language="text") # คนงานสามารถกดไอคอนสี่เหลี่ยมซ้อนกันที่มุมขวาบนของกล่องเพื่อก๊อปปี้ได้ทันที
+            st.code(line_text, language="text") 
             
-            # ดาวน์โหลดแบบไฟล์ดั้งเดิม
+            # ฟีเจอร์ดาวน์โหลดไฟล์ CSV
             csv_s = io.StringIO()
             df_po.to_csv(csv_s, index=False, encoding='utf-8-sig')
             st.download_button("📥 กดดาวน์โหลดใบสั่งงานเป็นไฟล์ CSV", data=csv_s.getvalue(), file_name=f"ใบสั่งผสมอาหาร_{total_tonnage}กก.csv", mime="text/csv", use_container_width=True)
