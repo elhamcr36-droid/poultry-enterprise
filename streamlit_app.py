@@ -526,7 +526,7 @@ if st.session_state.user_role == "admin":
 
 else:
     # ==========================================
-    # 👑 USER ROUTE: REAL FARMER INTERFACE (3 TABS)
+    # 👑 USER ROUTE: ALL-IN-ONE COMMERCIAL FARMER INTERFACE
     # ==========================================
     page_tabs = st.tabs([
         "🥣 1. จัดการสูตรอาหาร & คลังสูตรเก่า", 
@@ -540,8 +540,6 @@ else:
     with page_tabs[0]:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("### 📥 เรียกคืนสูตรเก่าจากคลัง (ถ้ามี)")
-        
-        # ยุบคลังประวัติมาไว้ด้านบนสุดเพื่อให้ใช้งานง่าย ไม่ต้องสลับแท็บ
         if not st.session_state.saved_formulas:
             st.info("💡 ปัจจุบันยังไม่มีสูตรที่บันทึกไว้ คุณสามารถปรับสูตรด้านล่างแล้วกดบันทึกเก็บไว้ได้")
         else:
@@ -573,11 +571,40 @@ else:
             base_req = st.session_state.db_targets[stage_options[selected_stage_label]]
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # คำนวณ AI Solver เบื้องหลัง (คุมเฉพาะค่าหลักๆ ที่จำเป็นต่อคนฟาร์มจริง)
+        # ⚡ ระบบปุ่มลัดสลับสูตรอาหารตามสถานการณ์ตลาด (Scenario Presets)
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("### ⚡ ปุ่มลัดสลับสูตรอาหารตามสถานการณ์จริงหน้าฟาร์ม")
+        sc_col1, sc_col2, sc_col3 = st.columns(3)
+        
         if not st.session_state.current_weights:
-            st.session_state.current_weights = run_ai_solver(
-                base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"]
-            )
+            st.session_state.current_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"])
+
+        with sc_col1:
+            if st.button("🟢 โหมดปกติ / ต้นทุนถูกสุด", use_container_width=True):
+                st.session_state.current_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"])
+                st.success("สลับเข้าสู่โหมดต้นทุนต่ำสุดมาตรฐานแล้ว")
+                st.rerun()
+                
+        with sc_col2:
+            if st.button("🌾 โหมดข้าวโพด / รำข้าวแพง", use_container_width=True):
+                raw_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"])
+                if "ข้าวโพด" in raw_weights: raw_weights["ข้าวโพด"] = max(0.0, raw_weights["ข้าวโพด"] - 20.0)
+                if "รำข้าวละเอียด" in raw_weights: raw_weights["รำข้าวละเอียด"] = max(0.0, raw_weights["รำข้าวละเอียด"] - 10.0)
+                if "ปลายข้าว" in raw_weights: raw_weights["ปลายข้าว"] += 15.0
+                if "มันเส้น" in raw_weights: raw_weights["มันเส้น"] += 15.0
+                st.session_state.current_weights = raw_weights
+                st.warning("⚠️ ปรับสูตรหลบเลี่ยงข้าวโพดและรำข้าวแพงเรียบร้อยแล้ว!")
+                st.rerun()
+                
+        with sc_col3:
+            if st.button("🥚 โหมดเร่งไข่โต / เปลือกหนา", use_container_width=True):
+                raw_weights = run_ai_solver(base_req["protein"] + 0.5, base_req["me"], base_req["calcium"] + 0.3, base_req["phos"], base_req["lysine"], base_req["methionine"])
+                if "น้ำมันปาล์ม" in raw_weights: raw_weights["น้ำมันปาล์ม"] = max(2.0, raw_weights["น้ำมันปาล์ม"])
+                if "เปลือกหอยบด" in raw_weights: raw_weights["เปลือกหอยบด"] = max(8.0, raw_weights["เปลือกหอยบด"])
+                st.session_state.current_weights = raw_weights
+                st.info("🔥 อัดโภชนาการเร่งขนาดเปลือกและไข่ใหญ่เรียบร้อยแล้ว!")
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
         col_left, col_right = st.columns([1.1, 0.9])
         
@@ -587,16 +614,13 @@ else:
             with cl_title:
                 st.markdown("### 🥣 ปรับสัดส่วนวัตถุดิบ (%)")
             with cl_reset:
-                if st.button("🔄 รีเซ็ตเป็นค่า AI ตั้งต้น", use_container_width=True):
-                    st.session_state.current_weights = run_ai_solver(
-                        base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"]
-                    )
+                if st.button("🔄 รีเซ็ตสูตรทั้งหมด", use_container_width=True):
+                    st.session_state.current_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"])
                     st.rerun()
             
             temp_weights = {}
             running_total = 0.0
             
-            # เกณฑ์ความปลอดภัยของวัตถุดิบ (Inclusion Limits) ป้องกันไก่ท้องเสีย/ป่วย
             inclusion_limits = {"กากเบียร์แห้ง": 10.0, "กากน้ำตาล": 5.0, "น้ำมันปาล์ม": 4.0, "น้ำมันถั่วเหลือง": 4.0, "ข้าวนก": 15.0, "กากดีดีจีเอส": 15.0, "DDGS": 15.0}
             
             for name, d in st.session_state.db_ingredients.items():
@@ -637,7 +661,6 @@ else:
                     for k in act_nut.keys():
                         act_nut[k] += ratio * float(st.session_state.db_ingredients[name].get(k, 0.0))
             
-            # ตัดกรดอะมิโนส่วนเกินออก เหลือแค่ 4 ค่าหลักที่ส่งผลต่อขนาดและเปลือกไข่จริงๆ
             col_cell1, col_cell2 = st.columns(2)
             with col_cell1:
                 edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(base_req["protein"]), step=0.1)
@@ -676,7 +699,7 @@ else:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ------------------------------------------
-    # TAB 2: DAILY LOG & CASHFLOW
+    # TAB 2: DAILY LOG & CASHFLOW (ฝังระบบแจ้งเตือนวัคซีนและงานตามช่วงอายุ)
     # ------------------------------------------
     with page_tabs[1]:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
@@ -685,8 +708,9 @@ else:
         
         log_col1, log_col2 = st.columns(2)
         with log_col1:
-            st.markdown("#### 📝 ข้อมูลฝูงวันนี้")
+            st.markdown("#### 📝 ข้อมูลฝูงและสภาพแวดล้อมวันนี้")
             log_date = st.date_input("วันที่จดบันทึก:", datetime.date.today(), key="farm_log_date")
+            flock_age_weeks = st.number_input("🐣 อายุฝูงไก่ปัจจุบัน (สัปดาห์):", min_value=1, max_value=100, value=25, step=1)
             bird_count = st.number_input("จำนวนไก่ไข่ทั้งหมดในเล้าวันนี้ (ตัว):", min_value=1, value=5000, step=100)
             env_temp = st.slider("🌡️ อุณหภูมิสูงสุดในโรงเรือน (°C):", 15.0, 45.0, 28.0, step=0.5, key="temp_slider")
             actual_feed_given_kg = st.number_input("🍽️ ปริมาณอาหารที่ไก่กินรวมวันนี้ (กิโลกรัม):", min_value=10.0, value=float(bird_count * current_breed_data["default_feed"] / 1000.0), step=10.0)
@@ -698,16 +722,32 @@ else:
             dead_birds = st.number_input("จำนวนไก่ตาย/คัดทิ้งวันนี้ (ตัว):", min_value=0, value=2)
             avg_egg_weight_g = st.number_input("⚖️ น้ำหนักไข่เฉลี่ยวันนี้ (กรัม/ฟอง):", min_value=30.0, max_value=80.0, value=62.0, step=0.5)
             
-            # คำนวณน้ำดื่มอัตโนมัติตามอากาศ
             if env_temp <= 20.0: water_per_bird_ml = 160.0
             elif env_temp <= 28.0: water_per_bird_ml = 200.0 + (env_temp - 20.0) * 7.5
             elif env_temp <= 32.0: water_per_bird_ml = 260.0 + (env_temp - 28.0) * 15.0 
             else: water_per_bird_ml = 320.0 + (env_temp - 32.0) * 25.0
             total_water_needed_liters = (water_per_bird_ml * bird_count) / 1000.0
+
+        # 🚨 ระบบช่วยเตือนความจำวัคซีนและงานรูทีนตามอายุฝูง (Flock Schedule Reminder)
+        st.markdown("<div style='background-color:#1e293b; padding:12px; border-radius:8px; border:1px solid #475569; margin: 15px 0px;'>", unsafe_allow_html=True)
+        st.markdown(f"📋 ** AI แจ้งเตือนภารกิจสำคัญสำหรับไก่อายุ {flock_age_weeks} สัปดาห์:**")
+        if flock_age_weeks <= 3:
+            st.markdown("<span style='color:#38bdf8;'>• ทำวัคซีนนิวคาสเซิล + หลอดลมอักเสบติดต่อ (ครั้งที่ 1) และตรวจเช็กระบบไฟกก</span>", unsafe_allow_html=True)
+        elif flock_age_weeks <= 8:
+            st.markdown("<span style='color:#38bdf8;'>• ทำวัคซีนฝีดาษ และทำวัคซีนอหิวาต์ไก่ (ครั้งที่ 1) บันทึกการเจริญเติบโตสัปดาห์นี้</span>", unsafe_allow_html=True)
+        elif flock_age_weeks <= 16:
+            st.markdown("<span style='color:#38bdf8;'>• ถ่ายพยาธิไก่ก่อนย้ายเข้ากรงตับ และทำวัคซีนรวม (นิวคาสเซิล+หลอดลม+ไข่ลด) ก่อนเริ่มไข่</span>", unsafe_allow_html=True)
+        elif flock_age_weeks <= 24:
+            st.markdown("<span style='color:#fbbf24;'>• ไก่เริ่มให้ผลผลิตไข่: ห้ามลดแสงสว่างในโรงเรือนเด็ดขาด! และสุ่มตรวจน้ำหนักไข่ชุดแรก</span>", unsafe_allow_html=True)
+        elif flock_age_weeks <= 60:
+            st.markdown("<span style='color:#10b981;'>• ช่วงพีคผลผลิตสูงสุด: เน้นสุ่มเช็กความหนาเปลือกไข่ และทำความสะอาดหัวน้ำดื่มทุกสัปดาห์</span>", unsafe_allow_html=True)
+        else:
+            st.markdown("<span style='color:#f87171;'>• ไก่ไข่ช่วงปลายชุด: เสริมเปลือกหอยบดฟรีสไตล์ในรางอาหารช่วงเย็น เพื่อลดปัญหาไข่เปลือกบาง</span>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
             
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
-        # 💰 ระบบบัญชีกระเป๋าเงินจริงของคนทำฟาร์ม
+        # 💰 บัญชีกระเป๋าเงินจริงของคนทำฟาร์ม
         total_revenue = collected_eggs * egg_sale_price
         total_feed_cost = actual_feed_given_kg * net_cost
         net_profit_day = total_revenue - total_feed_cost
@@ -721,24 +761,21 @@ else:
         st.markdown(f"<div style='background-color:{profit_color}; padding:15px; border-radius:10px; text-align:center; font-size:20px; font-weight:bold; margin-bottom:15px;'>💸 เงินสดคงเหลือของฟาร์มวันนี้ (รายได้ขายไข่ - ต้นทุนอาหารจริง): {net_profit_day:,.2f} บาท</div>", unsafe_allow_html=True)
 
         kp1, kp2, kp3 = st.columns(3)
-        with kp1:
-            st.metric("🥚 อัตราการไข่ (Hen-Day)", f"{henday_pct:.1f} %")
-        with kp2:
-            st.metric("🥣 อัตราแลกไข่ (FCR)", f"{fcr_ratio:.2f}")
-        with kp3:
-            st.metric("💧 น้ำดื่มรวมที่ฝูงต้องกิน", f"{total_water_needed_liters:,.1f} ลิตร")
+        with kp1: st.metric("🥚 อัตราการไข่ (Hen-Day)", f"{henday_pct:.1f} %")
+        with kp2: st.metric("🥣 อัตราแลกไข่ (FCR)", f"{fcr_ratio:.2f}")
+        with kp3: st.metric("💧 น้ำดื่มรวมที่ฝูงต้องกิน", f"{total_water_needed_liters:,.1f} ลิตร")
             
         if env_temp >= 32.0:
             st.error(f"🚨 โรงเรือนร้อนวิกฤต ({env_temp}°C) ไก่เสี่ยงช็อก Heat Stress! ให้เปิดระบบพ่นหมอกและห้ามขาดน้ำเด็ดขาด")
             
         if st.button("💾 บันทึกรายงานวันนี้ลงประวัติฟาร์ม", use_container_width=True):
             st.session_state.daily_logs.append({
-                "วันที่": str(log_date), "จำนวนไก่ (ตัว)": bird_count, "อุณหภูมิ (°C)": env_temp,
+                "วันที่": str(log_date), "อายุฝูง (สัปดาห์)": flock_age_weeks, "จำนวนไก่ (ตัว)": bird_count, "อุณหภูมิ (°C)": env_temp,
                 "อาหารที่กิน (KG)": actual_feed_given_kg, "ไข่ที่เก็บได้ (ฟอง)": collected_eggs, 
                 "รายได้ขายไข่ (บาท)": round(total_revenue, 2), "ต้นทุนอาหาร (บาท)": round(total_feed_cost, 2),
                 "กำไรสุทธิ (บาท)": round(net_profit_day, 2), "อัตราไข่ (%)": round(henday_pct, 1), "FCR": round(fcr_ratio, 2)
             })
-            st.success("🎉 บันทึกประวัติเรียบร้อยแล้ว!")
+            st.success("🎉 บันทึกประวัติและบัญชีฟาร์มรายวันสำเร็จ!")
             st.rerun()
             
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
