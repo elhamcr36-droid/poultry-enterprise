@@ -80,6 +80,8 @@ if "user_role" not in st.session_state:
     st.session_state.user_role = "user"  
 if "saved_formulas" not in st.session_state:
     st.session_state.saved_formulas = []  
+if "daily_logs" not in st.session_state:
+    st.session_state.daily_logs = [] # ฐานข้อมูลเก็บประจุประจำวัน อุณหภูมิ นำ้ ไข่
 
 # ฐานข้อมูลกลางเก็บข้อมูลผู้ใช้งานระบบ
 if "user_database" not in st.session_state:
@@ -363,6 +365,7 @@ else:
     # -----------------------------------------------------------------------------------------
     page_tabs = st.tabs([
         "🏠 หน้าจอคำนวณและผสมสูตรอาหาร (Unified Live Matrix)", 
+        "☀️ บันทึกปฏิบัติงานฟาร์มรายวัน (Daily Temperature & Water Log)",
         "📊 ใบจัดเตรียมและสั่งซื้อวัตถุดิบ (Procurement Batch Sheet)", 
         "📈 คลังประวัติสูตรอาหารส่วนตัว (Personal History Log)"
     ])
@@ -430,15 +433,10 @@ else:
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # -----------------------------------------------------------------------------------------
-        # 🔄 UNIFIED HYBRID TWO-WAY MATRIX WITH UPGRADE 3 (ALERT BADGES & RESET BUTTON)
-        # -----------------------------------------------------------------------------------------
         col_left, col_right = st.columns([1.1, 0.9])
         
         with col_left:
             st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-            
-            # --- FEATURE 3.2: ปุ่ม Reset สัดส่วนกลับไปหาค่า AI เริ่มต้นแบบด่วน ---
             cl_title, cl_reset = st.columns([6, 4])
             with cl_title:
                 st.markdown("### 🥣 1. สัดส่วนวัตถุดิบที่ใช้ (%)")
@@ -504,7 +502,6 @@ else:
             
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
             
-            # --- FEATURE 3.1: ระบบแจ้งเตือนสารอาหารขาด/เกิน (Nutrient Alert Badges) ---
             if act_nut["protein"] < edit_p - 0.1:
                 st.error(f"🚨 โปรตีนต่ำเกินไป! ได้แค่ {act_nut['protein']:.2f}% (เป้าหมาย: {edit_p}%)")
             if act_nut["me"] < edit_m - 10:
@@ -555,6 +552,87 @@ else:
 
     with page_tabs[1]:
         # -----------------------------------------------------------------------------------------
+        # ☀️🆕 NEW MODULE: DAILY TEMPERATURE & WATER CONSUMPTION INTELLIGENCE LOG
+        # -----------------------------------------------------------------------------------------
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("<h2>☀️ บันทึกตัวชี้วัดโรงเรือน & AI คำนวณปริมาณน้ำดื่มประจำวัน</h2>", unsafe_allow_html=True)
+        st.markdown("ไก่ไข่ไวต่ออุณหภูมิมาก ยิ่งอากาศร้อน ไก่จะกินอาหารน้อยลงแต่จะ**ดื่มน้ำเพิ่มขึ้น 2-3 เท่า** เพื่อระบายความร้อน หากขาดน้ำไข่จะดิ่งฮวบทันที ระบบจะช่วยคำนวณปริมาณน้ำที่ต้องจ่ายให้แม่นยำตามอุณหภูมิ")
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        log_col1, log_col2 = st.columns(2)
+        with log_col1:
+            st.markdown("#### 📝 ป้อนข้อมูลกิจกรรมฟาร์มวันนี้")
+            log_date = st.date_input("เลือกวันที่จดบันทึก:", datetime.date.today())
+            bird_count = st.number_input("จำนวนไก่ไข่ทั้งหมดที่มีในโรงเรือนปัจจุบัน (ตัว):", min_value=1, value=5000, step=100)
+            
+            # ฟีเจอร์ที่ขอ: เพิ่มช่องอุณหภูมิแต่ละวัน
+            env_temp = st.slider("🌡️ อุณหภูมิสูงสุดภายในโรงเรือนวันนี้ (°C):", 15.0, 45.0, 28.0, step=0.5)
+            
+        with log_col2:
+            st.markdown("#### 🥚 บันทึกผลผลิตไข่")
+            collected_eggs = st.number_input("จำนวนฟองไข่ที่เก็บได้จริงวันนี้ (ฟอง):", min_value=0, value=4200)
+            dead_birds = st.number_input("จำนวนไก่ตาย/คัดทิ้งวันนี้ (ตัว):", min_value=0, value=2)
+            
+            # --- AI WATER CONSUMPTION CALCULATOR (อ้างอิงสูตรผันแปรตามอุณหภูมิโรงเรือน) ---
+            # อุณหภูมิ < 20C : กินน้ำ ~ 160 ml/ตัว/วัน
+            # อุณหภูมิ 20-28C : กินน้ำ ~ 200 ml/ตัว/วัน
+            # อุณหภูมิ 28-32C : กินน้ำ ~ 260 ml/ตัว/วัน
+            # อุณหภูมิ > 32C ขึ้นไป (วิกฤต): กินน้ำ ~ 350-400 ml/ตัว/วัน
+            if env_temp <= 20.0:
+                water_per_bird_ml = 160.0
+            elif env_temp <= 28.0:
+                water_per_bird_ml = 200.0 + (env_temp - 20.0) * 7.5  # ค่อยๆ ไต่ระดับ
+            elif env_temp <= 32.0:
+                water_per_bird_ml = 260.0 + (env_temp - 28.0) * 15.0 
+            else:
+                water_per_bird_ml = 320.0 + (env_temp - 32.0) * 25.0
+                
+            total_water_needed_liters = (water_per_bird_ml * bird_count) / 1000.0
+            
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        st.markdown("### 📊 ผลวิเคราะห์สภาวะฟาร์มจาก AI ประจำวัน")
+        
+        w_res1, w_res2, w_res3 = st.columns(3)
+        with w_res1:
+            if env_temp >= 32.0:
+                st.markdown(f"<div style='background-color:#991b1b; padding:15px; border-radius:10px; text-align:center;'><strong>⚠️ อากาศร้อนวิกฤต ({env_temp}°C)</strong><br>ไก่เสี่ยงเกิด Heat Stress สูงมาก ห้ามขาดน้ำเด็ดขาด!</div>", unsafe_allow_html=True)
+            elif env_temp >= 28.0:
+                st.markdown(f"<div style='background-color:#c2410c; padding:15px; border-radius:10px; text-align:center;'><strong>☀️ อากาศร้อนปานกลาง ({env_temp}°C)</strong><br>เปิดระบบพ่นหมอก/พัดลมช่วยระบายอากาศในเล้า</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div style='background-color:#065f46; padding:15px; border-radius:10px; text-align:center;'><strong>🟢 อุณหภูมิปกติสบาย ({env_temp}°C)</strong><br>สภาวะแวดล้อมดีเยี่ยมต่ออัตราการไข่</div>", unsafe_allow_html=True)
+                
+        with w_res2:
+            st.metric("💧 ปริมาณน้ำดื่มรวมที่ทั้งฝูงต้องได้รับวันนี้", f"{total_water_needed_liters:,.1f} ลิตร", help="คำนวณตามดัชนีอุณหภูมิโรงเรือน")
+        with w_res3:
+            st.metric("🥤 สัดส่วนน้ำดื่มเฉลี่ยต่อตัว", f"{water_per_bird_ml:.1f} มิลลิลิตร/ตัว/วัน")
+            
+        # คำนวณอัตราการไข่จริงเทียบกับข้อมูลที่ระบุ
+        current_lay_pct = (collected_eggs / bird_count) * 100.0 if bird_count > 0 else 0.0
+        
+        if st.button("💾 บันทึกประจุประจำวันลงฐานข้อมูลฟาร์ม", use_container_width=True):
+            st.session_state.daily_logs.append({
+                "วันที่": str(log_date),
+                "จำนวนไก่ (ตัว)": bird_count,
+                "อุณหภูมิสูงสุด (°C)": env_temp,
+                "น้ำดื่มรวมที่จ่าย (ลิตร)": round(total_water_needed_liters, 1),
+                "น้ำเฉลี่ย (ml/ตัว)": round(water_per_bird_ml, 1),
+                "ไข่ที่เก็บได้ (ฟอง)": collected_eggs,
+                "อัตราการไข่ (%)": round(current_lay_pct, 1),
+                "จำนวนตาย (ตัว)": dead_birds
+            })
+            st.success("🎉 บันทึกประวัติสภาวะฟาร์มรายวันเรียบร้อยแล้ว!")
+            st.rerun()
+            
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        st.markdown("### 📋 ตารางบันทึกประวัติฟาร์มย้อนหลัง (Historical Farm Log)")
+        if not st.session_state.daily_logs:
+            st.info("💡 ปัจจุบันยังไม่มีประวัติการบันทึกรายวัน ลองกดบันทึกข้อมูลด้านบน")
+        else:
+            st.dataframe(pd.DataFrame(st.session_state.daily_logs), use_container_width=True, hide_index=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with page_tabs[2]:
+        # -----------------------------------------------------------------------------------------
         # 📊 PROCUREMENT MODULE WITH UPGRADE 4 (BAG COUNTER EXTENSION)
         # -----------------------------------------------------------------------------------------
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
@@ -573,7 +651,6 @@ else:
                 cost_item = weight_kg * float(st.session_state.db_ingredients[ing_name]["price"])
                 total_po_cost += cost_item
                 
-                # --- FEATURE 4.1: ระบบคำนวณจำนวนกระสอบและเศษแยกชั่งจริง (Bag Count Calculator) ---
                 bags = int(weight_kg // 50)
                 rem_kg = weight_kg % 50
                 bag_txt = f"{bags} กระสอบ + {rem_kg:.1f} กิโลกรัม" if bags > 0 else f"{rem_kg:.1f} กิโลกรัม"
@@ -596,7 +673,7 @@ else:
             st.download_button("📥 ดาวน์โหลดใบจัดเตรียมและสั่งซื้อวัตถุดิบ (Export PO to CSV)", data=csv_s.getvalue(), file_name=f"PO_Order_Batch.csv", mime="text/csv", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with page_tabs[2]:
+    with page_tabs[3]:
         # -----------------------------------------------------------------------------------------
         # 📈 HISTORY STORAGE MODULE WITH UPGRADE 5 (LOAD RECIPE TO MATRIX BACKPORT)
         # -----------------------------------------------------------------------------------------
@@ -613,7 +690,6 @@ else:
             
             target_f = next(f for f in st.session_state.saved_formulas if f["name"] == selected_f_name)
             
-            # --- FEATURE 5.1: ปุ่มย้อนประวัติ ดึงสูตรอาหารเก่ากลับไปทำงานที่หน้า 1 ทันที ---
             hc1, hc2 = st.columns([6, 4])
             with hc1:
                 st.markdown(f"**📝 โครงสร้างสัดส่วนวัตถุดิบอาหารของสูตร: {target_f['name']}**")
