@@ -129,7 +129,7 @@ if "farm_production_logs" not in st.session_state:
 
 db_targets = {
     "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะไข่พีค ช่วงที่ 1 (อายุ 19-45 สัปดาห์)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-    "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะไข่ ช่วงที่ 2 (อายุ 46-65 สัปดาห์)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 4.5},
+    "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะไข่ ช่วงที่ 2 (อายุ 46-65 สัปณ์)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 4.5},
     "layer_phase_3": {"stage_key": "layer_phase_3", "stage_name": "ระยะท้ายก่อนปลด (อายุ >65 สัปดาห์)", "protein": 15.5, "me": 2700.0, "calcium": 4.55, "phos": 0.34, "lysine": 0.76, "methionine": 0.36, "fiber_max": 5.0},
 }
 
@@ -188,7 +188,7 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     return {name: round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1) for name in current_db_ingredients.keys()}
 
 # ==========================================
-# 🔒 5. GATEWAY SCREEN (FIXED METHOD)
+# 🔒 5. GATEWAY SCREEN (FACEBOOK STYLE)
 # ==========================================
 if not st.session_state.is_authenticated:
     
@@ -212,7 +212,6 @@ if not st.session_state.is_authenticated:
             else:
                 st.error("❌ อีเมลหรือรหัสผ่านที่คุณป้อนไม่ถูกต้อง")
                 
-        # [แก้ไขจุดนี้] นำ variant="secondary" ออก เปลี่ยนเป็นปุ่มปกติของ Streamlit เพื่อเลี่ยงจุดบั๊ก
         st.markdown("<div style='text-align: center; margin: 15px 0;'>", unsafe_allow_html=True)
         if st.button("ลืมรหัสผ่านใช่หรือไม่?", type="secondary", use_container_width=True):
             st.session_state.auth_mode = "forgot"
@@ -227,7 +226,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ─── หน้าหลักที่ 2: สมัครสมาชิก (REGISTER MODE) ───
+    # ─── หน้าหลักที่ 2: สมัครสมาชิก (REGISTER MODE - เอาการเลือกตำแหน่งออก) ───
     elif st.session_state.auth_mode == "register":
         st.markdown("<div class='content-card' style='max-width: 450px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; margin-bottom: 5px;'>สมัครใช้งานระบบ</h2>", unsafe_allow_html=True)
@@ -237,7 +236,6 @@ if not st.session_state.is_authenticated:
         reg_name = st.text_input("ชื่อ-นามสกุลจริงผู้ปฏิบัติงาน:")
         reg_username = st.text_input("ตั้งชื่อผู้ใช้งาน (สำหรับช่องล็อคอิน):")
         reg_password = st.text_input("ตั้งรหัสผ่านความปลอดภัยใหม่:", type="password")
-        reg_role = st.selectbox("เลือกประเภทตำแหน่งหน้าที่ความรับผิดชอบ:", ["user", "admin"], format_func=lambda x: "สัตวบาลปฏิบัติการ (User)" if x == "user" else "ผู้จัดการ/เจ้าของฟาร์ม (Admin)")
         
         col_reg1, col_reg2 = st.columns(2)
         with col_reg1:
@@ -246,12 +244,13 @@ if not st.session_state.is_authenticated:
                     if reg_username in st.session_state.user_database:
                         st.error("❌ ชื่อผู้ใช้งานนี้ระบบถูกเปิดใช้ไปแล้ว")
                     else:
+                        # บัญชีสมัครใหม่จะถูกกำหนดสิทธิ์เป็นพนักงานทั่วไป (user) อัตโนมัติเพื่อความปลอดภัย
                         st.session_state.user_database[reg_username] = {
-                            "password": reg_password, "name": reg_name, "role": reg_role
+                            "password": reg_password, "name": reg_name, "role": "user"
                         }
                         st.success("🎉 สมัครสมาชิกเสร็จสิ้น! กรุณาทำการเข้าสู่ระบบ")
                         st.session_state.auth_mode = "login"
-                        add_audit_log(reg_username, f"ลงทะเบียนพนักงานใหม่สำเร็จ สิทธิ์: {reg_role.upper()}")
+                        add_audit_log(reg_username, "ลงทะเบียนพนักงานสัตวบาลคนใหม่สำเร็จ")
                         st.rerun()
                 else:
                     st.error("❌ กรุณากรอกรายละเอียดข้อมูลให้ครบทุกช่อง")
@@ -289,29 +288,24 @@ if not st.session_state.is_authenticated:
 # ==========================================
 # 🎉 6. SYSTEM CONTROL TOP BANNER
 # ==========================================
-col_h1, col_h2 = st.columns([7.8, 2.2])
+col_h1, col_h2 = st.columns([8.5, 1.5])
 with col_h1:
     st.markdown(f"# 🐔 Layer Studio Pro Cloud <span style='font-size:1.1rem; color:#38bdf8;'>[ผู้ปฏิบัติงาน: {st.session_state.user_email} | โหมด: {st.session_state.user_role.upper()}]</span>", unsafe_allow_html=True)
 with col_h2:
-    cc1, cc2 = st.columns(2)
-    with cc1:
-        if "ผู้จัดการ" in st.session_state.user_email or st.session_state.user_role == "admin":
-            if st.button("🔄 สลับบทบาท", use_container_width=True):
-                st.session_state.user_role = "user" if st.session_state.user_role == "admin" else "admin"
-                st.rerun()
-    with cc2:
-        if st.button("🔴 Logout", use_container_width=True):
-            st.session_state.is_authenticated = False
-            st.session_state.user_role = "user"
-            st.session_state.auth_mode = "login"
-            st.rerun()
+    if st.button("🔴 Logout", use_container_width=True):
+        st.session_state.is_authenticated = False
+        st.session_state.user_role = "user"
+        st.session_state.auth_mode = "login"
+        st.rerun()
 st.markdown("---")
 
 # ==========================================
-# 🛠️ 7. MAIN SYSTEM NAVIGATION
+# 🛠️ 7. ROLE-BASED ROUTING (เเยกหน้าจอเด็ดขาด)
 # ==========================================
+
+# ─── กรณีผู้ใช้เป็น ADMIN ───
 if st.session_state.user_role == "admin":
-    st.markdown("### 🛠️ แผงควบคุมระบบหลังบ้านและการจัดการกลุ่มโครงสร้างฟาร์ม (Admin Core)")
+    st.markdown("## 🛠️ แผงควบคุมระบบหลังบ้านส่วนกลาง (Admin Dashboard Only)")
     adm_tabs = st.tabs(["🚨 ตั้งค่าเกณฑ์ควบคุมความปลอดภัย (Thresholds)", "🐔 จัดการโครงสร้างสายพันธุ์ (Breeds & Groups)", "🕵️ รายงานตรวจสอบ Audit Trail"])
     
     with adm_tabs[0]:
@@ -350,7 +344,9 @@ if st.session_state.user_role == "admin":
         st.markdown("#### บันทึกความปลอดภัยระบบและบันทึกประวัติย้อนหลัง (Audit Logging Data)")
         st.dataframe(pd.DataFrame(st.session_state.audit_logs), use_container_width=True)
 
+# ─── กรณีผู้ใช้เป็น USER (พนักงานสัตวบาลปฏิบัติการ) ───
 else:
+    st.markdown("## 📊 ระบบปฏิบัติการสัตวบาลและโภชนาการประจำโรงเรือน (User Dashboard Only)")
     page_tabs = st.tabs([
         "🏠 คำนวณสูตรอาหารและวิเคราะห์เรดาร์ (Formulator Matrix)",
         "📊 บันทึกผลผลิตประจำเล้า & วิเคราะห์วิกฤต (Production KPIs)",
@@ -535,81 +531,81 @@ else:
                         "phos": ed["phos"], "lysine": ed["lysine"], "methionine": ed["methionine"],
                         "fiber": ed["fiber"], "min_limit": c_min, "max_limit": c_max
                     }).execute()
-                    add_audit_log(st.session_state.user_email, f"แก้ไขฐานข้อมูลวัตถิบ {target_ing}: ราคา={c_price}, คลัง={c_stock}กก.")
+                    add_audit_log(st.session_state.user_email, f"แก้ไขฐานข้อมูลวัตถุดิบ {target_ing}: ราคา={c_price}, คลัง={c_stock}กก.")
                     st.success("อัปเดตข้อมูลโครงสร้างวัตถุดิบหลักเสร็จสิ้นเรียบร้อย")
                     st.rerun()
                 except Exception as e:
                     st.error(f"ข้อผิดพลาดฐานข้อมูล: {e}")
 
-# -------------------------------------------------------------
-# TAB 4: PROCUREMENT & REAL-TIME STOCK BALANCE ENGINE
-# -------------------------------------------------------------
-with page_tabs[3]:
-    st.markdown("### 📋 ใบแบ่งงานชั่งผสมอาหารและระบบวิเคราะห์หักคลังสต็อกเรียลไทม์")
-    total_tonnage = st.number_input("ปริมาณรวมของอาหารสัตว์ทั้งหมดที่ต้องการสั่งผสมชั่งจริงรอบนี้ (กิโลกรัม):", min_value=100, value=1000, step=50)
-    
-    po_buffer = []
-    stock_out_triggered = False
-    divisor = sum(st.session_state.current_weights.values()) if sum(st.session_state.current_weights.values()) > 0 else 1.0
-    
-    for name, w_pct in st.session_state.current_weights.items():
-        actual_pct = (w_pct / divisor) * 100.0
-        if actual_pct > 0:
-            needed_kg = (actual_pct / 100.0) * total_tonnage
-            current_stock = current_db_ingredients[name].get("stock_kg", 0.0)
-            
-            if needed_kg > current_stock:
-                status_text = f"❌ สต็อกไม่พอผสม! (วิกฤตสินค้าขาดแคลนอีก {needed_kg - current_stock:.1f} กก.)"
-                stock_out_triggered = True
-            else:
-                status_text = "🟢 ปริมาณสต็อกปลอดภัย พร้อมเบิกจ่ายชั่งผสมหน้างาน"
-                
-            po_buffer.append({
-                "วัตถุดิบสารอาหาร": name, "สัดส่วนในสูตร (%)": round(actual_pct, 1),
-                "น้ำหนักที่ต้องใช้ชั่งจริง (KG)": round(needed_kg, 1),
-                "ยอดสินค้าคงเหลือในคลังฟาร์มปัจจุบัน (KG)": round(current_stock, 1), "ผลการประเมินสถานะคลัง": status_text
-            })
-            
-    if po_buffer:
-        df_po = pd.DataFrame(po_buffer)
-        st.dataframe(df_po, use_container_width=True)
+    # -------------------------------------------------------------
+    # TAB 4: PROCUREMENT & REAL-TIME STOCK BALANCE ENGINE
+    # -------------------------------------------------------------
+    with page_tabs[3]:
+        st.markdown("### 📋 ใบแบ่งงานชั่งผสมอาหารและระบบวิเคราะห์หักคลังสต็อกเรียลไทม์")
+        total_tonnage = st.number_input("ปริมาณรวมของอาหารสัตว์ทั้งหมดที่ต้องการสั่งผสมชั่งจริงรอบนี้ (กิโลกรัม):", min_value=100, value=1000, step=50)
         
-        if stock_out_triggered:
-            st.markdown("<div style='background-color:#991b1b; padding:12px; border-radius:8px; font-weight:bold; text-align:center;'>❌ ระบบระงับการสั่งงาน: ไม่สามารถดำเนินการหักสต็อกได้ เนื่องจากสินค้าในคลังไม่เพียงพอ กรุณาเติมคลังหรือปรับสัดส่วนใหม่</div>", unsafe_allow_html=True)
-        else:
-            if st.button("✅ อนุมัติใบชั่งชุดนี้และดำเนินการหักยอดสต็อกคลังสินค้าทันที", type="primary", use_container_width=True):
-                try:
-                    for item in po_buffer:
-                        target_item = current_db_ingredients[item["วัตถุดิบสารอาหาร"]]
-                        new_stock_level = target_item["stock_kg"] - item["น้ำหนักที่ต้องใช้ชั่งจริง (KG)"]
-                        supabase.table("farm_ingredients").update({"stock_kg": new_stock_level}).eq("name", item["วัตถุดิบสารอาหาร"]).execute()
-                    add_audit_log(st.session_state.user_email, f"สั่งหักยอดสต็อกสินค้าเพื่อผสมสูตรอาหารปริมาณ {total_tonnage} กก. เข้าสู่เล้า")
-                    st.success("🎉 หักยอดสต็อกและซิงค์ความปลอดภัยบัญชีคลังคลาวด์เรียบร้อยแล้ว!")
-                    st.rerun()
-                except Exception as ex:
-                    st.error(f"การตัดสต็อกล้มเหลว: {ex}")
-    else:
-        st.info("💡 กรุณากำหนดอัตราส่วนวัตถุดิบในแท็บแรกให้มากกว่า 0% ก่อนเพื่อเปิดระบบพิมพ์ใบชั่งงานผสม")
-
-# -------------------------------------------------------------
-# TAB 5: HISTORICAL VAULT
-# -------------------------------------------------------------
-with page_tabs[4]:
-    st.markdown("### 📈 คลังศูนย์รวมประวัติสูตรอาหารโปรดคลาวด์ออนไลน์ (Supabase Recipes)")
-    try:
-        formula_res = supabase.table("saved_formulas").select("*").execute()
-        if formula_res.data:
-            df_cloud_formulas = pd.DataFrame(formula_res.data)
-            st.dataframe(df_cloud_formulas[["formula_name", "stage_name", "cost_per_kg", "protein_pct", "created_at"]], use_container_width=True)
+        po_buffer = []
+        stock_out_triggered = False
+        divisor = sum(st.session_state.current_weights.values()) if sum(st.session_state.current_weights.values()) > 0 else 1.0
+        
+        for name, w_pct in st.session_state.current_weights.items():
+            actual_pct = (w_pct / divisor) * 100.0
+            if actual_pct > 0:
+                needed_kg = (actual_pct / 100.0) * total_tonnage
+                current_stock = current_db_ingredients[name].get("stock_kg", 0.0)
+                
+                if needed_kg > current_stock:
+                    status_text = f"❌ สต็อกไม่พอผสม! (วิกฤตสินค้าขาดแคลนอีก {needed_kg - current_stock:.1f} กก.)"
+                    stock_out_triggered = True
+                else:
+                    status_text = "🟢 ปริมาณสต็อกปลอดภัย พร้อมเบิกจ่ายชั่งผสมหน้างาน"
+                    
+                po_buffer.append({
+                    "วัตถุดิบสารอาหาร": name, "สัดส่วนในสูตร (%)": round(actual_pct, 1),
+                    "น้ำหนักที่ต้องใช้ชั่งจริง (KG)": round(needed_kg, 1),
+                    "ยอดสินค้าคงเหลือในคลังฟาร์มปัจจุบัน (KG)": round(current_stock, 1), "ผลการประเมินสถานะคลัง": status_text
+                })
+                
+        if po_buffer:
+            df_po = pd.DataFrame(po_buffer)
+            st.dataframe(df_po, use_container_width=True)
             
-            select_f_name = st.selectbox("เลือกสูตรอาหารที่ต้องการโหลดกลับเข้าสู่หน้าทำงานโมเดลหลัก:", df_cloud_formulas["formula_name"].tolist())
-            if st.button("ยืนยันการดึงข้อมูลสูตรนี้กลับคืนค่า (Load Active Vault)"):
-                selected_f = next(item for item in formula_res.data if item["formula_name"] == select_f_name)
-                st.session_state.current_weights = selected_f["weights"]
-                add_audit_log(st.session_state.user_email, f"เรียกคืนข้อมูลสูตรอาหารโปรดเก่ากลับมาทำงาน: '{select_f_name}'")
-                st.success(f"ดึงข้อมูลสูตร '{select_f_name}' กลับคืนสู่หน้าต่างคำนวณแท็บที่ 1 เรียบร้อยแล้ว")
-                st.rerun()
+            if stock_out_triggered:
+                st.markdown("<div style='background-color:#991b1b; padding:12px; border-radius:8px; font-weight:bold; text-align:center;'>❌ ระบบระงับการสั่งงาน: ไม่สามารถดำเนินการหักสต็อกได้ เนื่องจากสินค้าในคลังไม่เพียงพอ กรุณาเติมคลังหรือปรับสัดส่วนใหม่</div>", unsafe_allow_html=True)
+            else:
+                if st.button("✅ อนุมัติใบชั่งชุดนี้และดำเนินการหักยอดสต็อกคลังสินค้าทันที", type="primary", use_container_width=True):
+                    try:
+                        for item in po_buffer:
+                            target_item = current_db_ingredients[item["วัตถุดิบสารอาหาร"]]
+                            new_stock_level = target_item["stock_kg"] - item["น้ำหนักที่ต้องใช้ชั่งจริง (KG)"]
+                            supabase.table("farm_ingredients").update({"stock_kg": new_stock_level}).eq("name", item["วัตถุดิบสารอาหาร"]).execute()
+                        add_audit_log(st.session_state.user_email, f"สั่งหักยอดสต็อกสินค้าเพื่อผสมสูตรอาหารปริมาณ {total_tonnage} กก. เข้าสู่เล้า")
+                        st.success("🎉 หักยอดสต็อกและซิงค์ความปลอดภัยบัญชีคลังคลาวด์เรียบร้อยแล้ว!")
+                        st.rerun()
+                    except Exception as ex:
+                        st.error(f"การตัดสต็อกล้มเหลว: {ex}")
         else:
-            st.info("ยังไม่มีบันทึกข้อมูลสูตรอาหารเก่าในฐานข้อมูลระบบฟาร์มประจำฤดูกาลนี้")
-    except Exception as e:
-        st.info("ระบบคลาวด์พร้อมเชื่อมต่อ แต่ยังไม่มีข้อมูลสูตรถูกบันทึก")
+            st.info("💡 กรุณากำหนดอัตราส่วนวัตถุดิบในแท็บแรกให้มากกว่า 0% ก่อนเพื่อเปิดระบบพิมพ์ใบชั่งงานผสม")
+
+    # -------------------------------------------------------------
+    # TAB 5: HISTORICAL VAULT
+    # -------------------------------------------------------------
+    with page_tabs[4]:
+        st.markdown("### 📈 คลังศูนย์รวมประวัติสูตรอาหารโปรดคลาวด์ออนไลน์ (Supabase Recipes)")
+        try:
+            formula_res = supabase.table("saved_formulas").select("*").execute()
+            if formula_res.data:
+                df_cloud_formulas = pd.DataFrame(formula_res.data)
+                st.dataframe(df_cloud_formulas[["formula_name", "stage_name", "cost_per_kg", "protein_pct", "created_at"]], use_container_width=True)
+                
+                select_f_name = st.selectbox("เลือกสูตรอาหารที่ต้องการโหลดกลับเข้าสู่หน้าทำงานโมเดลหลัก:", df_cloud_formulas["formula_name"].tolist())
+                if st.button("ยืนยันการดึงข้อมูลสูตรนี้กลับคืนค่า (Load Active Vault)"):
+                    selected_f = next(item for item in formula_res.data if item["formula_name"] == select_f_name)
+                    st.session_state.current_weights = selected_f["weights"]
+                    add_audit_log(st.session_state.user_email, f"เรียกคืนข้อมูลสูตรอาหารโปรดเก่ากลับมาทำงาน: '{select_f_name}'")
+                    st.success(f"ดึงข้อมูลสูตร '{select_f_name}' กลับคืนสู่หน้าต่างคำนวณแท็บที่ 1 เรียบร้อยแล้ว")
+                    st.rerun()
+            else:
+                st.info("ยังไม่มีบันทึกข้อมูลสูตรอาหารเก่าในฐานข้อมูลระบบฟาร์มประจำฤดูกาลนี้")
+        except Exception as e:
+            st.info("ระบบคลาวด์พร้อมเชื่อมต่อ แต่ยังไม่มีข้อมูลสูตรถูกบันทึก")
