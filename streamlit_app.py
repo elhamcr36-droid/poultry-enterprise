@@ -530,7 +530,7 @@ else:
     # ==========================================
     page_tabs = st.tabs([
         "🏠 หน้าจอคำนวณและผสมสูตรอาหาร (Unified Live Matrix)", 
-        "☀️ บันทึกปฏิบัติงานฟาร์มรายวัน (Daily Temperature & Water Log)",
+        "☀️ บันทึกปฏิบัติงานฟาร์มรายวัน (Daily Temperature & Performance)",
         "📊 ใบจัดเตรียมและสั่งซื้อวัตถุดิบ (Procurement Batch Sheet)", 
         "📈 คลังประวัติสูตรอาหารส่วนตัว (Personal History Log)"
     ])
@@ -587,6 +587,17 @@ else:
             temp_weights = {}
             running_total = 0.0
             
+            # 🛑 1. กำหนดเกณฑ์มาตรฐานความปลอดภัย (Inclusion Limits)
+            inclusion_limits = {
+                "กากเบียร์แห้ง": 10.0,
+                "กากน้ำตาล": 5.0,
+                "น้ำมันปาล์ม": 4.0,
+                "น้ำมันถั่วเหลือง": 4.0,
+                "ข้าวนก": 15.0,
+                "กากดีดีจีเอส": 15.0,
+                "DDGS": 15.0
+            }
+            
             for name, d in st.session_state.db_ingredients.items():
                 saved_w = float(st.session_state.current_weights.get(name, 0.0))
                 saved_w = max(0.0, min(100.0, saved_w))
@@ -595,6 +606,11 @@ else:
                     f"🌽 {name} (ราคา {d['price']} บ./กก.)",
                     min_value=0.0, max_value=100.0, value=saved_w, step=0.1, key=f"sld_user_{name}"
                 )
+                
+                # ตรวจสอบการใส่เกินเกณฑ์และแจ้งเตือนทันทีใต้ Slider ตัวนั้น
+                if name in inclusion_limits and user_val > inclusion_limits[name]:
+                    st.markdown(f"<p style='color:#f87171; font-size:13px; margin:-10px 0px 10px 0px;'>⚠️ คำเตือน: ไม่ควรใช้ {name} เกิน {inclusion_limits[name]}% เนื่องจากส่งผลต่อระบบย่อยของสัตว์ปีก</p>", unsafe_allow_html=True)
+                    
                 temp_weights[name] = user_val
                 running_total += user_val
             
@@ -692,7 +708,7 @@ else:
 
     with page_tabs[1]:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-        st.markdown("<h2>☀️ บันทึกตัวชี้วัดโรงเรือน & AI คำนวณปริมาณน้ำดื่มประจำวัน</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>☀️ บันทึกตัวชี้วัดโรงเรือน & AI วิเคราะห์ประสิทธิภาพการผลิตเชิงลึก</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
         log_col1, log_col2 = st.columns(2)
@@ -701,12 +717,17 @@ else:
             log_date = st.date_input("เลือกวันที่จดบันทึก:", datetime.date.today())
             bird_count = st.number_input("จำนวนไก่ไข่ทั้งหมดที่มีในโรงเรือนปัจจุบัน (ตัว):", min_value=1, value=5000, step=100)
             env_temp = st.slider("🌡️ อุณหภูมิสูงสุดภายในโรงเรือนวันนี้ (°C):", 15.0, 45.0, 28.0, step=0.5)
+            # 🔄 เพิ่มช่องกรอกปริมาณอาหารที่กินจริงเพื่อคำนวณประสิทธิภาพ
+            actual_feed_given_kg = st.number_input("🍽️ ปริมาณอาหารสัตว์ที่ใช้เลี้ยงรวมวันนี้ (กิโลกรัม):", min_value=10.0, value=float(bird_count * current_breed_data["default_feed"] / 1000.0), step=10.0)
             
         with log_col2:
-            st.markdown("#### 🥚 บันทึกผลผลิตไข่")
+            st.markdown("#### 🥚 บันทึกผลผลิตไข่เเละอัตราสูญเสีย")
             collected_eggs = st.number_input("จำนวนฟองไข่ที่เก็บได้จริงวันนี้ (ฟอง):", min_value=0, value=4200)
             dead_birds = st.number_input("จำนวนไก่ตาย/คัดทิ้งวันนี้ (ตัว):", min_value=0, value=2)
+            # 🔄 เพิ่มน้ำหนักไข่เฉลี่ยเพื่อนำไปคำนวณค่า FCR ตัวจริง
+            avg_egg_weight_g = st.number_input("⚖️ น้ำหนักไข่เฉลี่ยวันนี้ (กรัม/ฟอง) [มาตรฐาน: 60-65g]:", min_value=30.0, max_value=80.0, value=62.0, step=0.5)
             
+            # คำนวณปริมาณน้ำตามอุณหภูมิโรงเรือน
             if env_temp <= 20.0:
                 water_per_bird_ml = 160.0
             elif env_temp <= 28.0:
@@ -719,35 +740,47 @@ else:
             total_water_needed_liters = (water_per_bird_ml * bird_count) / 1000.0
             
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        st.markdown("### 📊 ผลวิเคราะห์สภาวะฟาร์มจาก AI ประจำวัน")
+        st.markdown("### 📊 ผลวิเคราะห์สภาวะฟาร์มและความคุ้มค่าทางเศรษฐกิจ (KPI)")
         
-        w_res1, w_res2, w_res3 = st.columns(3)
+        # 📈 2. คำนวณอัตรา Hen-Day Production และ FCR
+        henday_pct = (collected_eggs / bird_count) * 100.0 if bird_count > 0 else 0.0
+        total_egg_mass_kg = (collected_eggs * avg_egg_weight_g) / 1000.0
+        fcr_ratio = actual_feed_given_kg / total_egg_mass_kg if total_egg_mass_kg > 0 else 0.0
+        
+        kp1, kp2, kp3 = st.columns(3)
+        with kp1:
+            st.metric("🥚 อัตราการให้ไข่ (Hen-Day Production)", f"{henday_pct:.1f} %", delta=f"{henday_pct - 85.0:.1f} % vs มาตรฐาน")
+        with kp2:
+            # ค่า FCR ยิ่งต่ำยิ่งดี (เช่น 2.0-2.2 คือดีเยี่ยม กินอาหารน้อยแต่ไข่หนัก)
+            fcr_delta = "ดีเยี่ยม" if fcr_ratio <= 2.2 else "ควรปรับปรุงสูตรอาหาร"
+            st.metric("🥣 อัตราแลกไข่ (FCR ต่อ นน.ไข่ 1 กก.)", f"{fcr_ratio:.2f}", delta=fcr_delta, delta_color="inverse" if fcr_ratio > 2.2 else "normal")
+        with kp3:
+            st.metric("💧 ปริมาณน้ำดื่มรวมที่ฝูงต้องได้รับวันนี้", f"{total_water_needed_liters:,.1f} ลิตร")
+            
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        w_res1, w_res2 = st.columns(2)
         with w_res1:
             if env_temp >= 32.0:
-                st.markdown(f"<div style='background-color:#991b1b; padding:15px; border-radius:10px; text-align:center;'><strong>⚠️ อากาศร้อนวิกฤต ({env_temp}°C)</strong><br>ไก่เสี่ยงเกิด Heat Stress สูงมาก ห้ามขาดน้ำเด็ดขาด!</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:#991b1b; padding:15px; border-radius:10px; text-align:center;'><strong>⚠️ อากาศร้อนวิกฤต ({env_temp}°C)</strong><br>เสี่ยงเกิด Heat Stress สูงมาก ให้เสริมวิตามินละลายน้ำและห้ามขาดน้ำเด็ดขาด!</div>", unsafe_allow_html=True)
             elif env_temp >= 28.0:
-                st.markdown(f"<div style='background-color:#c2410c; padding:15px; border-radius:10px; text-align:center;'><strong>☀️ อากาศร้อนปานกลาง ({env_temp}°C)</strong><br>เปิดระบบพ่นหมอก/พัดลมช่วยระบายอากาศในเล้า</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color:#c2410c; padding:15px; border-radius:10px; text-align:center;'><strong>☀️ อากาศร้อนปานกลาง ({env_temp}°C)</strong><br>เปิดระบบพ่นหมอกหรือเร่งพัดลมระบายอากาศในเล้าเพื่อช่วยลดอุณหภูมิ</div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div style='background-color:#065f46; padding:15px; border-radius:10px; text-align:center;'><strong>🟢 อุณหภูมิปกติสบาย ({env_temp}°C)</strong><br>สภาวะแวดล้อมดีเยี่ยมต่ออัตราการไข่</div>", unsafe_allow_html=True)
-                
+                st.markdown(f"<div style='background-color:#065f46; padding:15px; border-radius:10px; text-align:center;'><strong>🟢 อุณหภูมิสบายต่อตัวไก่ ({env_temp}°C)</strong><br>สภาวะแวดล้อมดีเยี่ยม เอื้อต่อการกินอาหารและสร้างเปลือกไข่</div>", unsafe_allow_html=True)
         with w_res2:
-            st.metric("💧 ปริมาณน้ำดื่มรวมที่ทั้งฝูงต้องได้รับวันนี้", f"{total_water_needed_liters:,.1f} ลิตร")
-        with w_res3:
-            st.metric("🥤 สัดส่วนน้ำดื่มเฉลี่ยต่อตัว", f"{water_per_bird_ml:.1f} มิลลิลิตร/ตัว/วัน")
+            feed_per_bird = (actual_feed_given_kg * 1000) / bird_count
+            st.markdown(f"<div style='background-color:#1e293b; padding:15px; border-radius:10px; border:1px solid #334155;'>💡 <b>สรุปการกินอาหาร:</b> เฉลี่ยกินตัวละ <b>{feed_per_bird:.1f} กรัม/วัน</b><br>ค่าน้ำหนักไข่รวมทั้งหมดที่ผลิตได้วันนี้: <b>{total_egg_mass_kg:.1f} กิโลกรัม</b></div>", unsafe_allow_html=True)
             
-        current_lay_pct = (collected_eggs / bird_count) * 100.0 if bird_count > 0 else 0.0
-        
         if st.button("💾 บันทึกประจุประจำวันลงฐานข้อมูลฟาร์ม", use_container_width=True):
             st.session_state.daily_logs.append({
-                "วันที่": str(log_date), "จำนวนไก่ (ตัว)": bird_count, "อุณหภูมิสูงสุด (°C)": env_temp,
-                "น้ำดื่มรวมที่จ่าย (ลิตร)": round(total_water_needed_liters, 1), "น้ำเฉลี่ย (ml/ตัว)": round(water_per_bird_ml, 1),
-                "ไข่ที่เก็บได้ (ฟอง)": collected_eggs, "อัตราการไข่ (%)": round(current_lay_pct, 1), "จำนวนตาย (ตัว)": dead_birds
+                "วันที่": str(log_date), "จำนวนไก่ (ตัว)": bird_count, "อุณหภูมิ (°C)": env_temp,
+                "อาหารที่ใช้ (KG)": actual_feed_given_kg, "ไข่ที่ได้ (ฟอง)": collected_eggs, 
+                "อัตราไข่ (%)": round(henday_pct, 1), "FCR": round(fcr_ratio, 2), "จำนวนตาย (ตัว)": dead_birds
             })
-            st.success("🎉 บันทึกประวัติสภาวะฟาร์มรายวันเรียบร้อยแล้ว!")
+            st.success("🎉 บันทึกประวัติและดัชนีประสิทธิภาพฟาร์มรายวันเรียบร้อยแล้ว!")
             st.rerun()
             
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        st.markdown("### 📋 ตารางบันทึกประวัติฟาร์มย้อนหลัง (Historical Farm Log)")
+        st.markdown("### 📋 ตารางบันทึกประวัติฟาร์มและประสิทธิภาพย้อนหลัง")
         if not st.session_state.daily_logs:
             st.info("💡 ปัจจุบันยังไม่มีประวัติการบันทึกรายวัน ลองกดบันทึกข้อมูลด้านบน")
         else:
