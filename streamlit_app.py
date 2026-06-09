@@ -122,7 +122,7 @@ if "db_ingredients" not in st.session_state:
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
         "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปญดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
+        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
 
 if "current_weights" not in st.session_state:
@@ -311,13 +311,9 @@ if st.session_state.user_role == "admin":
         st.markdown("<div class='content-card'>### 🧬 จัดการเกณฑ์โภชนาการเป้าหมายตามช่วงอายุสัตว์</div>", unsafe_allow_html=True)
         st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
 
-    # -----------------------------------------------------------------------------------------
-    # 👤 NEW SUB-MODULE: USER MANAGEMENT (CRUD FOR ADMIN)
-    # -----------------------------------------------------------------------------------------
     with admin_tabs[3]:
         st.markdown("<div class='content-card'>### 👤 ระบบบริหารจัดการบัญชีผู้ใช้งานระบบฟาร์ม (User Matrix Access Control)</div>", unsafe_allow_html=True)
         
-        # แสดงตารางรายชื่อผู้ใช้ทั้งหมดในระบบ
         users_list = []
         for email, info in st.session_state.user_database.items():
             users_list.append({
@@ -372,7 +368,6 @@ else:
     ])
     
     with page_tabs[0]:
-        # --- 🐓 ดึงกลุ่มหลักและสายพันธุ์แบบสลับสัมพันธ์ผกผัน (Dynamic Filter) ---
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("### 🐓 ข้อมูลฝูงและโครงสร้างสายพันธุ์ไก่ไข่")
         
@@ -381,18 +376,14 @@ else:
             list_groups = [g["group_name"] for g in st.session_state.db_groups]
             selected_g = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", list_groups)
         with col_br2:
-            # กรองสายพันธุ์ให้แสดงเฉพาะตัวที่อยู่ในกลุ่มหลักที่เลือกเท่านั้น
             filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_g]
             breed_names = [b["breed_name"] for b in filtered_breeds] if filtered_breeds else ["ไม่มีข้อมูลสายพันธุ์ในระบบ"]
             selected_b_name = st.selectbox("🐔 เลือกสายพันธุ์ไก่ไข่ทางเศรษฐกิจ:", breed_names)
-            
-            # ค้นหาข้อมูลจำเพาะของสายพันธุ์ที่ถูกเลือก
             current_breed_data = next((b for b in filtered_breeds if b["breed_name"] == selected_b_name), {"default_feed": 114.0, "egg_color": "ไม่ระบุ"})
         with col_br3:
             st.markdown(f"<p style='margin-top:25px; color:#38bdf8; font-weight:bold;'>🎨 ลักษณะสีเปลือกไข่: {current_breed_data['egg_color']}<br>🍽️ อัตรากินอาหารเฉลี่ย: {current_breed_data['default_feed']} กรัม/วัน</p>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- กล่องควบคุมตัวชี้วัดฝูงด้านสารอาหาร ---
         stage_options = {s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()}
         
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
@@ -406,13 +397,11 @@ else:
             laying_rate = st.slider("📊 อัตราการให้ไข่เฉลี่ยประจำสัปดาห์ของฝูง (%):", 10, 100, 85)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # ⚡ AUTOMATION FIRST: สั่ง AI คำนวณเป็นค่าตั้งต้นให้ทันทีเมื่อเปิดหน้าเว็บบอร์ดมาครั้งแรก
         if not st.session_state.current_weights:
             st.session_state.current_weights = run_ai_solver(
                 base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"]
             )
 
-        # --- 🌽 เครื่องมือจัดการรายวัตถุดิบหน้างาน (Quick Ingredient Add/Remove) ---
         st.markdown("<div class='content-card' style='background-color: rgba(30, 41, 59, 0.8) !important;'>", unsafe_allow_html=True)
         st.markdown("#### ⚡ เครื่องมือเพิ่ม/ลด วัตถุดิบในหน้าคำนวณผสมด่วน (Live Matrix Adjuster)")
         col_m1, col_m2 = st.columns(2)
@@ -442,14 +431,23 @@ else:
         st.markdown("</div>", unsafe_allow_html=True)
 
         # -----------------------------------------------------------------------------------------
-        # 🔄 UNIFIED HYBRID TWO-WAY MATRIX (ซ้าย: ปรับน้ำหนักดิบ / ขวา: ตรวจคุณค่าสารอาหารเป้าหมาย)
+        # 🔄 UNIFIED HYBRID TWO-WAY MATRIX WITH UPGRADE 3 (ALERT BADGES & RESET BUTTON)
         # -----------------------------------------------------------------------------------------
         col_left, col_right = st.columns([1.1, 0.9])
         
-        # --- 🎛️ ฝั่งซ้าย: สไลเดอร์ปรับมือสดเรีนลไทม์ ---
         with col_left:
             st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-            st.markdown("### 🥣 1. สัดส่วนและปริมาณวัตถุดิบดิบที่ใช้ (%)")
+            
+            # --- FEATURE 3.2: ปุ่ม Reset สัดส่วนกลับไปหาค่า AI เริ่มต้นแบบด่วน ---
+            cl_title, cl_reset = st.columns([6, 4])
+            with cl_title:
+                st.markdown("### 🥣 1. สัดส่วนวัตถุดิบที่ใช้ (%)")
+            with cl_reset:
+                if st.button("🔄 ล้างค่า/ใช้ค่า AI ตั้งต้น", use_container_width=True):
+                    st.session_state.current_weights = run_ai_solver(
+                        base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"]
+                    )
+                    st.rerun()
             
             temp_weights = {}
             running_total = 0.0
@@ -473,7 +471,6 @@ else:
             st.session_state.current_weights = temp_weights
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- 🧬 ฝั่งขวา: คำนวณผลลัพธ์สารอาหารพร้อมช่องกรอกสั่ง AI ประมวลผลย้อนกลับ ---
         with col_right:
             st.markdown("<div class='content-card'>", unsafe_allow_html=True)
             st.markdown("### 🧪 2. ตารางระดับโภชนาการเเละเป้าหมายควบคุม")
@@ -507,18 +504,24 @@ else:
             
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
             
-            # ตารางสรุปค่าสารอาหาร
+            # --- FEATURE 3.1: ระบบแจ้งเตือนสารอาหารขาด/เกิน (Nutrient Alert Badges) ---
+            if act_nut["protein"] < edit_p - 0.1:
+                st.error(f"🚨 โปรตีนต่ำเกินไป! ได้แค่ {act_nut['protein']:.2f}% (เป้าหมาย: {edit_p}%)")
+            if act_nut["me"] < edit_m - 10:
+                st.error(f"🚨 พลังงานขาด! ได้แค่ {act_nut['me']:.0f} kcal (เป้าหมาย: {edit_m} kcal)")
+            if act_nut["calcium"] < edit_c - 0.05:
+                st.warning(f"⚠️ แคลเซียมต่ำไป! เปลือกไข่อาจจะบาง ({act_nut['calcium']:.2f}%)")
+            
             comparison_table = [
                 {"โภชนาการ": "โปรตีนดิบ (Crude Protein %)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
                 {"โภชนาการ": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
                 {"โภชนาการ": "แคลเซียม (% Calcium)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
                 {"โภชนาการ": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
-                {"โภชนาコン": "ไลซีน (% Lysine)", "เป้าหมาย": f"{edit_ly:.2f} %", "ได้จริงในสูตร": f"{act_nut['lysine']:.2f} %"},
+                {"โภชนาการ": "ไลซีน (% Lysine)", "เป้าหมาย": f"{edit_ly:.2f} %", "ได้จริงในสูตร": f"{act_nut['lysine']:.2f} %"},
                 {"โภชนาการ": "เมทไธโอนีน (% Methionine)", "เป้าหมาย": f"{edit_me:.2f} %", "ได้จริงในสูตร": f"{act_nut['methionine']:.2f} %"},
             ]
             st.dataframe(pd.DataFrame(comparison_table), use_container_width=True, hide_index=True)
             
-            # กราฟแท่งแสดงการเปรียบเทียบสารอาหารเป้าหมาย vs ได้จริง
             categories = ['Protein', 'Calcium', 'Phos', 'Lysine', 'Methionine']
             target_vals = [edit_p, edit_c, edit_ph, edit_ly, edit_me]
             actual_vals = [act_nut['protein'], act_nut['calcium'], act_nut['phos'], act_nut['lysine'], act_nut['methionine']]
@@ -529,13 +532,11 @@ else:
             fig.update_layout(title="📈 กราฟเปรียบเทียบสัดส่วนโภชนาการ (%)", barmode='group', template="plotly_dark", height=250, margin=dict(l=20, r=20, t=40, b=20))
             st.plotly_chart(fig, use_container_width=True)
 
-            # ตัวชี้วัดทางเศรษฐศาสตร์ฟาร์มตามสายพันธุ์จริง
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
             ec1, ec2 = st.columns(2)
             with ec1: 
                 st.metric("💰 ต้นทุนค่าอาหารเฉลี่ยสูตรนี้", f"{net_cost:.2f} บาท/กก.")
             with ec2:
-                # ดึงอัตราการกินตามสายพันธุ์จริงมาคำนวณต้นทุนต่อตัว
                 feed_consumed_kg = float(current_breed_data["default_feed"]) / 1000.0
                 feed_cost_day = feed_consumed_kg * net_cost
                 revenue_day = (laying_rate / 100.0) * egg_price
@@ -554,7 +555,7 @@ else:
 
     with page_tabs[1]:
         # -----------------------------------------------------------------------------------------
-        # 📊 PROCUREMENT MODULE: คำนวณยอดจัดซื้อสินค้าจริงและน้ำหนักชั่งรวมกระสอบ
+        # 📊 PROCUREMENT MODULE WITH UPGRADE 4 (BAG COUNTER EXTENSION)
         # -----------------------------------------------------------------------------------------
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<h2>📊 ระบบออกเอกสารจัดเตรียมและสั่งซื้อวัตถุดิบ (Procurement Batch Matrix)</h2>", unsafe_allow_html=True)
@@ -571,10 +572,17 @@ else:
                 weight_kg = (actual_pct / 100.0) * total_tonnage
                 cost_item = weight_kg * float(st.session_state.db_ingredients[ing_name]["price"])
                 total_po_cost += cost_item
+                
+                # --- FEATURE 4.1: ระบบคำนวณจำนวนกระสอบและเศษแยกชั่งจริง (Bag Count Calculator) ---
+                bags = int(weight_kg // 50)
+                rem_kg = weight_kg % 50
+                bag_txt = f"{bags} กระสอบ + {rem_kg:.1f} กิโลกรัม" if bags > 0 else f"{rem_kg:.1f} กิโลกรัม"
+                
                 po_buffer.append({
                     "รายการวัตถุดิบที่ต้องจัดเตรียม": ing_name, 
                     "สัดส่วนการผสมจริง (%)": round(actual_pct, 2), 
-                    "น้ำหนักที่ต้องแบ่งชั่งสุทธิ (KG)": round(weight_kg, 2), 
+                    "น้ำหนักสุทธิ (KG)": round(weight_kg, 2), 
+                    "📦 หน่วยคนงาน (กระสอบละ 50kg)": bag_txt,
                     "ประมาณการราคาทุนแยกชิ้น (บาท)": round(cost_item, 2)
                 })
                 
@@ -590,7 +598,7 @@ else:
 
     with page_tabs[2]:
         # -----------------------------------------------------------------------------------------
-        # 📈 HISTORY STORAGE MODULE: คลังเก็บประวัติสูตรอาหารอดีต
+        # 📈 HISTORY STORAGE MODULE WITH UPGRADE 5 (LOAD RECIPE TO MATRIX BACKPORT)
         # -----------------------------------------------------------------------------------------
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
         st.markdown("<h2>📈 คลังประวัติสูตรอาหารที่เคยบันทึกไว้ (Saved Formula History)</h2>", unsafe_allow_html=True)
@@ -604,7 +612,15 @@ else:
             selected_f_name = st.selectbox("🔍 เลือกสูตรอาหารเก่าในอดีตที่ต้องการเปิดดูสูตรส่วนผสมเชิงลึก:", [f["name"] for f in st.session_state.saved_formulas])
             
             target_f = next(f for f in st.session_state.saved_formulas if f["name"] == selected_f_name)
-            st.markdown(f"**📝 โครงสร้างสัดส่วนวัตถุดิบอาหารของสูตร: {target_f['name']} (สายพันธุ์: {target_f['breed']})**")
+            
+            # --- FEATURE 5.1: ปุ่มย้อนประวัติ ดึงสูตรอาหารเก่ากลับไปทำงานที่หน้า 1 ทันที ---
+            hc1, hc2 = st.columns([6, 4])
+            with hc1:
+                st.markdown(f"**📝 โครงสร้างสัดส่วนวัตถุดิบอาหารของสูตร: {target_f['name']}**")
+            with hc2:
+                if st.button("🔄 ดึงสูตรเก่านี้กลับไปใช้และปรับแต่งต่อที่หน้าหลัก", use_container_width=True):
+                    st.session_state.current_weights = target_f["weights"].copy()
+                    st.success(f"ดึงข้อมูล '{target_f['name']}' ไปติดตั้งเป็นสูตรหน้างานปัจจุบันสำเร็จแล้ว! กรุณากลับไปเช็กที่แท็บ 1")
             
             sub_rows = [{"รายการวัตถุดิบ": k, "สัดส่วนที่ใช้ผสมจริง (%)": v} for k, v in target_f["weights"].items() if v > 0.01]
             st.dataframe(pd.DataFrame(sub_rows).sort_values(by="สัดส่วนที่ใช้ผสมจริง (%)", ascending=False), use_container_width=True, hide_index=True)
