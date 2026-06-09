@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS เพื่อควบคุม UI ให้เป็นสไตล์ Dark Theme หรูหราและซ่อนปุ่มควบคุมที่จำเป็น
+# Custom CSS เพื่อควบคุม UI ให้เป็นสไตล์ Dark Theme หรูหราและเพิ่มคลาสสไตล์แบบ Facebook Card
 st.markdown(
     """
     <style>
@@ -58,6 +58,15 @@ st.markdown(
     }
     div[data-testid="stMetricValue"] { font-size: 2.2rem !important; color: #ffb703 !important; }
     [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.95) !important; border-radius: 8px; }
+    
+    /* สไตล์จำลองกล่อง Facebook ล็อคอิน */
+    .fb-subtitle {
+        font-size: 14px !important;
+        color: #bcc0c4 !important;
+        text-align: center;
+        margin-top: -10px;
+        margin-bottom: 20px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -66,7 +75,6 @@ st.markdown(
 # ==========================================
 # 🔌 2. SUPABASE INITIALIZATION (CONNECT VIA SECRETS)
 # ==========================================
-# แนะนำให้นำค่า URL และ API Key ไปใส่ไว้ในส่วน Advanced Settings -> Secrets ของ Streamlit Cloud
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://your-project-id.supabase.co")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "your-anon-key-here")
 
@@ -86,6 +94,7 @@ except Exception as e:
 if "is_authenticated" not in st.session_state: st.session_state.is_authenticated = False
 if "user_role" not in st.session_state: st.session_state.user_role = "user"  
 if "user_email" not in st.session_state: st.session_state.user_email = ""
+if "auth_mode" not in st.session_state: st.session_state.auth_mode = "login" # ควบคุมการสลับหน้าหลักย่อยเหมือน Facebook (login / register / forgot)
 if "audit_logs" not in st.session_state:
     st.session_state.audit_logs = [{"เวลา": "2026-06-09 08:00", "ผู้ใช้": "System", "กิจกรรม": "เปิดระบบรักษาความปลอดภัยเครือข่ายคลาวด์ฟาร์ม"}]
 
@@ -94,13 +103,14 @@ if "threshold_drop_rate" not in st.session_state: st.session_state.threshold_dro
 if "threshold_mortality_rate" not in st.session_state: st.session_state.threshold_mortality_rate = 0.1
 if "threshold_broken_egg" not in st.session_state: st.session_state.threshold_broken_egg = 2.0
 
-# ฐานข้อมูลผู้ใช้จำลองของระบบฟาร์ม
-user_database = {
-    "admin": {"password": "222", "name": "ผู้จัดการฟาร์ม/เจ้าของกิจการ", "role": "admin"},
-    "user": {"password": "123", "name": "สัตวบาลประจำกลุ่มเทคนิค", "role": "user"}
-}
+# ฐานข้อมูลผู้ใช้หลักประจำระบบฟาร์ม (เพิ่มเข้าหน่วยความจำสถานะเพื่อให้สมัครใหม่ทำงานร่วมกันได้)
+if "user_database" not in st.session_state:
+    st.session_state.user_database = {
+        "admin": {"password": "222", "name": "ผู้จัดการฟาร์ม/เจ้าของกิจการ", "role": "admin"},
+        "user": {"password": "123", "name": "สัตวบาลประจำกลุ่มเทคนิค", "role": "user"}
+    }
 
-# ข้อมูลกลุ่มและสายพันธุ์ไก่ไข่ (โครงสร้างเดิมที่บันทึกชั่วคราว)
+# ข้อมูลกลุ่มและสายพันธุ์ไก่ไข่
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = [
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)"},
@@ -114,21 +124,19 @@ if "db_breeds" not in st.session_state:
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ โลห์แมน แอลเอสแอล (Lohmann LSL White)", "std_curve": 93.0}
     ]
 
-# ข้อมูลบันทึกผลผลิตประจำเล้า (สมุดบันทึกเดิม)
+# ข้อมูลบันทึกผลผลิตประจำเล้า
 if "farm_production_logs" not in st.session_state:
     st.session_state.farm_production_logs = [
         {"วันที่": "2026-06-07", "โรงเรือน": "House A", "จำนวนไก่ต้นวัน": 5000, "ไข่ดี(ฟอง)": 4450, "ไข่เสีย/แตก(ฟอง)": 45, "น้ำหนักไข่รวม(กก.)": 282.0, "ตาย(ตัว)": 1, "อาหาร(กก.)": 570.0, "น้ำ(ลิตร)": 1140.0, "อุณหภูมิ(°C)": 28.2, "หมายเหตุ": "ปกติ"},
         {"วันที่": "2026-06-08", "โรงเรือน": "House A", "จำนวนไก่ต้นวัน": 4999, "ไข่ดี(ฟอง)": 4310, "ไข่เสีย/แตก(ฟอง)": 130, "น้ำหนักไข่รวม(กก.)": 275.5, "ตาย(ตัว)": 3, "อาหาร(กก.)": 575.0, "น้ำ(ลิตร)": 1260.0, "อุณหภูมิ(°C)": 29.5, "หมายเหตุ": "อากาศร้อนจัด เปลือกไข่บางลงชัดเจน"},
     ]
 
-# กลุ่มสเปกความต้องการสารอาหารแยกตามช่วงอายุ (โจทย์เดิม)
 db_targets = {
     "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะไข่พีค ช่วงที่ 1 (อายุ 19-45 สัปดาห์)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
     "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะไข่ ช่วงที่ 2 (อายุ 46-65 สัปดาห์)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 4.5},
     "layer_phase_3": {"stage_key": "layer_phase_3", "stage_name": "ระยะท้ายก่อนปลด (อายุ >65 สัปดาห์)", "protein": 15.5, "me": 2700.0, "calcium": 4.55, "phos": 0.34, "lysine": 0.76, "methionine": 0.36, "fiber_max": 5.0},
 }
 
-# ฟังก์ชันดึง/ซิงค์ข้อมูลวัตถุดิบและสต็อกสินค้าจากคลาวด์ Supabase
 def fetch_ingredients_from_cloud():
     try:
         res = supabase.table("farm_ingredients").select("*").execute()
@@ -136,8 +144,6 @@ def fetch_ingredients_from_cloud():
             return {row["name"]: row for row in res.data}
     except Exception:
         pass
-    
-    # กรณีดึงข้อมูลไม่สำเร็จหรือคลาวด์ยังว่างเปล่า ให้ใช้ค่าตั้งต้น
     return {
         "ข้าวโพดบดเม็ด (Ground Corn)": {"name": "ข้าวโพดบดเม็ด (Ground Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "fiber": 2.2, "min_limit": 0.0, "max_limit": 70.0, "stock_kg": 5000.0},
         "กากถั่วเหลือง 46% (Soybean Meal 46%)": {"name": "กากถั่วเหลือง 46% (Soybean Meal 46%)", "price": 19.5, "protein": 46.0, "me": 2440.0, "calcium": 0.25, "phos": 0.62, "lysine": 2.85, "methionine": 0.65, "fiber": 3.5, "min_limit": 0.0, "max_limit": 50.0, "stock_kg": 3500.0},
@@ -186,29 +192,103 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     return {name: round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1) for name in current_db_ingredients.keys()}
 
 # ==========================================
-# 🔒 5. GATEWAY SCREEN (SECURITY LOGIN SYSTEM)
+# 🔒 5. GATEWAY SCREEN (FACEBOOK STYLE AUTHENTICATION)
 # ==========================================
 if not st.session_state.is_authenticated:
-    st.markdown("<div class='content-card' style='max-width: 520px; margin: 80px auto 0 auto;'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔒 Layer Studio Cloud Access</h2>", unsafe_allow_html=True)
-    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
     
-    login_role = st.selectbox("👥 สิทธิ์ของกลุ่มผู้ใช้งานเพื่อสลับเมนูหน้าบ้าน:", ["สัตวบาลประจำกลุ่มเทคนิค (User Mode)", "ผู้จัดการฟาร์ม/เจ้าของกิจการ (Admin Mode)"])
-    email_login = st.text_input("📧 รหัสบัญชีผู้ใช้งาน (Username):")
-    show_pass = st.checkbox("👁️ แสดงรหัสผ่านความปลอดภัย")
-    pass_login = st.text_input("🔑 รหัสเข้าถึงฐานข้อมูล:", type="default" if show_pass else "password")
-    
-    if st.button("ยืนยันตัวตนเข้าระบบ (Secure Sign In)", type="primary", use_container_width=True):
-        if email_login in user_database and user_database[email_login]["password"] == pass_login:
-            user_info = user_database[email_login]
-            st.session_state.is_authenticated = True
-            st.session_state.user_role = user_info["role"]
-            st.session_state.user_email = f"{user_info['name']}"
-            add_audit_log(email_login, f"ผ่านการรับรองระบบเครือข่ายความปลอดภัย ในฐานะ {user_info['role'].upper()}")
+    # ─── หน้าหลักที่ 1: เข้าสู่ระบบ (LOGIN MODE) ───
+    if st.session_state.auth_mode == "login":
+        st.markdown("<div class='content-card' style='max-width: 450px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #1877f2 !important; font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: 2.5rem;'>layerbook</h1>", unsafe_allow_html=True)
+        st.markdown("<div class='fb-subtitle'>ช่วยคุณบริหารจัดการและบันทึกข้อมูลสูตรอาหารไก่ไข่ได้เรียลไทม์</div>", unsafe_allow_html=True)
+        
+        email_login = st.text_input("อีเมลหรือหมายเลขโทรศัพท์มือถือ:", placeholder="Username หรือ อีเมล")
+        pass_login = st.text_input("รหัสผ่าน:", type="password", placeholder="Password")
+        
+        if st.button("เข้าสู่ระบบ", type="primary", use_container_width=True):
+            if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
+                user_info = st.session_state.user_database[email_login]
+                st.session_state.is_authenticated = True
+                st.session_state.user_role = user_info["role"]
+                st.session_state.user_email = f"{user_info['name']}"
+                add_audit_log(email_login, f"เข้าสู่ระบบสำเร็จในบทบาท {user_info['role'].upper()}")
+                st.rerun()
+            else:
+                st.error("❌ อีเมลหรือรหัสผ่านที่คุณป้อนไม่ถูกต้อง")
+                
+        # ส่วนควบคุมปุ่มสลับลิงก์สไตล์ Facebook ลืมรหัสผ่าน
+        st.markdown("<div style='text-align: center; margin: 15px 0;'>", unsafe_allow_html=True)
+        if st.button("ลืมรหัสผ่านใช่หรือไม่?", variant="secondary"):
+            st.session_state.auth_mode = "forgot"
             st.rerun()
-        else:
-            st.error("❌ ไม่สามารถเข้าสู่ระบบได้: ข้อมูลสิทธิ์ความปลอดภัยไม่ถูกต้อง")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        # ปุ่มสร้างบัญชีใหม่สีเขียวแบบ Facebook
+        st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+        if st.button("🟢 สร้างบัญชีผู้ใช้ใหม่", type="secondary"):
+            st.session_state.auth_mode = "register"
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ─── หน้าหลักที่ 2: สมัครสมาชิก (REGISTER MODE) ───
+    elif st.session_state.auth_mode == "register":
+        st.markdown("<div class='content-card' style='max-width: 450px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; margin-bottom: 5px;'>สมัครใช้งานระบบ</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='fb-subtitle'>ง่ายและรวดเร็วเพื่อเริ่มต้นคุมสต็อกฟาร์ม</div>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        reg_name = st.text_input("ชื่อ-นามสกุลจริงผู้ปฏิบัติงาน:")
+        reg_username = st.text_input("ตั้งชื่อผู้ใช้งาน (สำหรับช่องล็อคอิน):")
+        reg_password = st.text_input("ตั้งรหัสผ่านความปลอดภัยใหม่:", type="password")
+        reg_role = st.selectbox("เลือกประเภทตำแหน่งหน้าที่ความรับผิดชอบ:", ["user", "admin"], format_func=lambda x: "สัตวบาลปฏิบัติการ (User)" if x == "user" else "ผู้จัดการ/เจ้าของฟาร์ม (Admin)")
+        
+        col_reg1, col_reg2 = st.columns(2)
+        with col_reg1:
+            if st.button("✅ ยืนยันสมัครสมาชิก", type="primary", use_container_width=True):
+                if reg_username and reg_password and reg_name:
+                    if reg_username in st.session_state.user_database:
+                        st.error("❌ ชื่อผู้ใช้งานนี้ระบบถูกเปิดใช้ไปแล้ว")
+                    else:
+                        st.session_state.user_database[reg_username] = {
+                            "password": reg_password, "name": reg_name, "role": reg_role
+                        }
+                        st.success("🎉 สมัครสมาชิกเสร็จสิ้น! กรุณาทำการเข้าสู่ระบบ")
+                        st.session_state.auth_mode = "login"
+                        add_audit_log(reg_username, f"ลงทะเบียนพนักงานใหม่สำเร็จ สิทธิ์: {reg_role.upper()}")
+                        st.rerun()
+                else:
+                    st.error("❌ กรุณากรอกรายละเอียดข้อมูลให้ครบทุกช่อง")
+        with col_reg2:
+            if st.button("↩️ ย้อนกลับไปล็อคอิน", use_container_width=True):
+                st.session_state.auth_mode = "login"
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ─── หน้าหลักที่ 3: ลืมรหัสผ่าน (FORGOT PASSWORD MODE) ───
+    elif st.session_state.auth_mode == "forgot":
+        st.markdown("<div class='content-card' style='max-width: 450px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; margin-bottom: 5px;'>ค้นหาบัญชีของคุณ</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='fb-subtitle'>ป้อนชื่อผู้ใช้ของคุณเพื่อทำการค้นหาและรีเซ็ตรหัสผ่าน</div>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        forgot_user = st.text_input("กรอกชื่อผู้ใช้ (Username) ที่ต้องการค้นหา:")
+        
+        if st.button("🔍 ค้นหาข้อมูลในระบบคลาวด์ฟาร์ม", type="primary", use_container_width=True):
+            if forgot_user in st.session_state.user_database:
+                found_user = st.session_state.user_database[forgot_user]
+                st.info(f"💡 พบบัญชีแล้ว: คุณคือ **{found_user['name']}**\n\n🔑 รหัสผ่านเดิมของคุณในระบบคือ: `{found_user['password']}`")
+                add_audit_log(forgot_user, "เรียกตรวจสอบความจำรหัสผ่านเนื่องจากลืมรหัสผ่านหน้าระบบ")
+            else:
+                st.error("❌ ไม่พบชื่อผู้ใช้งานนี้ในระบบฐานข้อมูลฟาร์ม")
+                
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        if st.button("↩️ ยกเลิกและกลับไปยังหน้าหลัก", use_container_width=True):
+            st.session_state.auth_mode = "login"
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        
     st.stop()
 
 # ==========================================
@@ -228,6 +308,7 @@ with col_h2:
         if st.button("🔴 Logout", use_container_width=True):
             st.session_state.is_authenticated = False
             st.session_state.user_role = "user"
+            st.session_state.auth_mode = "login" # รีเซ็ตหน้ากลับเป็นหน้าล็อกอินเริ่มต้น
             st.rerun()
 st.markdown("---")
 
@@ -336,7 +417,6 @@ else:
 
             st.metric("คำนวณต้นทุนค่าอาหารสุทธิ", f"{net_cost:.2f} บาท / กิโลกรัม")
             
-            # กราฟเรดาร์ชาร์ตเปรียบเทียบโภชนาการจริง (Radar Chart)
             categories = ['Protein', 'Energy(ME)', 'Calcium', 'Phos', 'Lysine', 'Methionine']
             req_nodes = [base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"]]
             act_nodes = [act_p, act_me, act_c, act_ph, act_ly, act_meth]
@@ -374,7 +454,7 @@ else:
                         st.error("กรุณาระบุชื่อสูตรก่อนบันทึก")
 
     # -------------------------------------------------------------
-    # TAB 2: PRODUCTION & ANOMALY ANALYSIS (FLOCK HEALTH MONITOR)
+    # TAB 2: PRODUCTION & ANOMALY ANALYSIS
     # -------------------------------------------------------------
     with page_tabs[1]:
         st.markdown("### 📊 บันทึกประสิทธิภาพประจำวันและระบบดักจับสถิติตกต่ำวิกฤต")
@@ -517,7 +597,7 @@ with page_tabs[3]:
         st.info("💡 กรุณากำหนดอัตราส่วนวัตถุดิบในแท็บแรกให้มากกว่า 0% ก่อนเพื่อเปิดระบบพิมพ์ใบชั่งงานผสม")
 
 # -------------------------------------------------------------
-# TAB 5: HISTORICAL VAULT (FORMULA RETRIEVAL ENGINE)
+# TAB 5: HISTORICAL VAULT
 # -------------------------------------------------------------
 with page_tabs[4]:
     st.markdown("### 📈 คลังศูนย์รวมประวัติสูตรอาหารโปรดคลาวด์ออนไลน์ (Supabase Recipes)")
