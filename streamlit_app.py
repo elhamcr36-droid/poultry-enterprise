@@ -122,7 +122,7 @@ if "db_ingredients" not in st.session_state:
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
         "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
+        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปญดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
 
 if "current_weights" not in st.session_state:
@@ -230,7 +230,6 @@ with col_h1:
 with col_h2:
     cc1, cc2 = st.columns(2)
     with cc1:
-        # หากบัญชีผู้ใช้เป็นแอดมิน ให้แสดงปุ่มลัดสลับโหมดได้
         if "admin" in st.session_state.user_email.lower() or st.session_state.user_role == "admin":
             if st.session_state.user_role == "user":
                 if st.button("🔄 หน้า Admin", use_container_width=True):
@@ -286,20 +285,8 @@ if st.session_state.user_role == "admin":
                 del st.session_state.db_ingredients[to_del]; st.warning("ลบข้อมูลเรียบร้อย!"); st.rerun()
 
     with admin_tabs[1]:
-        st.markdown("<div class='content-card'>### 🐓 จัดการข้อมูลสายพันธุ์ไก่ไข่และกลุ่มหลัก (Full CRUD)</div>", unsafe_allow_html=True)
-        
-        col_g1, col_g2 = st.columns(2)
-        with col_g1:
-            st.markdown("##### 📁 กลุ่มหลักปัจจุบันในระบบ")
-            st.dataframe(pd.DataFrame(st.session_state.db_groups), use_container_width=True)
-            new_g_name = st.text_input("➕ เพิ่มชื่อกลุ่มสายพันธุ์หลักใหม่:")
-            if st.button("💾 บันทึกกลุ่มใหม่"):
-                if new_g_name:
-                    st.session_state.db_groups.append({"group_name": new_g_name, "bg_color": "#475569"})
-                    st.success("เพิ่มกลุ่มสำเร็จ"); st.rerun()
-        with col_g2:
-            st.markdown("##### 🐔 รายชื่อสายพันธุ์ทั้งหมด")
-            st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True)
+        st.markdown("##### 🐔 รายชื่อสายพันธุ์ทั้งหมด")
+        st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True)
             
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         bc1, bc2 = st.columns(2)
@@ -526,7 +513,7 @@ else:
                 {"โภชนาการ": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
                 {"โภชนาการ": "แคลเซียม (% Calcium)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
                 {"โภชนาการ": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
-                {"โภชนาการ": "ไลซีน (% Lysine)", "เป้าหมาย": f"{edit_ly:.2f} %", "ได้จริงในสูตร": f"{act_nut['lysine']:.2f} %"},
+                {"โภชนาコン": "ไลซีน (% Lysine)", "เป้าหมาย": f"{edit_ly:.2f} %", "ได้จริงในสูตร": f"{act_nut['lysine']:.2f} %"},
                 {"โภชนาการ": "เมทไธโอนีน (% Methionine)", "เป้าหมาย": f"{edit_me:.2f} %", "ได้จริงในสูตร": f"{act_nut['methionine']:.2f} %"},
             ]
             st.dataframe(pd.DataFrame(comparison_table), use_container_width=True, hide_index=True)
