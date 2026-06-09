@@ -125,10 +125,10 @@ if "is_authenticated" not in st.session_state:
 if "auth_page_mode" not in st.session_state:
     st.session_state.auth_page_mode = "login"  
 if "user_role" not in st.session_state:
-    st.session_state.user_role = "user"  # บทบาทเริ่มต้น: 'user' หรือ 'admin'
+    st.session_state.user_role = "user"  
 
 if "user_database" not in st.session_state:
-    # เพิ่มคีย์ "role" เพื่อตรวจสอบสิทธิ์ในฐานข้อมูลจำลอง
+    # ฝังโครงสร้าง 'role' ให้ครบถ้วนสมบูรณ์ในทุกบัญชีเริ่มต้น ป้องกัน KeyError 100%
     st.session_state.user_database = {
         "admin": {"password": "222", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง", "role": "admin", "tel": "089-999-9999", "reg_date": "2026-01-01"},
         "222": {"password": "222", "name": "แอดมิน", "surname": "ทางลัด", "role": "admin", "tel": "088-888-8888", "reg_date": "2026-01-02"},
@@ -156,7 +156,9 @@ if not st.session_state.is_authenticated:
             if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
                 st.session_state.is_authenticated = True
                 user_info = st.session_state.user_database[email_login]
-                st.session_state.user_role = user_info["role"]  # ดึงค่า Role จากฐานข้อมูลมาฝังใน session
+                
+                # 🛡️ Failsafe: ดักจับและป้องกัน KeyError หากตรวจไม่เจอบทบาท ให้เซ็ตเป็น 'user' อัตโนมัติ
+                st.session_state.user_role = user_info.get("role", "user")
                 
                 if st.session_state.user_role == "admin":
                     st.session_state.user_email = f"🛠️ แอดมิน: คุณ {user_info['name']} {user_info['surname']}"
@@ -227,7 +229,7 @@ if not st.session_state.is_authenticated:
             if not reg_name or not reg_surname or not reg_identity or not reg_password:
                 st.error("⚠️ กรุณากรอกรายละเอียดส่วนบุคคลที่สำคัญให้ครบถ้วนทุกช่องก่อนส่งข้อมูลครับ")
             else:
-                # บันทึกเป็นบทบาท "user" ปกติ
+                # บันทึกข้อมูลแบบระบุคีย์ 'role' ชัดเจน ป้องกันการเกิด KeyError ซ้ำซ้อน
                 st.session_state.user_database[reg_identity] = {
                     "password": reg_password,
                     "name": reg_name,
@@ -349,16 +351,15 @@ if st.session_state.user_role == "admin":
         st.markdown("### 👥 รายชื่อผู้ใช้งานทั้งหมดในระบบฟาร์ม (User Database Real-time)")
         st.markdown("แอดมินสามารถส่องดูไอดี รหัสผ่าน และปรับบทบาทของผู้ใช้งานจากตรงนี้ได้ทันที")
         
-        # แปลง Session database เป็น DataFrame ให้แอดมินดูง่ายๆ
         raw_user_list = []
         for username, u_info in st.session_state.user_database.items():
             raw_user_list.append({
                 "Username/ID": username,
-                "ชื่อ": u_info["name"],
-                "นามสกุล": u_info["surname"],
-                "สิทธิ์ผู้ใช้ (Role)": u_info["role"],
+                "ชื่อ": u_info.get("name", "N/A"),
+                "นามสกุล": u_info.get("surname", "N/A"),
+                "สิทธิ์ผู้ใช้ (Role)": u_info.get("role", "user"),
                 "เบอร์โทรศัพท์": u_info.get("tel", "N/A"),
-                "รหัสผ่าน (Password)": u_info["password"],
+                "รหัสผ่าน (Password)": u_info.get("password", "N/A"),
                 "วันที่ลงทะเบียน": u_info.get("reg_date", "N/A")
             })
         df_users = pd.DataFrame(raw_user_list)
@@ -371,7 +372,9 @@ if st.session_state.user_role == "admin":
         with col_adm1:
             target_user_to_change = st.selectbox("เลือกไอดีผู้ใช้งานที่ต้องการเปลี่ยนสิทธิ์:", list(st.session_state.user_database.keys()))
         with col_adm2:
-            new_role_assignment = st.selectbox("กำหนดระดับสิทธิ์ใหม่ (Role assignment):", ["user", "admin"])
+            current_user_role = st.session_state.user_database[target_user_to_change].get("role", "user")
+            default_role_idx = 0 if current_user_role == "user" else 1
+            new_role_assignment = st.selectbox("กำหนดระดับสิทธิ์ใหม่ (Role assignment):", ["user", "admin"], index=default_role_idx)
         with col_adm3:
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🚀 บันทึกการอัปเดตสิทธิ์", use_container_width=True):
@@ -533,7 +536,7 @@ else:
                 
                 comparison_rows = [
                     {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "โปรตีนดิบรวม (Crude Protein %)", "ค่าจริงในสูตร (Actual)": round(act_nut["protein"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['protein']}"},
-                    {"โภชนา2ที่วิเคราะห์ (Nutrient Profiles)": "พลังงานใช้ประโยชน์ได้ (Metabolizable Energy kcal/kg)", "ค่าจริงในสูตร (Actual)": round(act_nut["me"], 0), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['me']}"},
+                    {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "พลังงานใช้ประโยชน์ได้ (Metabolizable Energy kcal/kg)", "ค่าจริงในสูตร (Actual)": round(act_nut["me"], 0), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['me']}"},
                     {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "แคลเซียมเพื่อเปลือกไข่ (Calcium %)", "ค่าจริงในสูตร (Actual)": round(act_nut["calcium"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['calcium']}"},
                     {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "ฟอสฟอรัสที่เป็นประโยชน์ (Available Phosphorus %)", "ค่าจริงในสูตร (Actual)": round(act_nut["phos"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['phos']}"},
                     {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "กรดอะมิโน ไลซีน (Lysine %)", "ค่าจริงในสูตร (Actual)": round(act_nut["lysine"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['lysine']}"},
