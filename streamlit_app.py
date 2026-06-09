@@ -419,30 +419,83 @@ if st.session_state.user_role == "admin":
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- TAP 4: ผู้ใช้งาน (CRUD Users) ---
+    # --- TAP 4: ผู้ใช้งาน (CRUD Users - ฉบับ Inline แก้ไขง่าย 1-Click) ---
     with admin_tabs[3]:
         st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-        st.markdown("### 👥 บัญชีผู้ใช้และจัดการสิทธิ์เข้าถึง")
+        st.markdown("### 👥 บัญชีผู้ใช้และจัดการสิทธิ์เข้าถึง (Quick User Access Dashboard)")
+        st.markdown("จัดการสิทธิ์และลบผู้ใช้งานแบบด่วนได้ทันทีผ่านปุ่มท้ายแถวรายชื่อ")
         
-        raw_user_list = []
-        for username, u_info in st.session_state.user_database.items():
-            raw_user_list.append({
-                "Username/ID": username, "ชื่อ": u_info.get("name"), "นามสกุล": u_info.get("surname"),
-                "สิทธิ์ (Role)": u_info.get("role"), "เบอร์": u_info.get("tel"), "รหัสผ่าน": u_info.get("password")
-            })
-        st.dataframe(pd.DataFrame(raw_user_list), use_container_width=True)
+        # 📊 ส่วนสรุปยอดบัญชีแบบดูง่าย
+        total_users = len(st.session_state.user_database)
+        admin_count = sum(1 for u in st.session_state.user_database.values() if u.get("role") == "admin")
+        regular_count = total_users - admin_count
         
-        col_adm1, col_adm2, col_adm3 = st.columns(3)
-        with col_adm1:
-            target_user_to_change = st.selectbox("เลือกไอดีที่ต้องการปรับปรุงสิทธิ์:", list(st.session_state.user_database.keys()))
-        with col_adm2:
-            new_role_assignment = st.selectbox("กำหนดบทบาทใหม่:", ["user", "admin"])
-        with col_adm3:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🚀 บันทึกอัปเดตสิทธิ์ผู้ใช้", use_container_width=True):
-                st.session_state.user_database[target_user_to_change]["role"] = new_role_assignment
-                st.success("แก้ไขสิทธิ์สำเร็จ!")
-                st.rerun()
+        c_metric1, c_metric2, c_metric3 = st.columns(3)
+        with c_metric1:
+            st.metric("👥 บัญชีผู้ใช้ทั้งหมดในระบบ", f"{total_users} บัญชี")
+        with c_metric2:
+            st.metric("🛠️ สิทธิ์ผู้ดูแลระบบ (Admin)", f"{admin_count} ท่าน")
+        with c_metric3:
+            st.metric("👑 สิทธิ์ผู้ใช้งาน (User)", f"{regular_count} ท่าน")
+            
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        # 📋 สร้างโครงสร้างตารางแสดงผลรายบุคคลแบบ Custom พร้อมปุ่ม Action หลังแถว
+        st.markdown("#### 📑 รายชื่อสมาชิกและแผงควบคุมสิทธิ์แบบด่วน (Inline Control)")
+        
+        # ส่วนหัวตาราง
+        h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([2.5, 2.5, 1.5, 2.2, 1.3])
+        with h_col1: st.markdown("**Username / Email**")
+        with h_col2: st.markdown("**ชื่อ - นามสกุล**")
+        with h_col3: st.markdown("**ระดับสิทธิ์ปัจจุบัน**")
+        with h_col4: st.markdown("**สลับระดับสิทธิ์ (1-Click)**")
+        with h_col5: st.markdown("**ลบไอดี**")
+        st.markdown("<hr style='margin: 8px 0; border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+        
+        # ลูปเรนเดอร์รายชื่อผู้ใช้ทีละแถวพร้อมสร้างปุ่มกด
+        for idx, (username, u_info) in enumerate(st.session_state.user_database.items()):
+            row_col1, row_col2, row_col3, row_col4, row_col5 = st.columns([2.5, 2.5, 1.5, 2.2, 1.3])
+            
+            with row_col1:
+                st.write(username)
+            with row_col2:
+                st.write(f"{u_info.get('name', '')} {u_info.get('surname', '')}")
+            with row_col3:
+                current_role = u_info.get("role", "user")
+                if current_role == "admin":
+                    st.markdown("<span style='color: #fca5a5; font-weight: bold;'>🔴 Admin</span>", unsafe_allow_html=True)
+                else:
+                    st.markdown("<span style='color: #86efac;'>🟢 User</span>", unsafe_allow_html=True)
+                    
+            with row_col4:
+                # ปุ่มสลับสิทธิ์อัจฉริยะ (ถ้าเป็น User จะขึ้นให้สลับเป็น Admin / ถ้าเป็น Admin จะขึ้นให้สลับเป็น User)
+                if current_role == "user":
+                    if st.button("🔄 สลับเป็น Admin", key=f"toggle_adm_{idx}", use_container_width=True):
+                        st.session_state.user_database[username]["role"] = "admin"
+                        st.success(f"เปลี่ยนสิทธิ์คุณ {u_info.get('name')} เป็น Admin สำเร็จ!")
+                        st.rerun()
+                else:
+                    # ป้องกันไม่ให้แอดมินเผลอปลดสิทธิ์ตัวเองจนระบบล็อก
+                    if username == "admin" or username == "222":
+                        st.button("🔒 บัญชีหลักระบบ", key=f"toggle_lock_{idx}", disabled=True, use_container_width=True)
+                    else:
+                        if st.button("🔄 สลับเป็น User", key=f"toggle_usr_{idx}", use_container_width=True):
+                            st.session_state.user_database[username]["role"] = "user"
+                            st.success(f"เปลี่ยนสิทธิ์คุณ {u_info.get('name')} เป็น User สำเร็จ!")
+                            st.rerun()
+                            
+            with row_col5:
+                # ปุ่มลบไอดีรายบุคคลออกจากระบบ
+                if username == "admin" or username == "222":
+                    st.button("❌ ลบไม่ได้", key=f"del_lock_{idx}", disabled=True, use_container_width=True)
+                else:
+                    if st.button("🗑️ ลบ", key=f"del_usr_{idx}", type="secondary", use_container_width=True):
+                        del st.session_state.user_database[username]
+                        st.warning(f"ลบบัญชีผู้ใช้งาน {username} ออกเรียบร้อยแล้ว")
+                        st.rerun()
+                        
+            st.markdown("<hr style='margin: 4px 0; border-color: rgba(255,255,255,0.05);'>", unsafe_allow_html=True)
+            
         st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------------------
