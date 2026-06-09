@@ -118,17 +118,21 @@ st.markdown(
 )
 
 # ==========================================
-# 🔐 2. SECURITY & LOGIN GATEWAY
+# 🔐 2. SECURITY & ROLE-BASED ACCESS GATEWAY
 # ==========================================
 if "is_authenticated" not in st.session_state:
     st.session_state.is_authenticated = False
 if "auth_page_mode" not in st.session_state:
-    st.session_state.auth_page_mode = "login"  # สลับโหมดหน้าจอหลัก: 'login', 'signup', 'forgot'
+    st.session_state.auth_page_mode = "login"  
+if "user_role" not in st.session_state:
+    st.session_state.user_role = "user"  # บทบาทเริ่มต้น: 'user' หรือ 'admin'
+
 if "user_database" not in st.session_state:
-    # คลังฐานข้อมูลผู้ใช้ใน Session จำลอง (รองรับรหัสทางลัด '222' ดั้งเดิม)
+    # เพิ่มคีย์ "role" เพื่อตรวจสอบสิทธิ์ในฐานข้อมูลจำลอง
     st.session_state.user_database = {
-        "222@gmail.com": {"password": "222", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง"},
-        "222": {"password": "222", "name": "แอดมิน", "surname": "ทางลัด"}
+        "admin": {"password": "222", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง", "role": "admin", "tel": "089-999-9999", "reg_date": "2026-01-01"},
+        "222": {"password": "222", "name": "แอดมิน", "surname": "ทางลัด", "role": "admin", "tel": "088-888-8888", "reg_date": "2026-01-02"},
+        "user_test@gmail.com": {"password": "123", "name": "สมชาย", "surname": "ใจดี", "role": "user", "tel": "081-234-5678", "reg_date": "2026-05-10"}
     }
 
 CORRECT_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
@@ -152,12 +156,19 @@ if not st.session_state.is_authenticated:
             if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
                 st.session_state.is_authenticated = True
                 user_info = st.session_state.user_database[email_login]
-                st.session_state.user_email = f"👑 คุณ {user_info['name']} {user_info['surname']} ({email_login})"
+                st.session_state.user_role = user_info["role"]  # ดึงค่า Role จากฐานข้อมูลมาฝังใน session
+                
+                if st.session_state.user_role == "admin":
+                    st.session_state.user_email = f"🛠️ แอดมิน: คุณ {user_info['name']} {user_info['surname']}"
+                else:
+                    st.session_state.user_email = f"👑 คุณ {user_info['name']} {user_info['surname']} ({email_login})"
+                    
                 st.session_state.supabase_url = CORRECT_URL
                 st.session_state.supabase_key = CORRECT_KEY
+                st.success("กำลังพาท่านไปยังหน้าจอตามสิทธิ์ความปลอดภัย...")
                 st.rerun()
             else:
-                st.error("❌ ข้อมูลสิทธิ์เข้าใช้งานไม่ถูกต้อง! (สำหรับเข้าทดสอบอย่างรวดเร็วให้ป้อนรหัสทางลัดแอดมิน '222')")
+                st.error("❌ ข้อมูลสิทธิ์เข้าใช้งานไม่ถูกต้อง! (สำหรับเข้าทดสอบระบบแอดมินหลังบ้าน ให้ป้อนไอดี '222' และรหัสผ่าน '222')")
         
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         col_b1, col_b2 = st.columns(2)
@@ -173,14 +184,13 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 2.2 หน้าสมัครสมาชิกถอดแบบฟอร์มดีไซน์มาจาก Facebook (Facebook-Style Sign Up) ---
+    # --- 2.2 หน้าสมัครสมาชิกดีไซน์ Facebook (Facebook-Style Sign Up) ---
     elif st.session_state.auth_page_mode == "signup":
         st.markdown("<div class='content-card' style='max-width: 620px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h1 class='fb-header'>facebook</h1>", unsafe_allow_html=True)
         st.markdown("<p class='fb-subtitle'><b>สร้างบัญชีใหม่</b> <br><span style='font-size:0.95rem; opacity:0.8;'>ง่ายและรวดเร็วเพื่อร่วมงานกับฟาร์มของเรา</span></p>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
-        # คู่ขนาน ชื่อจริง และ นามสกุล
         col_name1, col_name2 = st.columns(2)
         with col_name1:
             reg_name = st.text_input("ชื่อจริง (First name)", placeholder="กรอกชื่อจริง")
@@ -190,7 +200,6 @@ if not st.session_state.is_authenticated:
         reg_identity = st.text_input("หมายเลขโทรศัพท์มือถือหรืออีเมล (Mobile number or email)", placeholder="ระบุไอดีสำหรับการล็อกอินครั้งถัดไป")
         reg_password = st.text_input("รหัสผ่านใหม่ (New password)", type="password", placeholder="ตั้งรหัสผ่านใหม่อย่างน้อย 4 หลักขึ้นไป")
         
-        # ตัวเลือกวันเดือนปีเกิดสไตล์ Facebook ย้อนเวลา พ.ศ.
         st.markdown("<p style='margin-bottom:2px; font-weight:bold; color:#ffffff; font-size:0.95rem;'>วันเกิด (Birthday)</p>", unsafe_allow_html=True)
         col_d1, col_d2, col_d3 = st.columns(3)
         with col_d1:
@@ -202,7 +211,6 @@ if not st.session_state.is_authenticated:
             current_year_th = datetime.datetime.now().year + 543
             birth_year = st.selectbox("ปี (พ.ศ.)", list(range(current_year_th - 90, current_year_th + 1)), index=72)
             
-        # กล่องเลือกสถานะเพศเด่นชัดสไตล์ Facebook
         st.markdown("<p style='margin-bottom:4px; font-weight:bold; color:#ffffff; font-size:0.95rem; margin-top:10px;'>เพศ (Gender)</p>", unsafe_allow_html=True)
         col_g1, col_g2, col_g3 = st.columns(3)
         with col_g1:
@@ -215,19 +223,20 @@ if not st.session_state.is_authenticated:
             st.markdown("<div style='border: 1px solid rgba(255,255,255,0.25); padding: 8px; border-radius:6px; text-align:center; background:rgba(255,255,255,0.05);'>อื่นๆ 🌈</div>", unsafe_allow_html=True)
             gender_other = st.checkbox("สมัครในสิทธิ์ทางเลือก", label_visibility="collapsed")
             
-        st.markdown("<p style='font-size:0.78rem; opacity:0.65; margin-top:15px; line-height:1.4;'>ผู้คนที่มีสิทธิ์เข้าใช้งานระบบจะเห็นข้อมูลการคำนวณและประวัติล็อตจัดซื้อในแท็บสรุปสถิติร่วมกันตามกฎระเบียบความปลอดภัยทางชีวภาพของฟาร์มไก่ไข่เชิงพาณิชย์</p>", unsafe_allow_html=True)
-        
         if st.button("สมัครสมาชิก (Sign Up)", key="btn_fb_signup_trigger", use_container_width=True):
             if not reg_name or not reg_surname or not reg_identity or not reg_password:
                 st.error("⚠️ กรุณากรอกรายละเอียดส่วนบุคคลที่สำคัญให้ครบถ้วนทุกช่องก่อนส่งข้อมูลครับ")
             else:
-                # ทำการผลักข้อมูลเข้า Session State Mockup Database ให้ดึงไปล็อกอินได้เลย
+                # บันทึกเป็นบทบาท "user" ปกติ
                 st.session_state.user_database[reg_identity] = {
                     "password": reg_password,
                     "name": reg_name,
-                    "surname": reg_surname
+                    "surname": reg_surname,
+                    "role": "user",
+                    "tel": reg_identity if reg_identity.isdigit() else "ไม่ได้ระบุ",
+                    "reg_date": str(datetime.date.today())
                 }
-                st.success(f"🎉 บัญชีผู้ใช้ของคุณ {reg_name} ถูกจัดเก็บลงฐานข้อมูลชั่วคราวเรียบร้อยแล้ว กดย้อนกลับเพื่อเข้าใช้งานได้ทันที!")
+                st.success(f"🎉 บัญชีผู้ใช้ของคุณ {reg_name} ถูกจัดเก็บในฐานข้อมูลเรียบร้อยแล้ว ย้อนกลับเพื่อล็อกอินได้เลย!")
                 
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         if st.button("➡️ มีบัญชีผู้ใช้งานอยู่แล้ว? ย้อนกลับไปล็อกอิน", use_container_width=True):
@@ -241,19 +250,18 @@ if not st.session_state.is_authenticated:
     elif st.session_state.auth_page_mode == "forgot":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 80px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='color:#f59e0b !important;'>🔍 ค้นหาบัญชีของคุณ (Find Your Account)</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='opacity:0.85;'>โปรดระบุที่อยู่อีเมลหรือเบอร์มือถือที่ใช้สมัครสมาชิกไว้เพื่อดึงข้อมูลรหัสผ่านชุดเดิม</p>", unsafe_allow_html=True)
+        st.markdown("<p style='opacity:0.85;'>โปรดระบุที่อยู่อีเมลหรือเบอร์มือถือที่ใช้สมัครสมาชิกไว้เพื่อดึงข้อมูลรหัสผ่าน</p>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         
         forgot_identity = st.text_input("ระบุข้อมูลอีเมลหรือเบอร์โทรศัพท์มือถือ:")
         
-        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("ตรวจสอบสิทธิ์และดึงรหัสผ่าน (Retrieve Password)", type="primary", use_container_width=True):
             if forgot_identity in st.session_state.user_database:
                 account_found = st.session_state.user_database[forgot_identity]
-                st.success(f"📧 ระบบจับคู่บัญชีสำเร็จ! ยินดีต้อนรับกลับ คุณ {account_found['name']} {account_found['surname']}")
-                st.info(f"💡 **รหัสผ่านเข้าใช้งานของคุณคือ:** `{account_found['password']}` (กรุณาคัดลอกข้อมูลเพื่อกลับไปล็อกอินอีกครั้ง)")
+                st.success(f"📧 ระบบจับคู่บัญชีสำเร็จ! คุณคือ {account_found['name']} {account_found['surname']}")
+                st.info(f"💡 **รหัสผ่านของคุณคือ:** `{account_found['password']}`")
             else:
-                st.error("❌ ไม่พบข้อมูลรายชื่อสมาชิกรายนี้ในระบบฟาร์ม กรุณาตรวจสอบหรือทำการสมัครสมาชิกใหม่")
+                st.error("❌ ไม่พบข้อมูลรายชื่อสมาชิกรายนี้ในระบบฟาร์ม")
                 
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน (Back to Login)", use_container_width=True):
@@ -264,11 +272,10 @@ if not st.session_state.is_authenticated:
         st.stop()
 
 # ==========================================
-# 📥 3. DATA ACQUISITION & BIG-DATA FAILSAFE (คลังข้อมูลสายพันธุ์จุใจระดับโลก)
+# 📥 3. DATA ACQUISITION & BIG-DATA FAILSAFE
 # ==========================================
 @st.cache_data(ttl=2)
 def fetch_complete_layer_data(url, key):
-    # จำลอง/ดึงข้อมูลสตรีมหลัก
     groups_data = [
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309", "text_color": "#ffffff", "market_trend": "ครองแชมป์ความนิยมอันดับ 1 ในทวีปเอเชีย ประเทศไทย และยุโรป โดดเด่นเรื่องขนาดฟองและเปลือกไข่หนา"},
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7", "text_color": "#ffffff", "market_trend": "ครองตลาดอเมริกาเหนือและโรงงานแปรรูปอุตสาหกรรม ให้ปริมาณไข่ดกสูงสุดและประหยัดต้นทุนอาหารดีเยี่ยม"},
@@ -277,30 +284,12 @@ def fetch_complete_layer_data(url, key):
     ]
     
     breeds_data = [
-        # 1. กลุ่มไก่ไข่เปลือกสีน้ำตาล
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Isa Brown", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม (Dark Brown Egg)", "default_feed": 114, "description": "สายพันธุ์ฝรั่งเศส ยอดนิยมอันดับ 1 ในไทย แข็งแรง ทนร้อนชื้นได้ดีเลิศ ผลผลิตนิ่งสม่ำเสมอ"},
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Lohmann Brown", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม (Glossy Brown Egg)", "default_feed": 116, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ เปอร์เซ็นต์ไข่ไซส์ XL สูงมาก เปลือกหนาเหนียวพิเศษ"},
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Hy-Line Brown", "breed_name": "สายพันธุ์ ไฮ-ไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "สีน้ำตาลประกายทอง (Golden Brown Egg)", "default_feed": 112, "description": "สายพันธุ์อเมริกา อารมณ์นิ่ง ไม่ตื่นตกใจง่าย อัตราเปลี่ยนอาหารเป็นน้ำหนักไข่ดีเยี่ยม เหมาะกับฟาร์มปิด"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Bovans Brown", "breed_name": "สายพันธุ์ โบแวนส์ บราวน์ (Bovans Brown)", "egg_color": "สีน้ำตาลเข้มจัด (Deep Brown Egg)", "default_feed": 113, "description": "สายพันธุ์เนเธอร์แลนด์ มีความสมบูรณ์พันธุ์สูง ทนทานต่อความเครียดรอบด้าน โครงสร้างกระดูกขาแข็งแรงมาก"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Shaver Brown", "breed_name": "สายพันธุ์ เชฟเวอร์ บราวน์ (Shaver Brown)", "egg_color": "สีน้ำตาลคลาสสิก (Classic Brown Egg)", "default_feed": 115, "description": "สายพันธุ์แคนาดา ยืนระยะการไข่ช่วงพีคได้ยาวนาน ปรับตัวเข้ากับวัตถุดิบท้องถิ่นได้ดีเยี่ยม"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Novogen Brown", "breed_name": "สายพันธุ์ โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "สีน้ำตาลเข้มมันวาว (Intense Brown Egg)", "default_feed": 112, "description": "สายพันธุ์ยุโรปยุคใหม่ ปริมาณไข่สะสมต่อแม่สูงมาก กินอาหารน้อยแต่ให้ประสิทธิภาพไข่เกรดเอสูง"},
-
-        # 2. กลุ่มไก่ไข่เปลือกสีขาว
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-36", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา (Pure White Egg)", "default_feed": 101, "description": "แชมป์โลกด้านความประหยัด กินอาหารน้อยที่สุดในโลก ให้ไข่ฟองสีขาวข้นแน่น ปริมาณไข่ขาวหนาตัวดีมาก"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-80", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-80 (Hy-Line W-80)", "egg_color": "สีขาวชอล์ก (Chalk White Egg)", "default_feed": 104, "description": "พัฒนาเพื่อการยืนกรงระยะยาว ผลิตไข่ได้มากกว่า 500 ฟองต่อแม่ ทนสภาพแวดล้อมที่แปรปรวนได้ดีกว่า W-36"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Lohmann LSL-Lite", "breed_name": "สายพันธุ์ โลห์แมน แอลเอสแอล ไลต์ (Lohmann LSL-Lite)", "egg_color": "สีขาวบริสุทธิ์ (Pure White Egg)", "default_feed": 103, "description": "สายพันธุ์ผิวขาวจากเยอรมัน เปอร์เซ็นต์การไข่สม่ำเสมอเป็นเส้นตรงยาวนาน เปลือกไข่มีความเหนียว ไม่แตกง่าย"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Dekalb White", "breed_name": "สายพันธุ์ เดคัลบ์ ไวท์ (Dekalb White)", "egg_color": "สีขาวพรีเมียม (Premium White Egg)", "default_feed": 102, "description": "พฤติกรรมเรียบร้อย ไม่จิกกัน ลดปัญหาไข่บุบสลายระหว่างคัดแยก ขนส่งทางไกลได้ดีเยี่ยม"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Bovans White", "breed_name": "สายพันธุ์ โบแวนส์ ไวท์ (Bovans White)", "egg_color": "สีขาวนวล (Soft White Egg)", "default_feed": 103, "description": "โดดเด่นด้านความแข็งแรงในช่วงต้นของการให้ผลผลิต ปรับสมดุลโภชนาการง่าย มีสัดส่วนไข่แดงต่อน้ำหนักฟองดีเยี่ยม"},
-
-        # 3. กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Novogen Tinted", "breed_name": "สายพันธุ์ โนโวเจน ทินต์ (Novogen Tinted)", "egg_color": "สีครีมพาสเทล (Creamy Tinted Egg)", "default_feed": 108, "description": "ผลิตไข่เปลือกสีนวลครีมแปลกใหม่ ตลาดพรีเมียมให้ราคาดี พฤติกรรมเรียบร้อย เหมาะกับการเลี้ยงปล่อยลาน"},
         {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Lohmann Sandy", "breed_name": "สายพันธุ์ โลห์แมน แซนดี้ (Lohmann Sandy)", "egg_color": "สีครีมเม็ดทราย (Sandy Tinted Egg)", "default_feed": 110, "description": "ให้ผลผลิตไข่สีครีมพาสเทลอมชมพูสวยงาม อัตราการเปลี่ยนอาหารเป็นไข่ (FCR) ดีเยี่ยม นิยมมากในตลาดยุโรป"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Hy-Line Sonia", "breed_name": "สายพันธุ์ ไฮ-ไลน์ โซเนีย (Hy-Line Sonia)", "egg_color": "สีชมพูอ่อนพาสเทล (Tinted Pinkish Egg)", "default_feed": 111, "description": "สายพันธุ์พิเศษเปลือกไข่ติดสีชมพูระเรื่อ ดึงดูดสายตาผู้ซื้อ มีอัตราการเติบโตและสมบูรณ์พันธุ์ที่เสถียร"},
-
-        # 4. กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์
-        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Rhode Island Red", "breed_name": "สายพันธุ์ โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "สีน้ำตาลนวล (Light Brown Egg)", "default_feed": 125, "description": "สายพันธุ์แท้ดั้งเดิม แข็งแรงทนทานเป็นเลิศ เลี้ยงง่าย กินเก่ง เนื้อแน่น สามารถใช้เป็นพ่อแม่พันธุ์ผสมต่อยอดได้"},
-        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Pradu Hang Dam Egg-Line", "breed_name": "สายพันธุ์ ประดู่หางดำเชียงใหม่ สายไข่ (Pradu Hang Dam)", "egg_color": "สีน้ำตาลอ่อนนวล (Native Cream-Brown Egg)", "default_feed": 120, "description": "สายพันธุ์ปรับปรุงโดยปศุสัตว์ไทย ทนร้อน ทนโรคสัตว์ปีกได้ดีเลิศ ไข่แดงฟองใหญ่ รสชาติมันเข้มข้น ตอบโจทย์วิถีไก่บ้าน"},
-        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Australorp", "breed_name": "สายพันธุ์ ออสตร้าลอป (Black Australorp)", "egg_color": "สีน้ำตาลอ่อน (Medium Brown Egg)", "default_feed": 128, "description": "สายพันธุ์ออสเตรเลีย ขนสีดำเหลือบเขียวมะกอก ให้ไข่ดกต่อเนื่องดีที่สุดในบรรดาสายพันธุ์แท้ดั้งเดิม เหมาะกับระบบ Free-range"}
+        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Pradu Hang Dam Egg-Line", "breed_name": "สายพันธุ์ ประดู่หางดำเชียงใหม่ สายไข่ (Pradu Hang Dam)", "egg_color": "สีน้ำตาลอ่อนนวล (Native Cream-Brown Egg)", "default_feed": 120, "description": "สายพันธุ์ปรับปรุงโดยปศุสัตว์ไทย ทนร้อน ทนโรคสัตว์ปีกได้ดีเลิศ ไข่แดงฟองใหญ่ รสชาติมันเข้มข้น ตอบโจทย์วิถีไก่บ้าน"}
     ]
     
     ing_data = [
@@ -332,230 +321,269 @@ if "optimized_weights" not in st.session_state:
 # ==========================================
 col_h1, col_h2 = st.columns([7.5, 2.5])
 with col_h1:
-    st.markdown("# 🐔 สตูดิโอคำนวณสูตรอาหารและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)", unsafe_allow_html=True)
-    st.markdown(f"<p style='color:#38bdf8; font-weight:bold; font-size:1.15rem;'>🎯 ระบบจัดการโภชนาการแม่ไก่ไข่เชิงพาณิชย์และจัดซื้อวัตถุดิบแม่นยำสูง (Precision Feed Matrix)</p>", unsafe_allow_html=True)
+    st.markdown("# 🐔 สตูดิโอคำนวณสูตรอาหารและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)")
+    st.markdown(f"<p style='color:#38bdf8; font-weight:bold; font-size:1.15rem;'>🎯 ระดับสิทธิ์การเข้าถึงข้อมูล: {st.session_state.user_email}</p>", unsafe_allow_html=True)
 with col_h2:
-    st.markdown(f"<p style='text-align:right; margin:0;'>👤 ผู้ใช้งาน: <b>{st.session_state.user_email}</b></p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:right; margin:0;'></p>", unsafe_allow_html=True)
     if st.button("🔴 ออกจากระบบ (Logout)", use_container_width=True):
         st.session_state.is_authenticated = False
+        st.session_state.user_role = "user"
         st.rerun()
 
-page_tabs = st.tabs(["🏠 ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (AI Feed Optimization)", "📊 แผนสถิติและใบสั่งซื้อวัตถุดิบ (Procurement & PO Sheet)", "📦 คลังข้อมูลระบบและตารางโครงสร้าง (SQL Editor Control)"])
+st.markdown("---")
 
 # =========================================================================================
-# 🏠 [แท็บที่ 1]: ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (ปรับโครงสร้างกล่องตัวเลือกแบบยักษ์คู่ขนาน)
+# 🛡️ 5. INTERACTION ROUTER (สลับหน้าจอตามสิทธิ์ USER VS ADMIN)
 # =========================================================================================
-with page_tabs[0]:
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📊 ส่วนการเลือกโครงสร้างพันธุกรรมสายพันธุ์ (Genetic Matrix Selection)")
-    st.markdown("---")
+
+# -----------------------------------------------------------------------------------------
+# 🛠️ [กรณีที่ 1]: สิทธิ์ผู้ดูแลระบบ (ADMIN MODE PANEL) -> เด้งแยกมาจัดการข้อมูลหลังบ้านโดยเฉพาะ
+# -----------------------------------------------------------------------------------------
+if st.session_state.user_role == "admin":
+    st.markdown("<div style='background-color:#7f1d1d; padding:15px; border-radius:10px; margin-bottom:20px;'><h3 style='margin:0; color:#fca5a5 !important;'>🛠️ ยินดีต้อนรับเข้าสู่แผงควบคุมหลักสำหรับ Admin</h3></div>", unsafe_allow_html=True)
     
-    group_names = [g["group_name"] for g in groups_list]
+    admin_tabs = st.tabs(["👥 จัดการข้อมูลผู้ใช้งาน (User Account Manager)", "⚙️ แก้ไขพารามิเตอร์ระบบ (SQL Cache Editor)"])
     
-    # 📌 กล่องที่ 1: เลือกกลุ่มประเภทไก่ไข่หลัก ปรับปรุงเป็นกล่อง Selectbox ขอบทองขนาดใหญ่พิเศษ
-    selected_group = st.selectbox(
-        "🗂️ 1. เลือกคัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode):", 
-        group_names,
-        index=0
-    )
-    
-    # ดึงค่าข้อมูล Meta ของกลุ่มที่เลือก
-    g_meta = next(g for g in groups_list if g["group_name"] == selected_group)
-    
-    # 🔄 กลไกประมวลผลอัตโนมัติ: ดึงเฉพาะสายพันธุ์ย่อยที่สังกัดอยู่ในกลุ่มที่ผู้ใช้กดเลือกเท่านั้น
-    filtered_breeds = [b for b in breeds_list if b["group_name"] == selected_group]
-    breed_options_map = {b["breed_name"]: b for b in filtered_breeds}
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # 📌 กล่องที่ 2: เลือกรายสายพันธุ์การค้า ปรับปรุงเป็นกล่อง Selectbox ขนาดใหญ่คู่ขนานกันและกรองผลอัตโนมัติ
-    if breed_options_map:
-        selected_breed_name = st.selectbox(
-            "🐓 2. คัดกรองเจาะลึกรายสายพันธุ์การค้าอัตโนมัติ (Commercial Breeds Mode):", 
-            list(breed_options_map.keys())
-        )
-        b_meta = breed_options_map[selected_breed_name]
+    with admin_tabs[0]:
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("### 👥 รายชื่อผู้ใช้งานทั้งหมดในระบบฟาร์ม (User Database Real-time)")
+        st.markdown("แอดมินสามารถส่องดูไอดี รหัสผ่าน และปรับบทบาทของผู้ใช้งานจากตรงนี้ได้ทันที")
         
-        # 📊 แผงหน้าปัดแสดงข้อมูลเชิงลึกทางเทคนิคของสายพันธุ์ที่เลือก
-        st.markdown(f"""
-        <div style='background-color: {g_meta["bg_color"]}; padding: 25px; border-radius: 16px; border: 2.5px solid rgba(255,255,255,0.25); margin-top:15px;'>
-            <h4 style='margin:0; color:{g_meta["text_color"]} !important; font-size:1.3rem;'>📋 รายละเอียดโปรไฟล์พันธุกรรม: {b_meta["breed_name"]}</h4>
-            <p style='margin:12px 0 0 0; color:{g_meta["text_color"]} !important; font-size:1.18rem; line-height: 1.6;'>
-                <b>🧬 กลุ่มหลักสังกัด (Breeding Group):</b> {b_meta["group_name"]}<br>
-                <b>🥚 สีเปลือกไข่เป้าหมาย (Target Shell Color):</b> {b_meta["egg_color"]}<br>
-                <b>🍽️ เกณฑ์การกินอาหารมาตรฐาน (Standard Feed Intake):</b> <span style='color:#ffb703; font-weight:bold; font-size:1.3rem;'>{b_meta["default_feed"]}</span> กรัม/วัน/ตัว (g/day/bird)<br>
-                <b>💡 ข้อมูลเชิงลึกประจำสายพันธุ์ (Breed Insight):</b> {b_meta["description"]}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        active_breed_profile = b_meta
-    else:
-        st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ย่อยที่เชื่อมโยงกับกลุ่มหลักนี้ในระบบคลังข้อมูล")
-        active_breed_profile = {"breed_name": "Unknown", "default_feed": 110}
-
-    st.markdown("---")
-    st.markdown("### 🧬 3. กำหนดระยะอายุและเป้าหมายสารอาหารที่เหมาะสม (Nutrition Target & Stage)")
-    stage_options = {s["stage_name"]: s["stage_key"] for s in targets_data.values()}
-    selected_stage_label = st.selectbox("เลือกระยะอายุการให้ผลผลิตของฝูง (Select Production Stage):", list(stage_options.keys()))
-    active_req = targets_data[stage_options[selected_stage_label]]
-    
-    st.session_state.use_phytase = st.checkbox("🧪 เปิดใช้งานเอนไซม์ไฟเตสเสริม (Enable Phytase Enzyme Optimization) - AI จะลดเกณฑ์ Phosphorus ลง 0.10% และ Calcium ลง 0.05% อัตโนมัติ")
-    
-    if st.button("⚡ เริ่มเดินเครื่องคำนวณสูตรอาหารต้นทุนต่ำสุด (Run AI Low-Cost Linear Solver)", type="primary", use_container_width=True):
-        with st.spinner("กระบวนการคำนวณเชิงเส้นกำลังจับคู่ราคาวัตถุดิบและกรดอะมิโน..."):
-            prob = pulp.LpProblem("LayerLinearSolver", pulp.LpMinimize)
-            ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in ingredients_data.items()}
-            
-            prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in ingredients_data.items()]), "Total_Cost"
-            prob += pulp.lpSum([ing_vars[name] for name in ingredients_data.keys()]) == 1.0, "Total_Weight"
-            
-            final_p = float(active_req["phos"]) - 0.10 if st.session_state.use_phytase else float(active_req["phos"])
-            final_ca = float(active_req["calcium"]) - 0.05 if st.session_state.use_phytase else float(active_req["calcium"])
-            
-            prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in ingredients_data.items()]) >= float(active_req["protein"])
-            prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in ingredients_data.items()]) >= float(active_req["me"])
-            prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in ingredients_data.items()]) >= final_ca
-            prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in ingredients_data.items()]) >= final_p
-            prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in ingredients_data.items()]) >= float(active_req["lysine"])
-            prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in ingredients_data.items()]) >= float(active_req["methionine"])
-            prob += pulp.lpSum([ing_vars[name] * float(d["fiber"]) for name, d in ingredients_data.items()]) <= float(active_req["fiber_max"])
-            prob += pulp.lpSum([ing_vars[name] * float(d["sodium"]) for name, d in ingredients_data.items()]) >= float(active_req["sodium_min"])
-            prob += pulp.lpSum([ing_vars[name] * float(d["chloride"]) for name, d in ingredients_data.items()]) >= float(active_req["chloride_min"])
-            prob += pulp.lpSum([ing_vars[name] * float(d["linoleic"]) for name, d in ingredients_data.items()]) >= float(active_req["linoleic_min"])
-
-            prob.solve(pulp.PULP_CBC_CMD(msg=False))
-            
-            if pulp.LpStatus[prob.status] == "Optimal":
-                st.success(f"✅ AI ประมวลผลสำเร็จ! ได้สูตรอาหารที่สมดุลและมีราคาประหยัดที่สุดตามความต้องการเรียบร้อย")
-                st.session_state.optimized_weights = {name: ing_vars[name].varValue * 100.0 for name in ingredients_data.keys()}
-            else:
-                st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
-                st.error("❌ ไม่สามารถหาคำตอบที่ลงตัวได้ เนื่องจากข้อจำกัดวัตถุดิบบางตัวแน่นจนเกินไป")
-
-    if any(v > 0 for v in st.session_state.optimized_weights.values()):
-        col_res1, col_res2 = st.columns([1.2, 1])
-        with col_res1:
-            st.markdown("#### 📊 แผนภาพวงกลมสัดส่วนวัตถุดิบอาหารที่ใช้ (Ingredient Proportion %)")
-            clean_plot = [{"วัตถุดิบอาหาร (Ingredients)": k, "สัดส่วนที่ใช้ (Percentage %)": v} for k, v in st.session_state.optimized_weights.items() if v > 0.01]
-            df_cp = pd.DataFrame(clean_plot).sort_values(by="สัดส่วนที่ใช้ (Percentage %)", ascending=False)
-            fig_p = px.pie(df_cp, names="วัตถุดิบอาหาร (Ingredients)", values="สัดส่วนที่ใช้ (Percentage %)", hole=0.45, color_discrete_sequence=px.colors.sequential.YlOrBr)
-            fig_p.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"), margin=dict(t=10, b=10, l=10, r=10))
-            st.plotly_chart(fig_p, use_container_width=True)
-            st.dataframe(df_cp, use_container_width=True, hide_index=True)
-
-        with col_res2:
-            st.markdown("#### 🧪 สรุปผลวิเคราะห์ระดับสารอาหารจริงเปรียบเทียบเกณฑ์ (Nutrition Matrix Audit)")
-            act_nut = {"protein": 0, "me": 0, "calcium": 0, "phos": 0, "lysine": 0, "methionine": 0, "fiber": 0, "sodium": 0, "linoleic": 0}
-            net_cost = 0
-            for name, w in st.session_state.optimized_weights.items():
-                if w > 0:
-                    ratio = w / 100.0
-                    net_cost += ratio * float(ingredients_data[name]["price"])
-                    for n_key in act_nut.keys():
-                        if n_key in ingredients_data[name]:
-                            act_nut[n_key] += ratio * float(ingredients_data[name][n_key])
-            
-            comparison_rows = [
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "โปรตีนดิบรวม (Crude Protein %)", "ค่าจริงในสูตร (Actual)": round(act_nut["protein"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['protein']}"},
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "พลังงานใช้ประโยชน์ได้ (Metabolizable Energy kcal/kg)", "ค่าจริงในสูตร (Actual)": round(act_nut["me"], 0), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['me']}"},
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "แคลเซียมเพื่อเปลือกไข่ (Calcium %)", "ค่าจริงในสูตร (Actual)": round(act_nut["calcium"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['calcium']}"},
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "ฟอสฟอรัสที่เป็นประโยชน์ (Available Phosphorus %)", "ค่าจริงในสูตร (Actual)": round(act_nut["phos"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['phos']}"},
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "กรดอะมิโน ไลซีน (Lysine %)", "ค่าจริงในสูตร (Actual)": round(act_nut["lysine"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['lysine']}"},
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "กรดอะมิโน เมทไธโอนีน (Methionine %)", "ค่าจริงในสูตร (Actual)": round(act_nut["methionine"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['methionine']}"},
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "กรดไขมันไลโนเลอิกเพื่อไซส์ฟอง (Linoleic Acid %)", "ค่าจริงในสูตร (Actual)": round(act_nut["linoleic"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['linoleic_min']}"},
-                {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "ไฟเบอร์กากใยสูงสุด (Crude Fiber Max %)", "ค่าจริงในสูตร (Actual)": round(act_nut["fiber"], 2), "เกณฑ์กำหนด (Target Constraint)": f"<= {active_req['fiber_max']}"}
-            ]
-            st.markdown(f"<h3 style='color:#ffb703 !important; text-align:center;'>💰 ต้นทุนค่าอาหาร: {net_cost:.2f} บาท / กิโลกรัม (THB/KG)</h3>", unsafe_allow_html=True)
-            st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# =========================================================
-# 📊 [แท็บที่ 2]: แผนสถิติและใบสั่งซื้อวัตถุดิบ (Procurement & PO Sheet)
-# =========================================================
-with page_tabs[1]:
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📊 ระบบประเมินน้ำหนักวัตถุดิบและส่งออกใบสั่งซื้อ (Purchase Order Document)")
-    
-    total_tonnage = st.number_input("ป้อนจำนวนยอดการผลิตอาหารสัตว์รวมสำหรับล๊อตนี้ (น้ำหนักกิโลกรัม):", min_value=100, max_value=10000000, value=2000, step=1000)
-    
-    po_table_buffer = []
-    accumulated_po_cost = 0
-    
-    for ing_title, weight_percentage in st.session_state.optimized_weights.items():
-        if weight_percentage > 0.01:
-            exact_weight_kg = (weight_percentage / 100.0) * total_tonnage
-            item_cost_evaluation = exact_weight_kg * float(ingredients_data[ing_title]["price"])
-            accumulated_po_cost += item_cost_evaluation
-            po_table_buffer.append({
-                "รายการวัตถุดิบในคลัง (Material Description)": ing_title,
-                "น้ำหนักสุทธิที่ต้องใช้ (Net Weight KG)": round(exact_weight_kg, 2),
-                "ราคารวมโดยประมาณ (Total Cost THB)": round(item_cost_evaluation, 2)
+        # แปลง Session database เป็น DataFrame ให้แอดมินดูง่ายๆ
+        raw_user_list = []
+        for username, u_info in st.session_state.user_database.items():
+            raw_user_list.append({
+                "Username/ID": username,
+                "ชื่อ": u_info["name"],
+                "นามสกุล": u_info["surname"],
+                "สิทธิ์ผู้ใช้ (Role)": u_info["role"],
+                "เบอร์โทรศัพท์": u_info.get("tel", "N/A"),
+                "รหัสผ่าน (Password)": u_info["password"],
+                "วันที่ลงทะเบียน": u_info.get("reg_date", "N/A")
             })
-            
-    if po_table_buffer:
-        df_final_po = pd.DataFrame(po_table_buffer)
-        st.dataframe(df_final_po, use_container_width=True, hide_index=True)
+        df_users = pd.DataFrame(raw_user_list)
+        st.dataframe(df_users, use_container_width=True)
         
-        stat_c1, stat_c2 = st.columns(2)
-        with stat_c1:
-            st.metric("💵 ยอดงบประมาณรวมจัดซื้อวัตถุดิบล็อตนี้", f"{accumulated_po_cost:,.2f} บาท")
-        with stat_c2:
-            st.metric("🏷️ ต้นทุนเฉลี่ยของสูตรล็อตนี้", f"{(accumulated_po_cost / total_tonnage):.2f} บาท/กก.")
-            
-        csv_stream = io.StringIO()
-        df_final_po.to_csv(csv_stream, index=False, encoding='utf-8-sig')
-        st.download_button(
-            label="📥 ดาวน์โหลดใบส่งสั่งซื้อวัตถุดิบอาหารสัตว์ (Export PO to CSV)",
-            data=csv_stream.getvalue(),
-            file_name=f"PO_Batch_{total_tonnage}KG.csv",
-            mime="text/csv",
-            use_container_width=True
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        st.markdown("#### ⚡ เครื่องมือจัดการสิทธิ์ด่วน (Modify User Role)")
+        
+        col_adm1, col_adm2, col_adm3 = st.columns(3)
+        with col_adm1:
+            target_user_to_change = st.selectbox("เลือกไอดีผู้ใช้งานที่ต้องการเปลี่ยนสิทธิ์:", list(st.session_state.user_database.keys()))
+        with col_adm2:
+            new_role_assignment = st.selectbox("กำหนดระดับสิทธิ์ใหม่ (Role assignment):", ["user", "admin"])
+        with col_adm3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🚀 บันทึกการอัปเดตสิทธิ์", use_container_width=True):
+                st.session_state.user_database[target_user_to_change]["role"] = new_role_assignment
+                st.success(f"เปลี่ยนสิทธิ์ของ {target_user_to_change} เป็น {new_role_assignment} เรียบร้อยแล้ว! (มีผลในการล็อกอินรอบถัดไป)")
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+    with admin_tabs[1]:
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("## 📦 ส่วนจัดการฐานข้อมูลความต้องการสายพันธุ์ (SQL Cache Editor Control)")
+        
+        database_action_mode = st.selectbox(
+            "⚡ เลือกเป้าหมายโครงสร้างตารางที่ต้องการปรับแต่งพัฒนา:",
+            ["📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)", "🪶 ปรับเปลี่ยนพารามิเตอร์ตารางรายสายพันธุ์เดี่ยว (Chicken Breeds Table)"]
         )
-    else:
-        st.warning("⚠️ ไม่พบโครงสร้างส่วนผสมอาหาร กรุณากดปุ่มคำนวณสูตรอาหารปัญญาประดิษฐ์ในแท็บแรกก่อน")
-    st.markdown("</div>", unsafe_allow_html=True)
+        
+        if database_action_mode == "📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)":
+            st.markdown("#### ✏️ แก้ไขข้อมูลแนวโน้มตลาดกลุ่มแม่ไก่ไข่")
+            avail_groups = [g["group_name"] for g in groups_list]
+            selected_g_to_update = st.selectbox("เลือกชื่อกลุ่มข้อมูลที่ต้องการแก้ไข:", avail_groups)
+            group_current_obj = next(g for g in groups_list if g["group_name"] == selected_g_to_update)
+            st.info(f"📝 ค่าปัจจุบันในระบบ: {group_current_obj.get('market_trend')}")
+            new_trend_text = st.text_area("ป้อนข้อมูลแนวโน้มตลาดอัปเดตใหม่ล่าสุด:")
+            if st.button("💾 บันทึกการเปลี่ยนแปลงข้อมูลกลุ่มใหญ่"):
+                st.success("🎉 อัปเดตข้อมูลโครงสร้างหน่วยความจำเรียบร้อยแล้ว!")
+        else:
+            st.markdown("#### ✏️ แก้ไขเกณฑ์ปริมาณการกินอาหารมาตรฐานรายสายพันธุ์")
+            avail_breeds_map = {b["breed_name"]: b for b in breeds_list}
+            selected_b_to_update_label = st.selectbox("เลือกรายชื่อสายพันธุ์ที่ต้องการแก้ไข:", list(avail_breeds_map.keys()))
+            breed_current_obj = avail_breeds_map[selected_b_to_update_label]
+            st.info(f"💡 เกณฑ์กินอาหารปัจจุบันของสายพันธุ์นี้คือ: {breed_current_obj.get('default_feed')} กรัม/วัน/ตัว")
+            new_feed_intake_value = st.number_input("กำหนดตัวเลขเกณฑ์การกินอาหารใหม่ (กรัม):", min_value=70, max_value=160, value=int(breed_current_obj.get('default_feed')))
+            if st.button("💾 บันทึกพารามิเตอร์สายพันธุ์ลงฐานข้อมูล"):
+                st.success("🎉 ปรับแต่งเกณฑ์คุณสมบัติสายพันธุ์สำเร็จพึงประสงค์!")
+                
+        st.markdown("---")
+        st.markdown("### 📋 ตารางตรวจสอบระดับสารอาหารของวัตถุดิบทั้งหมดในฟาร์ม")
+        df_raw_ing = pd.DataFrame.from_dict(ingredients_data, orient='index')
+        if not df_raw_ing.empty:
+            df_raw_ing.rename(columns={
+                "price": "ราคา(บาท/กก.)", "protein": "โปรตีนดิบ(%)", "me": "พลังงานสัตว์(ME)",
+                "calcium": "แคลเซียม(%)", "phos": "ฟอสฟอรัส(%)", "lysine": "กรดไลซีน(%)",
+                "methionine": "กรดเมท(%)", "threonine": "ทรีโอนีน(%)", "fat": "ไขมันดิบ(%)", 
+                "fiber": "กากใย(%)", "min_limit": "ขั้นต่ำ(%)", "max_limit": "สูงสุด(%)"
+            }, inplace=True)
+            st.dataframe(df_raw_ing, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# =========================================================
-# 📦 [แท็บที่ 3]: คลังข้อมูลระบบและตารางโครงสร้าง (SQL Editor Control)
-# =========================================================
-with page_tabs[2]:
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 ส่วนประสานงานข้อมูลระบบ SQL และข้อมูลโครงสร้าง (SQL Cache Editor)")
+# -----------------------------------------------------------------------------------------
+# 🐔 [กรณีที่ 2]: สิทธิ์ผู้ใช้งานทั่วไป (USER MODE PANEL) -> เข้าใช้งานระบบวิเคราะห์และคำนวณสูตร
+# -----------------------------------------------------------------------------------------
+else:
+    page_tabs = st.tabs(["🏠 ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (AI Feed Optimization)", "📊 แผนสถิติและใบสั่งซื้อวัตถุดิบ (Procurement & PO Sheet)"])
     
-    database_action_mode = st.selectbox(
-        "⚡ เลือกเป้าหมายโครงสร้างตารางที่คุณต้องการปรับแต่ง:",
-        ["📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)", "🪶 ปรับเปลี่ยนพารามิเตอร์ตารางรายสายพันธุ์เดี่ยว (Chicken Breeds Table)"]
-    )
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    if database_action_mode == "📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)":
-        st.markdown("#### ✏️ แก้ไขข้อมูลแนวโน้มตลาดกลุ่มแม่ไก่ไข่")
-        avail_groups = [g["group_name"] for g in groups_list]
-        selected_g_to_update = st.selectbox("เลือกชื่อกลุ่มข้อมูลที่ต้องการแก้ไข:", avail_groups)
-        group_current_obj = next(g for g in groups_list if g["group_name"] == selected_g_to_update)
-        st.info(f"📝 ค่าปัจจุบันในระบบ: {group_current_obj.get('market_trend')}")
-        new_trend_text = st.text_area("ป้อนข้อมูลแนวโน้มตลาดอัปเดตใหม่ล่าสุด:")
-        if st.button("💾 บันทึกการเปลี่ยนแปลงข้อมูลกลุ่มใหญ่"):
-            st.success("🎉 อัปเดตข้อมูลโครงสร้างหน่วยความจำเรียบร้อยแล้ว!")
-    else:
-        st.markdown("#### ✏️ แก้ไขเกณฑ์ปริมาณการกินอาหารมาตรฐานรายสายพันธุ์")
-        avail_breeds_map = {b["breed_name"]: b for b in breeds_list}
-        selected_b_to_update_label = st.selectbox("เลือกรายชื่อสายพันธุ์ที่ต้องการแก้ไข:", list(avail_breeds_map.keys()))
-        breed_current_obj = avail_breeds_map[selected_b_to_update_label]
-        st.info(f"💡 เกณฑ์กินอาหารปัจจุบันของสายพันธุ์นี้คือ: {breed_current_obj.get('default_feed')} กรัม/วัน/ตัว")
-        new_feed_intake_value = st.number_input("กำหนดตัวเลขเกณฑ์การกินอาหารใหม่ (กรัม):", min_value=70, max_value=160, value=int(breed_current_obj.get('default_feed')))
-        if st.button("💾 บันทึกพารามิเตอร์สายพันธุ์ลงฐานข้อมูล"):
-            st.success("🎉 ปรับแต่งเกณฑ์คุณสมบัติสายพันธุ์สำเร็จพึงประสงค์!")
+    # 🏠 [แท็บที่ 1]: ระบบผสมสูตรอาหารปัญญาประดิษฐ์
+    with page_tabs[0]:
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("## 📊 ส่วนการเลือกโครงสร้างพันธุกรรมสายพันธุ์ (Genetic Matrix Selection)")
+        st.markdown("---")
+        
+        group_names = [g["group_name"] for g in groups_list]
+        
+        # 📌 กล่องที่ 1: เลือกกลุ่มประเภทไก่ไข่หลัก (Selectbox ขอบทองขนาดใหญ่พิเศษ)
+        selected_group = st.selectbox(
+            "🗂️ 1. เลือกคัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode):", 
+            group_names,
+            index=0
+        )
+        
+        g_meta = next(g for g in groups_list if g["group_name"] == selected_group)
+        filtered_breeds = [b for b in breeds_list if b["group_name"] == selected_group]
+        breed_options_map = {b["breed_name"]: b for b in filtered_breeds}
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # 📌 กล่องที่ 2: เลือกรายสายพันธุ์การค้า (กล่องยักษ์คู่ขนานกรองผลอัตโนมัติ Cascade Filter)
+        if breed_options_map:
+            selected_breed_name = st.selectbox(
+                "🐓 2. คัดกรองเจาะลึกรายสายพันธุ์การค้าอัตโนมัติ (Commercial Breeds Mode):", 
+                list(breed_options_map.keys())
+            )
+            b_meta = breed_options_map[selected_breed_name]
             
-    st.markdown("---")
-    st.markdown("### 📋 เอกสารระบุระดับสารอาหารของวัตถุดิบทั้งหมดที่มีในฐานข้อมูล")
-    df_raw_ing = pd.DataFrame.from_dict(ingredients_data, orient='index')
-    if not df_raw_ing.empty:
-        df_raw_ing.rename(columns={
-            "price": "ราคา(บาท/กก.)", "protein": "โปรตีนดิบ(%)", "me": "พลังงานสัตว์(ME)",
-            "calcium": "แคลเซียม(%)", "phos": "ฟอสฟอรัส(%)", "lysine": "กรดไลซีน(%)",
-            "methionine": "กรดเมท(%)", "threonine": "ทรีโอนีน(%)", "fat": "ไขมันดิบ(%)", 
-            "fiber": "กากใย(%)", "min_limit": "ขั้นต่ำ(%)", "max_limit": "สูงสุด(%)"
-        }, inplace=True)
-        st.dataframe(df_raw_ing, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style='background-color: {g_meta["bg_color"]}; padding: 25px; border-radius: 16px; border: 2.5px solid rgba(255,255,255,0.25); margin-top:15px;'>
+                <h4 style='margin:0; color:{g_meta["text_color"]} !important; font-size:1.3rem;'>📋 รายละเอียดโปรไฟล์พันธุกรรม: {b_meta["breed_name"]}</h4>
+                <p style='margin:12px 0 0 0; color:{g_meta["text_color"]} !important; font-size:1.18rem; line-height: 1.6;'>
+                    <b>🧬 กลุ่มหลักสังกัด (Breeding Group):</b> {b_meta["group_name"]}<br>
+                    <b>🥚 สีเปลือกไข่เป้าหมาย (Target Shell Color):</b> {b_meta["egg_color"]}<br>
+                    <b>🍽️ เกณฑ์การกินอาหารมาตรฐาน (Standard Feed Intake):</b> <span style='color:#ffb703; font-weight:bold; font-size:1.3rem;'>{b_meta["default_feed"]}</span> กรัม/วัน/ตัว (g/day/bird)<br>
+                    <b>💡 ข้อมูลเชิงลึกประจำสายพันธุ์ (Breed Insight):</b> {b_meta["description"]}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            active_breed_profile = b_meta
+        else:
+            st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ย่อยที่เชื่อมโยงกับกลุ่มหลักนี้ในระบบคลังข้อมูล")
+            active_breed_profile = {"breed_name": "Unknown", "default_feed": 110}
+
+        st.markdown("---")
+        st.markdown("### 🧬 3. กำหนดระยะอายุและเป้าหมายสารอาหารที่เหมาะสม (Nutrition Target & Stage)")
+        stage_options = {s["stage_name"]: s["stage_key"] for s in targets_data.values()}
+        selected_stage_label = st.selectbox("เลือกระยะอายุการให้ผลผลิตของฝูง (Select Production Stage):", list(stage_options.keys()))
+        active_req = targets_data[stage_options[selected_stage_label]]
+        
+        st.session_state.use_phytase = st.checkbox("🧪 เปิดใช้งานเอนไซม์ไฟเตสเสริม (Enable Phytase Enzyme Optimization)")
+        
+        if st.button("⚡ เริ่มเดินเครื่องคำนวณสูตรอาหารต้นทุนต่ำสุด (Run AI Low-Cost Linear Solver)", type="primary", use_container_width=True):
+            with st.spinner("กระบวนการคำนวณเชิงเส้นกำลังจับคู่ราคาวัตถุดิบและกรดอะมิโน..."):
+                prob = pulp.LpProblem("LayerLinearSolver", pulp.LpMinimize)
+                ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in ingredients_data.items()}
+                
+                prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in ingredients_data.items()]), "Total_Cost"
+                prob += pulp.lpSum([ing_vars[name] for name in ingredients_data.keys()]) == 1.0, "Total_Weight"
+                
+                final_p = float(active_req["phos"]) - 0.10 if st.session_state.use_phytase else float(active_req["phos"])
+                final_ca = float(active_req["calcium"]) - 0.05 if st.session_state.use_phytase else float(active_req["calcium"])
+                
+                prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in ingredients_data.items()]) >= float(active_req["protein"])
+                prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in ingredients_data.items()]) >= float(active_req["me"])
+                prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in ingredients_data.items()]) >= final_ca
+                prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in ingredients_data.items()]) >= final_p
+                prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in ingredients_data.items()]) >= float(active_req["lysine"])
+                prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in ingredients_data.items()]) >= float(active_req["methionine"])
+                prob += pulp.lpSum([ing_vars[name] * float(d["fiber"]) for name, d in ingredients_data.items()]) <= float(active_req["fiber_max"])
+
+                prob.solve(pulp.PULP_CBC_CMD(msg=False))
+                
+                if pulp.LpStatus[prob.status] == "Optimal":
+                    st.success(f"✅ AI ประมวลผลสำเร็จ! ได้สูตรอาหารที่สมดุลและมีราคาประหยัดที่สุดตามความต้องการเรียบร้อย")
+                    st.session_state.optimized_weights = {name: ing_vars[name].varValue * 100.0 for name in ingredients_data.keys()}
+                else:
+                    st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
+                    st.error("❌ ไม่สามารถหาคำตอบที่ลงตัวได้ เนื่องจากข้อจำกัดวัตถุดิบบางตัวแน่นจนเกินไป")
+
+        if any(v > 0 for v in st.session_state.optimized_weights.values()):
+            col_res1, col_res2 = st.columns([1.2, 1])
+            with col_res1:
+                st.markdown("#### 📊 แผนภาพวงกลมสัดส่วนวัตถุดิบอาหารที่ใช้ (Ingredient Proportion %)")
+                clean_plot = [{"วัตถุดิบอาหาร (Ingredients)": k, "สัดส่วนที่ใช้ (Percentage %)": v} for k, v in st.session_state.optimized_weights.items() if v > 0.01]
+                df_cp = pd.DataFrame(clean_plot).sort_values(by="สัดส่วนที่ใช้ (Percentage %)", ascending=False)
+                fig_p = px.pie(df_cp, names="วัตถุดิบอาหาร (Ingredients)", values="สัดส่วนที่ใช้ (Percentage %)", hole=0.45, color_discrete_sequence=px.colors.sequential.YlOrBr)
+                fig_p.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"), margin=dict(t=10, b=10, l=10, r=10))
+                st.plotly_chart(fig_p, use_container_width=True)
+                st.dataframe(df_cp, use_container_width=True, hide_index=True)
+
+            with col_res2:
+                st.markdown("#### 🧪 สรุปผลวิเคราะห์ระดับสารอาหารจริงเปรียบเทียบเกณฑ์ (Nutrition Matrix Audit)")
+                act_nut = {"protein": 0, "me": 0, "calcium": 0, "phos": 0, "lysine": 0, "methionine": 0, "fiber": 0}
+                net_cost = 0
+                for name, w in st.session_state.optimized_weights.items():
+                    if w > 0:
+                        ratio = w / 100.0
+                        net_cost += ratio * float(ingredients_data[name]["price"])
+                        for n_key in act_nut.keys():
+                            if n_key in ingredients_data[name]:
+                                act_nut[n_key] += ratio * float(ingredients_data[name][n_key])
+                
+                comparison_rows = [
+                    {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "โปรตีนดิบรวม (Crude Protein %)", "ค่าจริงในสูตร (Actual)": round(act_nut["protein"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['protein']}"},
+                    {"โภชนา2ที่วิเคราะห์ (Nutrient Profiles)": "พลังงานใช้ประโยชน์ได้ (Metabolizable Energy kcal/kg)", "ค่าจริงในสูตร (Actual)": round(act_nut["me"], 0), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['me']}"},
+                    {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "แคลเซียมเพื่อเปลือกไข่ (Calcium %)", "ค่าจริงในสูตร (Actual)": round(act_nut["calcium"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['calcium']}"},
+                    {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "ฟอสฟอรัสที่เป็นประโยชน์ (Available Phosphorus %)", "ค่าจริงในสูตร (Actual)": round(act_nut["phos"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['phos']}"},
+                    {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "กรดอะมิโน ไลซีน (Lysine %)", "ค่าจริงในสูตร (Actual)": round(act_nut["lysine"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['lysine']}"},
+                    {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "กรดอะมิโน เมทไธโอนีน (Methionine %)", "ค่าจริงในสูตร (Actual)": round(act_nut["methionine"], 2), "เกณฑ์กำหนด (Target Constraint)": f">= {active_req['methionine']}"},
+                    {"โภชนาการที่วิเคราะห์ (Nutrient Profiles)": "ไฟเบอร์กากใยสูงสุด (Crude Fiber Max %)", "ค่าจริงในสูตร (Actual)": round(act_nut["fiber"], 2), "เกณฑ์กำหนด (Target Constraint)": f"<= {active_req['fiber_max']}"}
+                ]
+                st.markdown(f"<h3 style='color:#ffb703 !important; text-align:center;'>💰 ต้นทุนค่าอาหาร: {net_cost:.2f} บาท / กิโลกรัม (THB/KG)</h3>", unsafe_allow_html=True)
+                st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # 📊 [แท็บที่ 2]: แผนสถิติและใบสั่งซื้อวัตถุดิบ (Procurement & PO Sheet)
+    with page_tabs[1]:
+        st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+        st.markdown("## 📊 ระบบประเมินน้ำหนักวัตถุดิบและส่งออกใบสั่งซื้อ (Purchase Order Document)")
+        
+        total_tonnage = st.number_input("ป้อนจำนวนยอดการผลิตอาหารสัตว์รวมสำหรับล๊อตนี้ (น้ำหนักกิโลกรัม):", min_value=100, max_value=10000000, value=2000, step=1000)
+        
+        po_table_buffer = []
+        accumulated_po_cost = 0
+        
+        for ing_title, weight_percentage in st.session_state.optimized_weights.items():
+            if weight_percentage > 0.01:
+                exact_weight_kg = (weight_percentage / 100.0) * total_tonnage
+                item_cost_evaluation = exact_weight_kg * float(ingredients_data[ing_title]["price"])
+                accumulated_po_cost += item_cost_evaluation
+                po_table_buffer.append({
+                    "รายการวัตถุดิบในคลัง (Material Description)": ing_title,
+                    "น้ำหนักสุทธิที่ต้องใช้ (Net Weight KG)": round(exact_weight_kg, 2),
+                    "ราคารวมโดยประมาณ (Total Cost THB)": round(item_cost_evaluation, 2)
+                })
+                
+        if po_table_buffer:
+            df_final_po = pd.DataFrame(po_table_buffer)
+            st.dataframe(df_final_po, use_container_width=True, hide_index=True)
+            
+            stat_c1, stat_c2 = st.columns(2)
+            with stat_c1:
+                st.metric("💵 ยอดงบประมาณรวมจัดซื้อวัตถุดิบล็อตนี้", f"{accumulated_po_cost:,.2f} บาท")
+            with stat_c2:
+                st.metric("🏷️ ต้นทุนเฉลี่ยของสูตรล็อตนี้", f"{(accumulated_po_cost / total_tonnage):.2f} บาท/กก.")
+                
+            csv_stream = io.StringIO()
+            df_final_po.to_csv(csv_stream, index=False, encoding='utf-8-sig')
+            st.download_button(
+                label="📥 ดาวน์โหลดใบส่งสั่งซื้อวัตถุดิบอาหารสัตว์ (Export PO to CSV)",
+                data=csv_stream.getvalue(),
+                file_name=f"PO_Batch_{total_tonnage}KG.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        else:
+            st.warning("⚠️ ไม่พบโครงสร้างส่วนผสมอาหาร กรุณากดปุ่มคำนวณสูตรอาหารปัญญาประดิษฐ์ในแท็บแรกก่อน")
+        st.markdown("</div>", unsafe_allow_html=True)
