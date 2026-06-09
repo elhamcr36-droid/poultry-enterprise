@@ -12,7 +12,7 @@ from supabase import create_client, Client
 # ==========================================
 # ⚠️ เปลี่ยนค่า URL และ KEY ด้านล่างนี้ให้ตรงกับของคุณที่ได้จากหน้า Settings > API ของ Supabase
 SUPABASE_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
-SUPABASE_KEY = "A0927442339zxc*"
+SUPABASE_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 
 @st.cache_resource
 def init_supabase() -> Client:
