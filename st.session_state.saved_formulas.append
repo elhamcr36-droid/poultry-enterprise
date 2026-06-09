@@ -134,12 +134,15 @@ def sync_ingredients_from_supabase():
             for item in response.data:
                 ingredients_dict[item["name"]] = item
             st.session_state.db_ingredients = ingredients_dict
+            return ingredients_dict
         else:
             st.session_state.db_ingredients = {}
+            return {}
     except Exception as e:
         st.error(f"⚠️ ไม่สามารถซิงค์ข้อมูลคลังวัตถุดิบได้: {e}")
         if "db_ingredients" not in st.session_state:
             st.session_state.db_ingredients = {}
+        return st.session_state.db_ingredients
 
 def load_user_private_data_from_supabase(user_email):
     """โหลดข้อมูลส่วนตัวสูตรอาหารและ Log เฉพาะรายฟาร์มของยูสเซอร์ที่ล็อกอิน"""
@@ -170,7 +173,8 @@ if st.session_state.get("is_authenticated", False) and st.session_state.get("cur
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     
-    current_ingredients = fetch_ingredients_from_supabase()
+    # แก้ไขจุดนี้: เรียกใช้ฟังก์ชันซิงค์ข้อมูลที่ถูกต้องและดึงสเตตล่าสุดมาคำนวณ
+    current_ingredients = sync_ingredients_from_supabase()
     if not current_ingredients:
         st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
         return {}
@@ -342,6 +346,7 @@ if not st.session_state.is_authenticated:
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
+
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
 # ==========================================
