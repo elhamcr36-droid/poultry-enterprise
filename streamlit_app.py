@@ -10,7 +10,7 @@ import math
 # 🔱 1. ตั้งค่าคอนฟิกแอปพลิเคชันและหน้าจอ
 # ==========================================
 st.set_page_config(
-    page_title="Mega Feed & Breed Studio", 
+    page_title="Mega Feed & Breed Studio - Layer Edition", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -40,7 +40,7 @@ st.markdown(
         backdrop-filter: blur(8px); margin-bottom: 20px;
     }
     div[data-testid="stMetricValue"] {
-        font-size: 2rem !important; color: #38bdf8 !important;
+        font-size: 2rem !important; color: #ffb703 !important;
         font-weight: bold !important; text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
     }
     [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.9) !important; border-radius: 10px; padding: 5px; }
@@ -60,7 +60,7 @@ CORRECT_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 
 if not st.session_state.is_authenticated:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>🔐 ยินดีต้อนรับสู่ Mega Feed & Breed Studio</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🔐 ยินดีต้อนรับสู่ Mega Feed & Breed Studio (รุ่นสัตว์ปีก-ไก่ไข่โลก)</h2>", unsafe_allow_html=True)
     st.markdown("---")
     
     tab_login, _ = st.tabs(["🔑 เข้าสู่ระบบ (Login)", "📝 สมัครสมาชิก (ปิดใช้งานชั่วคราว)"])
@@ -74,7 +74,7 @@ if not st.session_state.is_authenticated:
             if st.button("เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
                 if email_login in ["222", "จีเมล222", "222@gmail.com"] and pass_login in ["222", "รหัส222"]:
                     st.session_state.is_authenticated = True
-                    st.session_state.user_email = "👑 Admin (SQL Superuser)"
+                    st.session_state.user_email = "👑 Admin (Layer Studio Superuser)"
                     st.session_state.supabase_url = CORRECT_URL
                     st.session_state.supabase_key = CORRECT_KEY
                     st.success("✅ เชื่อมต่อระบบสำเร็จ!")
@@ -86,7 +86,7 @@ if not st.session_state.is_authenticated:
     st.stop()
 
 # ==========================================
-# 📥 3. ระบบดึงข้อมูลยืดหยุ่นสูง + บิ๊กดาต้าสำรอง 24 รายการ
+# 📥 3. ระบบดึงข้อมูลยืดหยุ่นสูง + บิ๊กดาต้าไก่ไข่โลก
 # ==========================================
 @st.cache_data(ttl=2) 
 def fetch_master_data(url, key):
@@ -111,10 +111,9 @@ def fetch_master_data(url, key):
             
     except Exception as general_err: pass
 
-    # 🛡️ FAIL-SAFE SUPER DATASET: ขยายวัตถุดิบจุใจ 24 รายการ (ตรงกับ SQL ตัวท็อป)
+    # 🛡️ FAIL-SAFE EXCLUSIVE DATASET: ชุดข้อมูลไก่ไข่ระดับพาณิชย์โลก 24 วัตถุดิบ 6 สายพันธุ์
     if not ing_data:
         ing_data = [
-            # [หมวดคาร์โบไฮเดรตและพลังงานหลัก]
             {"name": "ข้าวโพดบดเม็ด (Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "threonine": 0.29, "fat": 3.8, "moisture": 12.0, "fiber": 2.2, "sodium": 0.02, "chloride": 0.04, "linoleic": 2.2, "min_limit": 10.0, "max_limit": 65.0},
             {"name": "ปลายข้าว (Broken Rice)", "price": 15.0, "protein": 8.0, "me": 3400.0, "calcium": 0.04, "phos": 0.12, "lysine": 0.30, "methionine": 0.18, "threonine": 0.25, "fat": 1.5, "moisture": 12.0, "fiber": 0.6, "sodium": 0.01, "chloride": 0.03, "linoleic": 0.4, "min_limit": 0.0, "max_limit": 45.0},
             {"name": "ข้าวสาลีนำเข้า (Feed Wheat)", "price": 14.5, "protein": 11.5, "me": 3150.0, "calcium": 0.05, "phos": 0.30, "lysine": 0.32, "methionine": 0.17, "threonine": 0.33, "fat": 1.8, "moisture": 11.5, "fiber": 2.5, "sodium": 0.02, "chloride": 0.06, "linoleic": 0.8, "min_limit": 0.0, "max_limit": 30.0},
@@ -124,8 +123,6 @@ def fetch_master_data(url, key):
             {"name": "ข้าวบาร์เลย์บด (Barley Feed)", "price": 14.0, "protein": 11.0, "me": 2750.0, "calcium": 0.06, "phos": 0.35, "lysine": 0.38, "methionine": 0.18, "threonine": 0.36, "fat": 1.9, "moisture": 11.0, "fiber": 5.0, "sodium": 0.02, "chloride": 0.12, "linoleic": 1.0, "min_limit": 0.0, "max_limit": 25.0},
             {"name": "กากมันสำปะหลังแห้ง (Cassava Meal)", "price": 9.5, "protein": 2.5, "me": 2900.0, "calcium": 0.15, "phos": 0.08, "lysine": 0.07, "methionine": 0.04, "threonine": 0.06, "fat": 0.6, "moisture": 12.0, "fiber": 3.5, "sodium": 0.02, "chloride": 0.04, "linoleic": 0.1, "min_limit": 0.0, "max_limit": 20.0},
             {"name": "ข้าวโอ๊ตบดอาหารสัตว์ (Feed Oats)", "price": 15.5, "protein": 11.0, "me": 2650.0, "calcium": 0.10, "phos": 0.35, "lysine": 0.40, "methionine": 0.18, "threonine": 0.36, "fat": 4.5, "moisture": 11.0, "fiber": 10.5, "sodium": 0.02, "chloride": 0.06, "linoleic": 1.8, "min_limit": 0.0, "max_limit": 15.0},
-            
-            # [หมวดโปรตีนพืชและโปรตีนสัตว์]
             {"name": "กากถั่วเหลือง 46% (SBM 46%)", "price": 19.5, "protein": 46.0, "me": 2440.0, "calcium": 0.25, "phos": 0.62, "lysine": 2.85, "methionine": 0.65, "threonine": 1.80, "fat": 1.5, "moisture": 11.0, "fiber": 3.5, "sodium": 0.02, "chloride": 0.05, "linoleic": 0.5, "min_limit": 10.0, "max_limit": 40.0},
             {"name": "ปลาป่นเกรด A 60% (Fish Meal 60%)", "price": 35.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "threonine": 2.40, "fat": 8.0, "moisture": 10.0, "fiber": 1.0, "sodium": 1.20, "chloride": 1.50, "linoleic": 0.2, "min_limit": 0.0, "max_limit": 8.0},
             {"name": "กากเบียร์แห้งข้าวโพด (DDGS)", "price": 15.0, "protein": 27.0, "me": 2800.0, "calcium": 0.06, "phos": 0.75, "lysine": 0.78, "methionine": 0.55, "threonine": 1.00, "fat": 9.0, "moisture": 10.0, "fiber": 7.5, "sodium": 0.15, "chloride": 0.10, "linoleic": 2.0, "min_limit": 0.0, "max_limit": 15.0},
@@ -134,13 +131,9 @@ def fetch_master_data(url, key):
             {"name": "หนอนแมลงวันลายอบแห้ง (BSFL)", "price": 28.0, "protein": 45.0, "me": 3400.0, "calcium": 5.20, "phos": 0.90, "lysine": 2.90, "methionine": 0.85, "threonine": 1.90, "fat": 28.0, "moisture": 6.0, "fiber": 7.0, "sodium": 0.12, "chloride": 0.40, "linoleic": 4.5, "min_limit": 0.0, "max_limit": 7.5},
             {"name": "กากเมล็ดฝ้าย (Cottonseed Meal)", "price": 12.0, "protein": 41.0, "me": 2050.0, "calcium": 0.20, "phos": 1.00, "lysine": 1.70, "methionine": 0.55, "threonine": 1.30, "fat": 1.8, "moisture": 10.0, "fiber": 12.0, "sodium": 0.04, "chloride": 0.05, "linoleic": 0.8, "min_limit": 0.0, "max_limit": 8.0},
             {"name": "เลือดสัตว์แห้งป่น (Blood Meal)", "price": 42.0, "protein": 80.0, "me": 3000.0, "calcium": 0.30, "phos": 0.30, "lysine": 7.00, "methionine": 1.00, "threonine": 3.80, "fat": 1.0, "moisture": 9.0, "fiber": 1.0, "sodium": 0.30, "chloride": 0.50, "linoleic": 0.1, "min_limit": 0.0, "max_limit": 3.0},
-
-            # [หมวดกรดอะมิโนและสารเสริมบริสุทธิ์]
             {"name": "แอล-ไลซีน (L-Lysine HCl 78%)", "price": 85.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 78.40, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 1.0, "fiber": 0.0, "sodium": 0.00, "chloride": 19.50, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 1.5},
             {"name": "ดีแอล-เมทไธโอนีน (DL-Methionine 99%)", "price": 140.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 99.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.5, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 0.8},
             {"name": "แอล-ทรีโอนีน (L-Threonine 98%)", "price": 110.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 98.50, "fat": 0.0, "moisture": 1.0, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 0.5},
-            
-            # [หมวดไขมัน แร่ธาตุ และวิตามิน]
             {"name": "น้ำมันปาล์มดิบ (Palm Oil)", "price": 34.0, "protein": 0.0, "me": 8400.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 99.0, "moisture": 0.5, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 10.0, "min_limit": 0.0, "max_limit": 5.0},
             {"name": "หินฝุ่นเม็ดหยาบ 2-4 มม. (Limestone)", "price": 2.5, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.5, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 12.0},
             {"name": "เปลือกหอยบดละเอียด (Oyster Shell)", "price": 6.5, "protein": 0.0, "me": 0.0, "calcium": 38.50, "phos": 0.02, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 1.0, "fiber": 0.0, "sodium": 0.05, "chloride": 0.02, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 10.0},
@@ -151,25 +144,25 @@ def fetch_master_data(url, key):
         
     if not tgt_data:
         tgt_data = [
-            {"stage_key": "layer_phase_1", "stage_name": "ไก่ไข่ระยะพีค Phase 1 (19-45 สัปดาห์)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.50},
+            {"stage_key": "layer_starter", "stage_name": "ไก่ไข่ระยะแรกเกิด-อนุบาล (0-6 สัปดาห์)", "protein": 19.0, "me": 2850.0, "calcium": 1.00, "phos": 0.45, "lysine": 0.95, "methionine": 0.40, "fiber_max": 4.0, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.00},
+            {"stage_key": "layer_grower", "stage_name": "ไก่ไข่ระยะรุ่นเจริญเติบโต (7-17 สัปดาห์)", "protein": 16.0, "me": 2750.0, "calcium": 1.00, "phos": 0.40, "lysine": 0.75, "methionine": 0.32, "fiber_max": 5.0, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.00},
+            {"stage_key": "layer_prelay", "stage_name": "ไก่ไข่ระยะเตรียมไข่ Prelay (17-18 สัปญดาห์)", "protein": 16.5, "me": 2750.0, "calcium": 2.50, "phos": 0.45, "lysine": 0.80, "methionine": 0.35, "fiber_max": 4.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.20},
+            {"stage_key": "layer_phase_1", "stage_name": "ไก่ไข่ระยะผลิตพีค Phase 1 (19-45 สัปดาห์)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.50},
             {"stage_key": "layer_phase_2", "stage_name": "ไก่ไข่ระยะกลาง Phase 2 (46-65 สัปดาห์)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.30},
-            {"stage_key": "broiler_starter", "stage_name": "ไก่เนื้อระยะแรก Starter (0-10 วัน)", "protein": 23.0, "me": 3000.0, "calcium": 1.00, "phos": 0.50, "lysine": 1.44, "methionine": 0.51, "fiber_max": 3.0, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.00},
-            {"stage_key": "broiler_grower", "stage_name": "ไก่เนื้อระยะเติบโต Grower (11-24 วัน)", "protein": 21.5, "me": 3100.0, "calcium": 0.90, "phos": 0.44, "lysine": 1.25, "methionine": 0.48, "fiber_max": 3.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.00},
-            {"stage_key": "broiler_finisher", "stage_name": "ไก่เนื้อระยะสุดท้าย Finisher (25 วันขึ้นไป)", "protein": 19.5, "me": 3200.0, "calcium": 0.85, "phos": 0.40, "lysine": 1.09, "methionine": 0.41, "fiber_max": 3.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.00},
-            {"stage_key": "native_chicken", "stage_name": "ไก่พื้นเมือง/ไก่บ้าน ระยะเจริญเติบโต", "protein": 16.0, "me": 2800.0, "calcium": 0.90, "phos": 0.35, "lysine": 0.85, "methionine": 0.35, "fiber_max": 6.0, "sodium_min": 0.15, "chloride_min": 0.15, "linoleic_min": 0.80}
+            {"stage_key": "layer_phase_3", "stage_name": "ไก่ไข่ระยะท้ายก่อนปลด Phase 3 (65 สัปดาห์ขึ้นไป)", "protein": 15.5, "me": 2700.0, "calcium": 4.50, "phos": 0.35, "lysine": 0.76, "methionine": 0.36, "fiber_max": 5.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.10}
         ]
         
     if not brd_data:
         brd_data = [
-            {"group_name": "ไก่ไข่ (Layers)", "breed_key": "Isa Brown", "breed_name": "ไอซ่า บราวน์", "egg_color": "🤎 น้ำตาล", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 114, "description": "สายพันธุ์ยอดนิยม ทนร้อนเป็นเลิศ เปลือกไข่แข็งแรงสม่ำเสมอ"},
-            {"group_name": "ไก่ไข่ (Layers)", "breed_key": "Lohmann Brown", "breed_name": "โลห์แมน บราวน์", "egg_color": "🤎 น้ำตาลเข้ม", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 116, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องขนาดฟองใหญ่และอัตราการไข่สม่ำเสมอในระยะยาว"},
-            {"group_name": "ไก่เนื้อ (Broilers)", "breed_key": "Ross 308", "breed_name": "รอสส์ 308", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#1d4ed8", "text_color": "#ffffff", "default_feed": 161, "description": "อันดับหนึ่งของโลก โตไว แลกเนื้อได้ดีเยี่ยม (FCR ต่ำ) กล้ามเนื้ออกแน่น"},
-            {"group_name": "ไก่เนื้อ (Broilers)", "breed_key": "Cobb 500", "breed_name": "ค็อบบ์ 500", "egg_color": "❌ ไม่เน้นไข่", "bg_color": "#0369a1", "text_color": "#ffffff", "default_feed": 159, "description": "สายพันธุ์ยอดนิยม กินอาหารคุ้มค่า ต้นทุนต่ำสุด ทนทานต่อสภาพอากาศร้อนชื้น"},
-            {"group_name": "ไก่ลูกผสม/พื้นเมือง", "breed_key": "Kuroda", "breed_name": "ไก่ดำคูโรดะ / สามสายเลือด", "egg_color": "🥚 ครีม/ขาว", "bg_color": "#0f172a", "text_color": "#ffffff", "default_feed": 125, "description": "เนื้อนุ่มแน่น หนังกรุบ ได้ราคาดีในตลาดทางเลือก เลี้ยงง่ายต้านทานโรคสูง"},
-            {"group_name": "ไก่พื้นเมือง", "breed_key": "Thai Native", "breed_name": "ไก่บ้าน/ไก่ชนไทย", "egg_color": "🥚 ครีมนวล", "bg_color": "#16a34a", "text_color": "#ffffff", "default_feed": 85, "description": "เติบโตตามธรรมชาติ หาอาหารเก่ง เนื้อแน่นไขมันต่ำมาก เป็นที่ต้องการของตลาดชุมชน"}
+            {"group_name": "ไก่ไข่เปลือกสีน้ำตาล (Commercial Brown)", "breed_key": "Isa Brown", "breed_name": "Isa Brown (ไอซ่า บราวน์)", "egg_color": "🤎 น้ำตาลเข้มสวย", "bg_color": "#b45309", "text_color": "#ffffff", "default_feed": 114, "description": "สายพันธุ์ฝรั่งเศส ยอดนิยมอันดับ 1 ในไทย ทนร้อนเป็นเลิศ ไข่ดกสม่ำเสมอเฉลี่ย 320-330 ฟอง/ปี"},
+            {"group_name": "ไก่ไข่เปลือกสีน้ำตาล (Commercial Brown)", "breed_key": "Lohmann Brown", "breed_name": "Lohmann Brown (โลห์แมน บราวน์)", "egg_color": "🤎 น้ำตาลสม่ำเสมอ", "bg_color": "#854d0e", "text_color": "#ffffff", "default_feed": 116, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ (เปอร์เซ็นต์ไข่ไซส์ XL สูง) โครงสร้างแม่ไก่แข็งแรง ยืนกรงยาวนาน"},
+            {"group_name": "ไก่ไข่เปลือกสีน้ำตาล (Commercial Brown)", "breed_key": "Hy-Line Brown", "breed_name": "Hy-Line Brown (ไฮ-ไลน์ บราวน์)", "egg_color": "🤎 น้ำตาลประกาย", "bg_color": "#78350f", "text_color": "#ffffff", "default_feed": 112, "description": "สายพันธุ์อเมริกา ขวัญใจฟาร์มระบบปิด (Evap) กินอาหารนิ่ง อัตราเปลี่ยนอาหารเป็นไข่ (FCR) คุ้มค่าที่สุด"},
+            {"group_name": "ไก่ไข่เปลือกสีขาว (Commercial White)", "breed_key": "Hy-Line W-36", "breed_name": "Hy-Line W-36 (ไฮ-ไลน์ ขาว W-36)", "egg_color": "🥚 ขาวสะอาด (White)", "bg_color": "#0284c7", "text_color": "#ffffff", "default_feed": 101, "description": "ระดับโลกในตลาดไข่ขาว กินอาหารน้อยมาก (ประหยัดต้นทุนค่าอาหาร) ไข่ดกจัด เนื้อไข่ขาวข้นแน่น เหมาะกับการแปรรูป"},
+            {"group_name": "ไก่ไข่เปลือกสีขาว (Commercial White)", "breed_key": "Dekalb White", "breed_name": "Dekalb White (เดคัลบ์ ไวท์)", "egg_color": "🥚 ขาวพรีเมียม (White)", "bg_color": "#0369a1", "text_color": "#ffffff", "default_feed": 103, "description": "สายพันธุ์ยอดนิยมในอเมริกาและยุโรป เปลือกไข่ขาวมีความเหนียวและหนาเป็นพิเศษ ลดอัตราการแตกเสียหายระหว่างขนส่ง"},
+            {"group_name": "ไก่ไข่ทางเลือก/ตลาดพรีเมียม (Specialty Layers)", "breed_key": "Novogen Tinted", "breed_name": "Novogen Tinted (โนโวเจน ทินต์)", "egg_color": "💮 ครีม/ชมพูนวล (Tinted)", "bg_color": "#475569", "text_color": "#ffffff", "default_feed": 110, "description": "สายพันธุ์ผลิตไข่เปลือกสีครีมพรีเมียม พฤติกรรมเรียบร้อย นิ่ง นิยมเลี้ยงในฟาร์มระบบปล่อยอิสระ (Free-Range/Organic)"}
         ]
 
-    # ทำความสะอาดข้อมูลเพื่อความปลอดภัย
+    # ฟังก์ชันแปลงคลีนข้อมูลแบบปลอดภัย (Safe Mapping เพื่อป้องกัน Key Error)
     def safe_clean_ingredients(raw_list):
         cleaned = {}
         for item in raw_list:
@@ -227,8 +220,8 @@ if "optimized_weights" not in st.session_state:
 # ==========================================
 col_h1, col_h2 = st.columns([8, 2])
 with col_h1:
-    st.markdown("# 🐔 Mega Feed & Breed Studio")
-    st.markdown(f"<p style='color:#38bdf8; font-weight:bold; font-size:1.2rem;'>🔥 เปิดใช้งานระบบฐานข้อมูลขนาดใหญ่สำเร็จ (วัตถุดิบ {len(ingredients_data)} รายการ | สายพันธุ์ครอบคลุม {len(breeds_data)} ชนิด)</p>", unsafe_allow_html=True)
+    st.markdown("# 🐔 Mega Feed & Breed Studio <span style='font-size:1.5rem; color:#f59e0b;'>(Layer Edition)</span>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:#38bdf8; font-weight:bold; font-size:1.1rem;'>🎯 ศูนย์วิเคราะห์โภชนาการไก่ไข่สากล: วัตถุดิบ {len(ingredients_data)} รายการ | สายพันธุ์การค้าโลก {len(breeds_data)} ชนิด</p>", unsafe_allow_html=True)
 with col_h2:
     st.markdown(f"<p style='text-align:right; margin-bottom:5px;'>👤 <b>{st.session_state.user_email}</b></p>", unsafe_allow_html=True)
     if st.button("ออกจากระบบ (Logout)", use_container_width=True):
@@ -246,9 +239,9 @@ with page_tabs[0]:
     
     c_group, c_breed = st.columns(2)
     with c_group:
-        st.markdown("#### 🧬 ข้อมูลสายพันธุ์และกลุ่ม")
+        st.markdown("#### 🧬 ข้อมูลสายพันธุ์ไก่ไข่เชิงพาณิชย์")
         breed_options = {f"{b['group_name']} - {b['breed_name']}": b for b in breeds_data}
-        selected_breed_label = st.selectbox("เลือกสายพันธุ์ไก่:", list(breed_options.keys()))
+        selected_breed_label = st.selectbox("เลือกสายพันธุ์ไก่ไข่:", list(breed_options.keys()))
         selected_breed = breed_options[selected_breed_label]
         
         bg_c = selected_breed.get('bg_color', '#1e293b')
@@ -258,9 +251,9 @@ with page_tabs[0]:
             <div style='background-color: {bg_c}; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);'>
                 <h4 style='margin:0; color: {tx_c} !important;'>🎯 สายพันธุ์: {selected_breed.get('breed_name')}</h4>
                 <p style='margin:5px 0 0 0; color: {tx_c} !important; font-size:0.95rem;'>
-                    <b>ลักษณะสีเปลือกไข่:</b> {selected_breed.get('egg_color')}<br>
-                    <b>ความต้องการกินอาหารเฉลี่ย:</b> {selected_breed.get('default_feed')} กรัม/วัน/ตัว<br>
-                    <b>คำอธิบาย:</b> {selected_breed.get('description')}
+                    <b>สีเปลือกไข่สินค้า:</b> {selected_breed.get('egg_color')}<br>
+                    <b>ความต้องการโภชนาการ/การกินอาหาร:</b> {selected_breed.get('default_feed')} กรัม/วัน/ตัว<br>
+                    <b>คำแนะนำการจัดการฟาร์ม:</b> {selected_breed.get('description')}
                 </p>
             </div>
             """, 
@@ -268,19 +261,19 @@ with page_tabs[0]:
         )
         
     with c_breed:
-        st.markdown("#### 📈 ระยะการเลี้ยงและเป้าหมาย")
+        st.markdown("#### 📈 ระยะช่วงอายุการให้ผลผลิต")
         target_options = {t["stage_name"]: t["stage_key"] for t in targets_data.values()}
         selected_stage_name = st.selectbox("เลือกโปรไฟล์โภชนาการตามช่วงอายุ:", list(target_options.keys()))
         selected_stage_key = target_options[selected_stage_name]
         req = targets_data[selected_stage_key]
 
     st.markdown("---")
-    st.markdown("### 🧠 เครื่องคำนวณสมการเส้นตรง Least-Cost ด้วย AI")
-    st.session_state.use_phytase = st.checkbox("🧪 เปิดใช้งานสารเสริมเอนไซม์ไฟเตส (ลดฟอสฟอรัส/แคลเซียมเป้าหมายลงอัตโนมัติ 0.10% และ 0.05%)")
+    st.markdown("### 🧠 เครื่องคำนวณสูตรอาหารต้นทุนต่ำสุด (Least-Cost Formulation) ด้วย AI")
+    st.session_state.use_phytase = st.checkbox("🧪 เปิดใช้งานเอนไซม์ไฟเตส (ลดฟอสฟอรัสที่เป็นประโยชน์ลง 0.10% และแคลเซียมลง 0.05% เพื่อประหยัดต้นทุน)")
     
-    if st.button("⚡ เดินเครื่องระบบ AI ผสมสูตร (Run LP Solver)", type="primary"):
-        with st.spinner("AI กำลังคำนวณราคาต่ำสุดภายใต้ข้อจำกัดโภชนาการ..."):
-            prob = pulp.LpProblem("MegaPoultryLinearFeed", pulp.LpMinimize)
+    if st.button("⚡ เดินเครื่องระบบ AI ผสมสูตรอาหาร (Run LP Solver)", type="primary"):
+        with st.spinner("AI กำลังค้นหาสัดส่วนวัตถุดิบเพื่อให้ได้ต้นทุนต่ำที่สุด..."):
+            prob = pulp.LpProblem("MegaLayerLinearFeed", pulp.LpMinimize)
             
             ing_vars = {}
             for name, data in ingredients_data.items():
@@ -307,27 +300,27 @@ with page_tabs[0]:
             prob.solve(pulp.PULP_CBC_CMD(msg=False))
             
             if pulp.LpStatus[prob.status] == "Optimal":
-                st.success(f"✅ AI คำนวณสูตรอาหารสำเร็จ! (ต้นทุนต่ำสุด: {pulp.value(prob.objective):.2f} บาท/กก.)")
+                st.success(f"✅ AI ประมวลผลสูตรสำเร็จ! (ต้นทุนเฉลี่ยต่ำสุด: {pulp.value(prob.objective):.2f} บาท/กก.)")
                 st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
                 for name in ingredients_data.keys():
                     st.session_state.optimized_weights[name] = ing_vars[name].varValue * 100.0
             else:
                 st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
-                st.error("❌ เงื่อนไขโภชนาการแน่นเกินไปสำหรับวัตถุดิบที่มีอยู่ กรุณาปรับลดข้อกำหนดสารอาหาร หรือเพิ่ม Max Limit ของกลุ่มโปรตีน")
+                st.error("❌ ขีดจำกัดสารอาหารแน่นเกินไป ไม่สามารถจับคู่โภชนาการได้ กรุณาเปิดสิทธิ์ Max Limit ของวัตถุดิบหลักเพิ่มเติม")
 
     if any(v > 0 for v in st.session_state.optimized_weights.values()):
         res_col1, res_col2 = st.columns([1.2, 1])
         with res_col1:
-            st.markdown("#### 📊 สัดส่วนวัตถุดิบในสูตรอาหารปัจจุบัน")
+            st.markdown("#### 📊 กราฟสัดส่วนการใช้วัตถุดิบ (%)")
             plot_data = [{"วัตถุดิบ": k, "สัดส่วน (%)": v} for k, v in st.session_state.optimized_weights.items() if v > 0.01]
             df_plot = pd.DataFrame(plot_data).sort_values(by="สัดส่วน (%)", ascending=False)
-            fig = px.pie(df_plot, names="วัตถุดิบ", values="สัดส่วน (%)", hole=0.4)
+            fig = px.pie(df_plot, names="วัตถุดิบ", values="สัดส่วน (%)", hole=0.4, color_discrete_sequence=px.colors.sequential.YlOrBr)
             fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"), margin=dict(t=0, b=0, l=0, r=0))
             st.plotly_chart(fig, use_container_width=True)
             st.dataframe(df_plot, use_container_width=True, hide_index=True)
 
         with res_col2:
-            st.markdown("#### 🔬 ผลวิเคราะห์โภชนาการที่ได้จริง vs เกณฑ์เป้าหมาย")
+            st.markdown("#### 🔬 ผลวิเคราะห์โภชนาการจริงในสูตรอาหาร")
             actual_nutrients = {"protein": 0, "me": 0, "calcium": 0, "phos": 0, "lysine": 0, "methionine": 0, "fiber": 0, "sodium": 0, "chloride": 0, "linoleic": 0, "threonine": 0, "fat": 0}
             cost_per_kg = 0
             for name, weight in st.session_state.optimized_weights.items():
@@ -339,27 +332,26 @@ with page_tabs[0]:
                             actual_nutrients[key] += frac * float(ingredients_data[name][key])
             
             compare_data = [
-                {"สารอาหาร": "โปรตีน (%)", "ได้จริง": round(actual_nutrients["protein"], 2), "เป้าหมาย": f">= {req['protein']}"},
-                {"สารอาหาร": "พลังงาน (ME kcal/kg)", "ได้จริง": round(actual_nutrients["me"], 0), "เป้าหมาย": f">= {req['me']}"},
-                {"สารอาหาร": "แคลเซียม (%)", "ได้จริง": round(actual_nutrients["calcium"], 2), "เป้าหมาย": f">= {req['calcium']}"},
-                {"สารอาหาร": "ฟอสฟอรัสที่เป็นประโยชน์ (%)", "ได้จริง": round(actual_nutrients["phos"], 2), "เป้าหมาย": f">= {req['phos']}"},
-                {"สารอาหาร": "ไลซีน (%)", "ได้จริง": round(actual_nutrients["lysine"], 2), "เป้าหมาย": f">= {req['lysine']}"},
-                {"สารอาหาร": "เมทไธโอนีน (%)", "ได้จริง": round(actual_nutrients["methionine"], 2), "เป้าหมาย": f">= {req['methionine']}"},
-                {"สารอาหาร": "ทรีโอนีน (%)", "ได้จริง": round(actual_nutrients["threonine"], 2), "เป้าหมาย": "ตามธรรมชาติ"},
-                {"สารอาหาร": "ไขมันดิบ (%)", "ได้จริง": round(actual_nutrients["fat"], 2), "เป้าหมาย": "ตามธรรมชาติ"},
-                {"สารอาหาร": "กากใยสูงสุด (%)", "ได้จริง": round(actual_nutrients["fiber"], 2), "เป้าหมาย": f"<= {req['fiber_max']}"},
-                {"สารอาหาร": "โซเดียม (%)", "ได้จริง": round(actual_nutrients["sodium"], 2), "เป้าหมาย": f">= {req['sodium_min']}"},
+                {"สารอาหาร": "โปรตีนดิบ (%)", "ได้จริง": round(actual_nutrients["protein"], 2), "เกณฑ์เป้าหมาย": f">= {req['protein']}"},
+                {"สารอาหาร": "พลังงานใช้ประโยชน์ (ME kcal/kg)", "ได้จริง": round(actual_nutrients["me"], 0), "เกณฑ์เป้าหมาย": f">= {req['me']}"},
+                {"สารอาหาร": "แคลเซียมสำหรับสร้างเปลือกไข่ (%)", "ได้จริง": round(actual_nutrients["calcium"], 2), "เกณฑ์เป้าหมาย": f">= {req['calcium']}"},
+                {"สารอาหาร": "ฟอสฟอรัสที่เป็นประโยชน์ (%)", "ได้จริง": round(actual_nutrients["phos"], 2), "เกณฑ์เป้าหมาย": f">= {req['phos']}"},
+                {"สารอาหาร": "ไลซีน (%)", "ได้จริง": round(actual_nutrients["lysine"], 2), "เกณฑ์เป้าหมาย": f">= {req['lysine']}"},
+                {"สารอาหาร": "เมทไธโอนีน (%)", "ได้จริง": round(actual_nutrients["methionine"], 2), "เกณฑ์เป้าหมาย": f">= {req['methionine']}"},
+                {"สารอาหาร": "กรดไขมันไลโนเลอิก (เพิ่มขนาดฟอง) (%)", "ได้จริง": round(actual_nutrients["linoleic"], 2), "เกณฑ์เป้าหมาย": f">= {req['linoleic_min']}"},
+                {"สารอาหาร": "กากใยอาหารสูงสุด (%)", "ได้จริง": round(actual_nutrients["fiber"], 2), "เกณฑ์เป้าหมาย": f"<= {req['fiber_max']}"},
+                {"สารอาหาร": "โซเดียม (%)", "ได้จริง": round(actual_nutrients["sodium"], 2), "เกณฑ์เป้าหมาย": f">= {req['sodium_min']}"},
             ]
-            st.markdown(f"<h3 style='color:#38bdf8 !important;'>💰 ต้นทุนรวมสูตรผสม: {cost_per_kg:.2f} บาท/กก.</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='color:#ffb703 !important;'>💰 ต้นทุนการผลิตจริง: {cost_per_kg:.2f} บาท/กิโลกรัม</h3>", unsafe_allow_html=True)
             st.dataframe(pd.DataFrame(compare_data), use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- [แท็บ 2]: ใบจัดซื้อ (PO) ---
 with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📊 ระบบออกใบสั่งซื้อวัตถุดิบและคำนวณต้นทุนถ่วงน้ำหนักจริง")
+    st.markdown("## 📊 ระบบคำนวณล็อตการผลิตและออกเอกสารจัดซื้อวัตถุดิบ (PO)")
     
-    batch_size = st.number_input("ปริมาณรวมยอดผลิตผสมอาหารในล็อตนี้ (กิโลกรัม):", min_value=10, max_value=500000, value=1000, step=500)
+    batch_size = st.number_input("กำหนดปริมาณรวมยอดสั่งผลิตสำหรับล็อตนี้ (กิโลกรัม):", min_value=10, max_value=1000000, value=1000, step=1000)
     
     po_data = []
     total_po_cost = 0
@@ -369,9 +361,9 @@ with page_tabs[1]:
             est_price = amount_kg * float(ingredients_data[k]['price'])
             total_po_cost += est_price
             po_data.append({
-                "วัตถุดิบที่ต้องจัดซื้อ": k, 
-                "ปริมาณ (กก.)": round(amount_kg, 2), 
-                "ราคาประเมินรวม (บาท)": round(est_price, 2)
+                "วัตถุดิบที่ต้องสั่งจัดซื้อ": k, 
+                "น้ำหนักที่ต้องใช้ (กก.)": round(amount_kg, 2), 
+                "ราคาประเมินจัดหา (บาท)": round(est_price, 2)
             })
             
     if po_data:
@@ -381,7 +373,7 @@ with page_tabs[1]:
         
         c_m1, c_m2 = st.columns(2)
         with c_m1:
-            st.metric("💵 มูลค่ารวมใบสั่งซื้อจัดหาล็อตนี้", f"{total_po_cost:,.2f} บาท")
+            st.metric("💵 มูลค่ารวมงบประมาณจัดซื้อ", f"{total_po_cost:,.2f} บาท")
         with c_m2:
             st.metric("🏷️ ต้นทุนเฉลี่ยถ่วงน้ำหนัก", f"{weighted_average_cost:.2f} บาท/กก.")
             
@@ -390,32 +382,32 @@ with page_tabs[1]:
         st.download_button(
             label="📥 ดาวน์โหลดไฟล์ใบสั่งซื้อ (Export PO to CSV)",
             data=csv_buffer.getvalue(),
-            file_name=f"PO_Batch_{batch_size}kg.csv",
+            file_name=f"Layer_PO_Batch_{batch_size}kg.csv",
             mime="text/csv"
         )
     else:
-        st.warning("กรุณากดคำนวณสูตรอาหาร AI ในหน้าแรกก่อนเพื่อสร้างใบสั่งซื้อ")
+        st.warning("⚠️ กรุณากดปุ่มคำนวณสูตรอาหารด้วย AI ที่แท็บแรกก่อนเพื่อดึงรายการจัดซื้อ")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- [แท็บ 3]: จัดการคลังวัตถุดิบ SQL ---
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 ศูนย์ควบคุมคลังข้อมูลโภชนาการวัตถุดิบ & ปรับปรุงแบบสดผ่าน SQL")
+    st.markdown("## 📦 ศูนย์คลังข้อมูลสารอาหารและอัปเดตราคาแบบ Real-time ลงฐานข้อมูล SQL")
     
     if ingredients_data:
-        selected_ing_name = st.selectbox("เลือกวัตถุดิบที่ต้องการปรับปรุงข้อมูล:", list(ingredients_data.keys()))
+        selected_ing_name = st.selectbox("เลือกวัตถุดิบในคลังเพื่อแก้ไขราคาหรือเกณฑ์ใช้งาน:", list(ingredients_data.keys()))
         target_ing = ingredients_data[selected_ing_name]
         
         c_ed1, c_ed2, c_ed3 = st.columns(3)
         with c_ed1:
-            new_price = st.number_input("ราคาปรับปรุงใหม่ (บาท/กก.):", value=float(target_ing["price"]), step=0.1)
+            new_price = st.number_input("ราคาอัปเดตใหม่ (บาท/กก.):", value=float(target_ing["price"]), step=0.1)
         with c_ed2:
-            new_min = st.number_input("ปรับเกณฑ์ขั้นต่ำสุด Min Limit (%):", value=float(target_ing["min_limit"]), step=1.0)
+            new_min = st.number_input("ปรับเกณฑ์จำกัดขั้นต่ำ Min Limit (%):", value=float(target_ing["min_limit"]), step=1.0)
         with c_ed3:
-            new_max = st.number_input("ปรับเกณฑ์สูงสุด Max Limit (%):", value=float(target_ing["max_limit"]), step=1.0)
+            new_max = st.number_input("ปรับเกณฑ์จำกัดสูงสุด Max Limit (%):", value=float(target_ing["max_limit"]), step=1.0)
             
-        if st.button("💾 บันทึกและเขียนข้อมูลลงคลาวด์ฐานข้อมูล SQL", type="primary"):
-            with st.spinner("กำลังทำการยิง SQL Update ไปยังเซิร์ฟเวอร์..."):
+        if st.button("💾 บันทึกข้อมูลและเขียนคำสั่ง SQL ไปยังเซิร์ฟเวอร์ Cloud", type="primary"):
+            with st.spinner("กำลังอัปเดตข้อมูลไปยังระบบฐานข้อมูล..."):
                 try:
                     supabase_client = create_client(st.session_state.supabase_url, st.session_state.supabase_key)
                     supabase_client.table("ingredients").update({
@@ -424,14 +416,14 @@ with page_tabs[2]:
                         "max_limit": new_max
                     }).eq("name", selected_ing_name).execute()
                     
-                    st.success(f"🎉 บันทึกการอัปเดตข้อมูลของ '{selected_ing_name}' เรียบร้อยแล้ว ระบบกำลังรีเฟรช...")
+                    st.success(f"🎉 อัปเดตข้อมูลวัตถุดิบ '{selected_ing_name}' ลงคลาวด์สำเร็จ! หน้าจอจะรีเฟรชค่าใหม่ทันที")
                     st.cache_data.clear()
                     st.rerun()
                 except Exception as update_err:
-                    st.error(f"❌ บันทึกลงฐานข้อมูลล้มเหลว (คุณกำลังใช้งานระบบข้อมูลสำรองภายใน): {str(update_err)}")
+                    st.error(f"❌ ระบบเชื่อมต่อ SQL ปลายทางล้มเหลว (ขณะนี้แอปสลับมาใช้ระบบเมทริกซ์สำรองภายใน): {str(update_err)}")
         
         st.markdown("---")
-        st.markdown("### 📋 ตารางคลังสารอาหารและวัตถุดิบปัจจุบันทั้งหมด")
+        st.markdown("### 📋 ตารางพารามิเตอร์สารอาหารของวัตถุดิบทั้ง 24 รายการ")
         df_ingredients = pd.DataFrame.from_dict(ingredients_data, orient='index')
         if not df_ingredients.empty:
             df_ingredients.rename(columns={
@@ -447,20 +439,21 @@ with page_tabs[2]:
 # --- [แท็บ 4]: เครื่องจำลองแผนการเติบโต ---
 with page_tabs[3]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📈 เครื่องจำลองแผนการเติบโตรายสายพันธุ์ (Growth Simulator)")
+    st.markdown("## 📈 เครื่องจำลองพยากรณ์ปริมาณการกินอาหารและแผนงบประมาณฝูงไก่ไข่")
     
     c_sim1, c_sim2 = st.columns(2)
     with c_sim1:
-        sim_birds = st.number_input("ปริมาณตัวเลขจำนวนไก่ในฝูง (ตัว):", min_value=1, value=2000, step=500)
-        sim_days = st.slider("ช่วงอายุวันเลี้ยงที่ต้องการพยากรณ์ผลจำลอง (วัน):", min_value=7, max_value=105, value=42, step=7)
+        sim_birds = st.number_input("ระบุจำนวนแม่ไก่ไข่ภายในฝูง (ตัว):", min_value=1, value=5000, step=1000)
+        sim_weeks = st.slider("ช่วงสัปดาห์อายุเลี้ยงไก่ไข่ที่ต้องการจำลอง (สัปดาห์):", min_value=19, max_value=80, value=45, step=1)
     with c_sim2:
-        fcr_target = st.number_input("เป้าหมายสัมประสิทธิ์ FCR ล็อตนี้:", min_value=1.0, max_value=4.5, value=1.60, step=0.05)
-        chick_cost = st.number_input("ราคาพันธุ์ต้นทุนลูกไก่แรกเกิด (บาท/ตัว):", min_value=0.0, value=14.0, step=1.0)
+        hen_housed_rate = st.slider("เป้าหมายอัตราการให้ไข่ของฝูง Hen-Housed Production (%):", min_value=50, max_value=100, value=92, step=1)
+        pullet_cost = st.number_input("ราคาทุนจัดหาไก่สาวพร้อมไข่ อายุ 18 สัปดาห์ (บาท/ตัว):", min_value=0.0, value=185.0, step=5.0)
 
-    days_list = list(range(1, sim_days + 1))
-    weight_gain_daily = []
-    feed_intake_daily = []
+    weeks_list = list(range(19, sim_weeks + 1))
+    cumulative_feed_tons = []
+    egg_production_total = []
     
+    # คำนวณราคาอาหารจากสูตรผสมปัจจุบัน
     current_feed_price = 14.50
     if ingredients_data and any(v > 0 for v in st.session_state.optimized_weights.values()):
         current_feed_price = 0
@@ -468,34 +461,40 @@ with page_tabs[3]:
             if name in ingredients_data:
                 current_feed_price += (weight / 100.0) * float(ingredients_data[name]["price"])
 
-    for d in days_list:
-        est_weight = 42 + (3800 / (1 + 48 * math.exp(-0.115 * d))) 
-        weight_gain_daily.append(est_weight)
-        cumulative_feed = (est_weight / 1000.0) * fcr_target
-        feed_intake_daily.append(cumulative_feed * 1000.0)
+    feed_per_day_kg = (float(selected_breed.get('default_feed', 114)) / 1000.0) * sim_birds
+    
+    total_feed_so_far = 0
+    total_eggs_so_far = 0
+    
+    for w in weeks_list:
+        weekly_feed_ton = (feed_per_day_kg * 7) / 1000.0
+        total_feed_so_far += weekly_feed_ton
+        cumulative_feed_tons.append(total_feed_so_far)
+        
+        weekly_eggs = (sim_birds * (hen_housed_rate / 100.0)) * 7
+        total_eggs_so_far += weekly_eggs
+        egg_production_total.append(total_eggs_so_far)
         
     df_sim = pd.DataFrame({
-        "ระยะเวลา (วัน)": days_list,
-        "น้ำหนักประเมินรายตัว (กรัม)": weight_gain_daily,
-        "ปริมาณอาหารกินสะสม (กรัม)": feed_intake_daily
+        "อายุไก่ไข่ (สัปดาห์)": weeks_list,
+        "ยอดกินอาหารสะสมรวม (ตัน)": cumulative_feed_tons,
+        "ยอดผลผลิตไข่ไก่สะสม (ฟอง)": egg_production_total
     })
     
-    fig_sim = px.line(df_sim, x="ระยะเวลา (วัน)", y=["น้ำหนักประเมินรายตัว (กรัม)", "ปริมาณอาหารกินสะสม (กรัม)"],
-                      title="📊 แนวโน้มการเจริญเติบโตสอดคล้องกับพฤติกรรมการกินอาหาร")
+    fig_sim = px.line(df_sim, x="อายุไก่ไข่ (สัปดาห์)", y=["ยอดกินอาหารสะสมรวม (ตัน)", "ยอดผลผลิตไข่ไก่สะสม (ฟอง)"],
+                      title="📊 พยากรณ์เส้นโค้งการใช้อาหารและผลผลิตไข่ไก่สะสมประจำล็อต")
     fig_sim.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
     st.plotly_chart(fig_sim, use_container_width=True)
     
-    final_weight_kg = weight_gain_daily[-1] / 1000.0
-    total_feed_used_ton = (feed_intake_daily[-1] / 1000.0 * sim_birds) / 1000.0
-    total_feed_cost = total_feed_used_ton * 1000 * current_feed_price
-    total_investment = total_feed_cost + (sim_birds * chick_cost)
+    total_feed_cost = total_feed_so_far * 1000 * current_feed_price
+    total_investment = total_feed_cost + (sim_birds * pullet_cost)
     
-    st.markdown("### 📋 สรุปงบประมาณเมื่อสิ้นสุดโครงการ")
+    st.markdown("### 📋 ตารางสรุปประมาณการงบประมาณบริหารจัดการ")
     c_r1, c_r2, c_r3 = st.columns(3)
     with c_r1:
-        st.metric("⚖️ น้ำหนักตัวจับขายเฉลี่ยรายตัว", f"{final_weight_kg:.2f} กก.")
+        st.metric("🥚 ผลผลิตไข่ไก่รวมที่คาดว่าจะได้รับ", f"{total_eggs_so_far:,.0f} ฟอง")
     with c_r2:
-        st.metric("🌾 ความต้องการยอดใช้อาหารรวม", f"{total_feed_used_ton:.3f} ตัน")
+        st.metric("🌾 ยอดใช้อาหารสำเร็จรูปสะสม", f"{total_feed_so_far:,.2f} ตัน")
     with c_r3:
-        st.metric("💰 ประมาณการทุนรวม (พันธุ์ไก่ + อาหาร)", f"{total_investment:,.2f} บาท")
+        st.metric("💰 ทุนจมรวม (ค่าไก่สาว + ค่าอาหารปัจจุบัน)", f"{total_investment:,.2f} บาท")
     st.markdown("</div>", unsafe_allow_html=True)
