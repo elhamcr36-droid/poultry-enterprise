@@ -176,6 +176,7 @@ if not st.session_state.is_authenticated:
                     st.session_state.is_authenticated = True
                     st.session_state.user_role = user_info.get("role", "user")
                     st.session_state.user_email = f"{user_info['name']} [{user_info['role'].upper()}]"
+                    st.session_state.current_user_key = email_login
                     st.rerun()
                 else:
                     st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง")
@@ -229,10 +230,16 @@ with col_h1:
 with col_h2:
     cc1, cc2 = st.columns(2)
     with cc1:
-        if st.session_state.user_role == "user" and "admin" in st.session_state.user_email.lower():
-            if st.button("🔄 หน้า Admin", use_container_width=True):
-                st.session_state.user_role = "admin"
-                st.rerun()
+        # หากบัญชีผู้ใช้เป็นแอดมิน ให้แสดงปุ่มลัดสลับโหมดได้
+        if "admin" in st.session_state.user_email.lower() or st.session_state.user_role == "admin":
+            if st.session_state.user_role == "user":
+                if st.button("🔄 หน้า Admin", use_container_width=True):
+                    st.session_state.user_role = "admin"
+                    st.rerun()
+            else:
+                if st.button("🔄 หน้า User", use_container_width=True):
+                    st.session_state.user_role = "user"
+                    st.rerun()
     with cc2:
         if st.button("🔴 ออกจากระบบ", use_container_width=True):
             st.session_state.is_authenticated = False
@@ -249,7 +256,7 @@ if st.session_state.user_role == "admin":
     # 🛠️ ADMIN ROUTE: FULL CRUD CONTROL PANEL
     # -----------------------------------------------------------------------------------------
     st.markdown("<div style='background-color:#1e3a8a; padding:15px; border-radius:10px; margin-bottom:20px;'><h3 style='margin:0; color:#93c5fd !important;'>🛠️ FULL CRUD CONTROL PANEL: หน้าบริหารจัดการฐานข้อมูลระบบฟาร์ม</h3></div>", unsafe_allow_html=True)
-    admin_tabs = st.tabs(["🌽 จัดการวัตถุดิบอาหาร", "🐓 จัดการสายพันธุ์ไก่ไข่", "🧬 จัดการเกณฑ์โภชนาการอายุ"])
+    admin_tabs = st.tabs(["🌽 จัดการวัตถุดิบอาหาร", "🐓 จัดการสายพันธุ์ไก่ไข่", "🧬 จัดการเกณฑ์โภชนาการอายุ", "👤 จัดการบัญชีผู้ใช้ (User Management)"])
     
     with admin_tabs[0]:
         st.markdown("<div class='content-card'>### 🌽 เพิ่ม/แก้ไขคลังวัตถุดิบหลัก (Full CRUD)</div>", unsafe_allow_html=True)
@@ -316,6 +323,52 @@ if st.session_state.user_role == "admin":
     with admin_tabs[2]:
         st.markdown("<div class='content-card'>### 🧬 จัดการเกณฑ์โภชนาการเป้าหมายตามช่วงอายุสัตว์</div>", unsafe_allow_html=True)
         st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
+
+    # -----------------------------------------------------------------------------------------
+    # 👤 NEW SUB-MODULE: USER MANAGEMENT (CRUD FOR ADMIN)
+    # -----------------------------------------------------------------------------------------
+    with admin_tabs[3]:
+        st.markdown("<div class='content-card'>### 👤 ระบบบริหารจัดการบัญชีผู้ใช้งานระบบฟาร์ม (User Matrix Access Control)</div>", unsafe_allow_html=True)
+        
+        # แสดงตารางรายชื่อผู้ใช้ทั้งหมดในระบบ
+        users_list = []
+        for email, info in st.session_state.user_database.items():
+            users_list.append({
+                "Email ID / Username": email,
+                "ชื่อ": info.get("name", "-"),
+                "นามสกุล": info.get("surname", "-"),
+                "เบอร์โทรศัพท์": info.get("tel", "-"),
+                "บทบาทผู้ใช้ (Role)": info.get("role", "user"),
+                "วันที่ลงทะเบียน": info.get("reg_date", "2026-01-01")
+            })
+        st.dataframe(pd.DataFrame(users_list), use_container_width=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        uc1, uc2 = st.columns(2)
+        with uc1:
+            st.markdown("#### ✏️ แก้ไขสิทธิ์/บทบาทของผู้ใช้งาน (Update Role)")
+            selected_user_email = st.selectbox("เลือกบัญชีผู้ใช้ที่ต้องการเปลี่ยนสิทธิ์:", list(st.session_state.user_database.keys()))
+            new_role = st.selectbox("กำหนดบทบาทใหม่ให้กับผู้ใช้รายนี้:", ["user", "admin"], index=0 if st.session_state.user_database[selected_user_email]["role"] == "user" else 1)
+            
+            if st.button("💾 ยืนยันอัปเดตสิทธิ์บัญชีนี้", use_container_width=True):
+                st.session_state.user_database[selected_user_email]["role"] = new_role
+                st.success(f"เปลี่ยนบทบาทของ {selected_user_email} เป็น {new_role.upper()} สำเร็จแล้ว!")
+                st.rerun()
+                
+        with uc2:
+            st.markdown("#### ❌ ลบบัญชีผู้ใช้ถาวร (Delete User)")
+            user_to_delete = st.selectbox("เลือกบัญชีผู้ใช้ที่ต้องการลบออกจากระบบ:", ["-- เลือกบัญชีเพื่อลบ --"] + list(st.session_state.user_database.keys()))
+            
+            if st.button("🗑️ ยืนยันการลบบัญชีผู้ใช้นี้", type="primary", use_container_width=True):
+                if user_to_delete != "-- เลือกบัญชีเพื่อลบ --":
+                    if user_to_delete == "admin" or user_to_delete == "222":
+                        st.error("❌ ไม่สามารถลบบัญชีผู้ดูแลระบบหลัก (Root Admin) ของระบบได้")
+                    elif user_to_delete == st.session_state.get("current_user_key"):
+                        st.error("❌ คุณไม่สามารถลบบัญชีของคุณเองในขณะที่ล็อกอินอยู่ได้")
+                    else:
+                        del st.session_state.user_database[user_to_delete]
+                        st.warning(f"ลบบัญชีผู้ใช้ {user_to_delete} ออกจากระบบแล้ว")
+                        st.rerun()
         
     if st.button("🔄 สลับกลับไปใช้โหมดหน้าจอปรับสูตร (User Menu)"):
         st.session_state.user_role = "user"
@@ -366,7 +419,7 @@ else:
             laying_rate = st.slider("📊 อัตราการให้ไข่เฉลี่ยประจำสัปดาห์ของฝูง (%):", 10, 100, 85)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # ⚡ 🛑 AUTOMATION FIRST: สั่ง AI คำนวณเป็นค่าตั้งต้นให้ทันทีเมื่อเปิดหน้าเว็บบอร์ดมาครั้งแรก
+        # ⚡ AUTOMATION FIRST: สั่ง AI คำนวณเป็นค่าตั้งต้นให้ทันทีเมื่อเปิดหน้าเว็บบอร์ดมาครั้งแรก
         if not st.session_state.current_weights:
             st.session_state.current_weights = run_ai_solver(
                 base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"]
@@ -500,10 +553,10 @@ else:
                 feed_cost_day = feed_consumed_kg * net_cost
                 revenue_day = (laying_rate / 100.0) * egg_price
                 iofc_profit = revenue_day - feed_cost_day
-                st.metric(f"📈 กำไรเหนือค่าอาหาร (IOFC) ของ [{selected_b_name.split()[-2]}]", f"{iofc_profit:.2f} บาท/ตัว/วัน")
+                st.metric(f"📈 กำไรเหนือค่าอาหาร (IOFC) ของ [{selected_b_name.split()[-2] if len(selected_b_name.split()) > 1 else selected_b_name}]", f"{iofc_profit:.2f} บาท/ตัว/วัน")
             
             st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-            save_name_input = st.text_input("ตั้งชื่อเล่นของสูตรเพื่อกดจัดเก็บเข้าคลังประวัติ:", value=f"สูตร {selected_b_name.split()[-2]} {net_cost:.1f} บาท")
+            save_name_input = st.text_input("ตั้งชื่อเล่นของสูตรเพื่อกดจัดเก็บเข้าคลังประวัติ:", value=f"สูตร {selected_b_name.split()[-2] if len(selected_b_name.split()) > 1 else 'ไก่ไข่'} {net_cost:.1f} บาท")
             if st.button("📥 ยืนยันบันทึกสูตรอาหารนี้ลงคลัง"):
                 st.session_state.saved_formulas.append({
                     "date": str(datetime.date.today()), "name": save_name_input, "cost": round(net_cost, 2), "breed": selected_b_name, "stage": selected_stage_label,
