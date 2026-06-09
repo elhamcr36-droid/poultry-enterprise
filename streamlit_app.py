@@ -309,6 +309,7 @@ if not st.session_state.is_authenticated:
         st.stop()
 
     # --- 4.3 หน้า FORGOT PASSWORD ---
+   # --- 4.3 หน้า FORGOT PASSWORD ---
     elif st.session_state.auth_page_mode == "forgot":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
@@ -320,6 +321,7 @@ if not st.session_state.is_authenticated:
         if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
             if fg_email:
                 try:
+                    # 🔗 เชื่อมต่อ Supabase: ส่งลิงก์กู้คืนรหัสผ่านเข้าอีเมลจริง
                     supabase.auth.reset_password_for_email(fg_email)
                     st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
                 except Exception as error:
@@ -354,6 +356,7 @@ with col_h2:
     with cc2:
         if st.button("🔴 ออกจากระบบ", use_container_width=True):
             try:
+                # 🔗 เชื่อมต่อ Supabase: สั่งออกจากระบบบน Cloud
                 supabase.auth.sign_out()
             except:
                 pass
@@ -406,12 +409,17 @@ if st.session_state.user_role == "admin":
                     elif new_nut_key in st.session_state.db_nutrient_keys or new_nut_key in ["name", "min_limit", "max_limit"]:
                         st.error("❌ รหัสนี้ซ้ำหรือเป็นคำต้องห้ามของระบบ")
                     else:
-                        # อัปเดตลง Local Session State
-                        st.session_state.db_nutrient_keys[new_nut_key] = {"label": new_nut_label, "step": new_nut_step, "default": 0.0}
-                        
-                        # 💡 คำแนะนำทางเทคนิค: สั่ง INSERT ไปยังตาราง schema สารอาหารบน Supabase ได้ที่ตรงนี้เพื่อความถาวร
-                        st.success(f"🎉 เพิ่มโครงสร้างหัวข้อสารอาหาร '{new_nut_label}' เรียบร้อยแล้ว!")
-                        st.rerun()
+                        try:
+                            # 🔗 เชื่อมต่อ Supabase: บันทึกโครงสร้างสารอาหารใหม่ลงตาราง "nutrient_schema" บนคลาวด์
+                            schema_data = {"key_name": new_nut_key, "label": new_nut_label, "step": new_nut_step, "default_val": 0.0}
+                            supabase.table("nutrient_schema").insert(schema_data).execute()
+                            
+                            # อัปเดตลง Local Session State ควบคู่กันไป
+                            st.session_state.db_nutrient_keys[new_nut_key] = {"label": new_nut_label, "step": new_nut_step, "default": 0.0}
+                            st.success(f"🎉 เพิ่มโครงสร้างหัวข้อสารอาหาร '{new_nut_label}' เรียบร้อยแล้ว!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ไม่สามารถบันทึกลงฐานข้อมูลได้: {e}")
                         
         with n_col2:
             st.markdown("### ❌ ลบสารอาหาร")
@@ -423,14 +431,17 @@ if st.session_state.user_role == "admin":
                     st.markdown("<br><br><br>", unsafe_allow_html=True)
                     
                     if st.button("🗑️ ยืนยันลบออกจากระบบถาวร", type="secondary", use_container_width=True):
-                        del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
-                        
-                        # ลบหัวข้อออกจาก Session State ตัวหลัก
-                        del st.session_state.db_nutrient_keys[nut_to_del]
-                        
-                        # 💡 คำแนะนำทางเทคนิค: ยิงคำสั่ง RPC หรือ Supabase .delete() เพื่อนำคอลัมน์/ข้อมูลออกจาก cloud
-                        st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
-                        st.rerun()
+                        try:
+                            # 🔗 เชื่อมต่อ Supabase: ลบแถวตัวชี้วัดสารอาหารบนคลาวด์ออก
+                            supabase.table("nutrient_schema").delete().eq("key_name", nut_to_del).execute()
+                            
+                            del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
+                            # ลบออกจาก Local Session State
+                            del st.session_state.db_nutrient_keys[nut_to_del]
+                            st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ไม่สามารถลบจากฐานข้อมูลได้: {e}")
                 else:
                     st.warning("⚠️ ไม่มีสารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
 
@@ -439,7 +450,6 @@ if st.session_state.user_role == "admin":
         with st.expander("📊 เปิดดูคลังวัตถุดิบและราคาปัจจุบันในระบบ", expanded=False):
             st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
         
-        # UX Improvement: เปลี่ยนมาใช้ Segmented Control เป็นปุ่มกดเลือกสไตล์แท็บย่อยแทน Radio Button
         crud_mode = st.segmented_control(
             "เลือกฟังก์ชันจัดการคลังวัตถุดิบ:", 
             ["✏️ แก้ไขข้อมูลวัตถุดิบเดิม", "➕ เพิ่มวัตถุดิบใหม่", "🗑️ ลบวัตถุดิบออก"],
@@ -451,11 +461,9 @@ if st.session_state.user_role == "admin":
             selected_ing_edit = st.selectbox("เลือกวัตถุดิบที่จะปรับปรุงข้อมูล:", list(st.session_state.db_ingredients.keys()))
             target_ing = st.session_state.db_ingredients[selected_ing_edit]
             
-            # จัดกรอกข้อมูลเป็นฟอร์มล้อมกรอบสวยงาม
             with st.form(key=f"form_edit_{selected_ing_edit}"):
                 st.markdown(f"#### 📝 แก้ไขข้อมูลสารอาหารของ: **{selected_ing_edit}**")
                 
-                # โซนกรอกข้อจำกัดของ AI
                 c_limits = st.columns(2)
                 with c_limits[0]:
                     edit_ing_min = st.number_input("สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, max_value=100.0, value=float(target_ing.get("min_limit", 0.0)), step=0.1)
@@ -463,7 +471,6 @@ if st.session_state.user_role == "admin":
                     edit_ing_max = st.number_input("สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, max_value=100.0, value=float(target_ing.get("max_limit", 100.0)), step=0.1)
                 
                 st.markdown("**📊 ค่าโภชนาการและสารอาหาร**")
-                # สร้าง Grid 3 คอลัมน์แบบ Dynamic ให้ช่องกรอกเรียงตัวสวยงามพอดีหน้าจอ
                 edited_values = {}
                 ec = st.columns(3)
                 for idx, (nut_key, nut_info) in enumerate(st.session_state.db_nutrient_keys.items()):
@@ -476,9 +483,21 @@ if st.session_state.user_role == "admin":
                     if edit_ing_min > edit_ing_max:
                         st.error("❌ ข้อผิดพลาด: สัดส่วนต่ำสุด (% Min) ห้ามมากกว่าสัดส่วนสูงสุด (% Max)")
                     else:
-                        st.session_state.db_ingredients[selected_ing_edit].update(edited_values)
-                        st.session_state.db_ingredients[selected_ing_edit].update({"min_limit": edit_ing_min, "max_limit": edit_ing_max})
-                        st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' เรียบร้อยแล้ว")
+                        try:
+                            # เตรียมก้อนข้อมูลเพื่ออัปเดตลง Supabase
+                            db_payload = {"min_limit": edit_ing_min, "max_limit": edit_ing_max}
+                            db_payload.update(edited_values)
+                            
+                            # 🔗 เชื่อมต่อ Supabase: ยิงคำสั่งอัปเดตข้อมูลวัตถุดิบ
+                            supabase.table("ingredients").update(db_payload).eq("name", selected_ing_edit).execute()
+                            
+                            # อัปเดต Local State
+                            st.session_state.db_ingredients[selected_ing_edit].update(edited_values)
+                            st.session_state.db_ingredients[selected_ing_edit].update({"min_limit": edit_ing_min, "max_limit": edit_ing_max})
+                            st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' เรียบร้อยแล้ว")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ไม่สามารถบันทึกลงฐานข้อมูลได้: {e}")
                         st.rerun()
 
         elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
