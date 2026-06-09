@@ -354,285 +354,281 @@ if "db_nutrient_keys" not in st.session_state:
     }
 
 # ==========================================
-# 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE
+# 🧠 SYSTEM INITIALIZATION (ระบบจำลองโครงสร้างสารอาหารเริ่มต้น)
+# ==========================================
+if "db_nutrient_keys" not in st.session_state:
+    st.session_state.db_nutrient_keys = {
+        "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
+        "protein": {"label": "โปรตีนดิบ (% CP)", "step": 0.1, "default": 0.0},
+        "me": {"label": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "step": 10.0, "default": 0.0},
+        "calcium": {"label": "แคลเซียม (% Ca)", "step": 0.01, "default": 0.0},
+        "phos": {"label": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "step": 0.01, "default": 0.0},
+        "lysine": {"label": "อะมิโน ไลซีน (% Lys)", "step": 0.01, "default": 0.0},
+        "methionine": {"label": "อะมิโน เมทไธโอนีน (% Met)", "step": 0.01, "default": 0.0},
+        "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0}
+    }
+
+# ==========================================
+# 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE (UX/UI PREMIUM VERSION)
 # ==========================================
 if st.session_state.user_role == "admin":
-    st.markdown("<div style='background-color:#1e3a8a; padding:15px; border-radius:10px; margin-bottom:20px;'><h3 style='margin:0; color:#93c5fd !important;'>💻 ระบบจัดการข้อมูลดิบหลังบ้าน (Master Data Dynamic CRUD Control)</h3></div>", unsafe_allow_html=True)
+    # ส่วนหัวดีไซน์ให้โปร่งและเรียบหรูขึ้น
+    st.title("💻 Admin Master Data Control")
+    st.caption("ระบบจัดการโครงสร้างสารอาหาร วัตถุดิบ สายพันธุ์ และผู้ใช้งานแบบ Dynamic")
     
-    # เพิ่มแท็บ "ตั้งค่าหัวข้อสารอาหาร" เข้ามาเป็นแท็บแรกเพื่อให้จัดการระบบโครงสร้างได้ก่อนเลย
+    # เมนูแท็บหลัก
     admin_tabs = st.tabs([
-        "⚙️ 0. ตั้งค่าหัวข้อสารอาหารเอง",
-        "🌽 1. คลังวัตถุดิบ & สารอาหาร", 
-        "🐓 2. จัดการข้อมูลทำเนียบสายพันธุ์", 
-        "🧬 3. แก้ไขเกณฑ์โภชนาการตามช่วงอายุ", 
-        "👤 4. จัดการสิทธิ์บัญชีผู้ใช้งาน"
+        "⚙️ ตั้งค่าหัวข้อสารอาหาร",
+        "🌽 คลังวัตถุดิบ & สารอาหาร", 
+        "🐓 ทำเนียบสายพันธุ์ไก่ไข่", 
+        "🧬 เกณฑ์โภชนาการตามช่วงอายุ", 
+        "👤 การจัดการสิทธิ์ผู้ใช้งาน"
     ])
     
-    # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง (โครงสร้างระบบ) ---
+    # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง ---
     with admin_tabs[0]:
-        st.markdown("<div class='content-card'>### ⚙️ ระบบจัดการและเพิ่มหัวข้อสารอาหารด้วยตัวเอง</div>", unsafe_allow_html=True)
-        st.write("คุณสามารถเพิ่มตัวชี้วัดโภชนาการใหม่ๆ (เช่น ไขมัน, วิตามิน) หรือลบสิ่งที่ไม่ต้องการออกเพื่อให้ระบบเปลี่ยนช่องกรอกข้อมูลตามความต้องการได้ทันที")
+        st.subheader("⚙️ สารอาหารที่มีในระบบปัจจุบัน")
         
-        # แสดงรายการสารอาหารปัจจุบัน
-        df_nutrients = pd.DataFrame([
-            {"รหัสสารอาหาร (Key)": k, "ชื่อที่แสดง (Label)": v["label"], "ความละเอียดในการปรับ (Step)": v["step"]} 
-            for k, v in st.session_state.db_nutrient_keys.items()
-        ])
-        st.dataframe(df_nutrients, use_container_width=True)
+        # ยุบตารางสรุปไว้ใน Expander เพื่อไม่ให้รกสายตา
+        with st.expander("📊 ดูโครงสร้างสารอาหารที่ใช้งานอยู่ทั้งหมด", expanded=True):
+            df_nutrients = pd.DataFrame([
+                {"รหัสระบบ (Key)": k, "ชื่อตัวชี้วัด (Label)": v["label"], "ความละเอียด (Step)": v["step"]} 
+                for k, v in st.session_state.db_nutrient_keys.items()
+            ])
+            st.dataframe(df_nutrients, use_container_width=True, hide_index=True)
         
-        n_col1, n_col2 = st.columns(2)
+        st.markdown("---")
+        n_col1, n_col2 = st.columns(2, gap="large")
+        
         with n_col1:
-            st.markdown("#### ➕ เพิ่มสารอาหารใหม่ในระบบ")
-            new_nut_key = st.text_input("รหัสภาษาอังกฤษ (เช่น fat, vitamin_e):").strip().lower()
-            new_nut_label = st.text_input("ชื่อภาษาไทยที่ใช้แสดง (เช่น ไขมันดิบ (% Crude Fat)):")
-            new_nut_step = st.number_input("ความละเอียดในการกดปุ่มเพิ่ม/ลดค่า (Step):", min_value=0.001, max_value=100.0, value=0.1, format="%.3f")
-            
-            if st.button("➕ ยืนยันสร้างหัวข้อสารอาหารใหม่", use_container_width=True):
-                if not new_nut_key or not new_nut_label:
-                    st.error("❌ กรุณากรอกข้อมูลให้ครบทั้งรหัสภาษาอังกฤษและชื่อแสดงผล")
-                elif new_nut_key in st.session_state.db_nutrient_keys or new_nut_key in ["name", "min_limit", "max_limit"]:
-                    st.error("❌ รหัสสารอาหารนี้ซ้ำกับที่มีอยู่แล้วในระบบ")
-                else:
-                    # อัปเดตโครงสร้างระบบ
-                    st.session_state.db_nutrient_keys[new_nut_key] = {
-                        "label": new_nut_label, "step": new_nut_step, "default": 0.0
-                    }
-                    # ใส่ค่าเริ่มต้นให้กับทุกวัตถุดิบที่มีอยู่ในคลังเดิมป้องกันระบบพัง
-                    for ing in st.session_state.db_ingredients.values():
-                        if new_nut_key not in ing:
-                            ing[new_nut_key] = 0.0
-                    st.success(f"🎉 เพิ่มสารอาหาร '{new_nut_label}' เข้าสู่ระบบแล้ว ช่องกรอกข้อมูลในแท็บอื่นๆ จะปรากฏขึ้นทันที!")
-                    st.rerun()
-                    
+            st.markdown("### ➕ เพิ่มสารอาหารใหม่")
+            with st.container(border=True):
+                new_nut_key = st.text_input("รหัสอังกฤษ (เช่น fat, ash):", placeholder="กรอกพิมพ์เล็กห้ามมีช่องว่าง").strip().lower()
+                new_nut_label = st.text_input("ชื่อภาษาไทยที่แสดง (เช่น ไขมันดิบ (%)):", placeholder="เช่น วิตามินอี (mg/kg)")
+                new_nut_step = st.number_input("ความละเอียดในการกดปุ่มเพิ่ม/ลดค่า:", min_value=0.001, max_value=100.0, value=0.1, format="%.3f")
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("✨ ยืนยันสร้างหัวข้อสารอาหาร", type="primary", use_container_width=True):
+                    if not new_nut_key or not new_nut_label:
+                        st.error("❌ กรุณากรอกข้อมูลให้ครบทั้งสองช่อง")
+                    elif new_nut_key in st.session_state.db_nutrient_keys or new_nut_key in ["name", "min_limit", "max_limit"]:
+                        st.error("❌ รหัสนี้ซ้ำหรือเป็นคำต้องห้ามของระบบ")
+                    else:
+                        st.session_state.db_nutrient_keys[new_nut_key] = {"label": new_nut_label, "step": new_nut_step, "default": 0.0}
+                        for ing in st.session_state.db_ingredients.values():
+                            if new_nut_key not in ing: ing[new_nut_key] = 0.0
+                        st.success(f"🎉 ระบบงอกช่องกรอก '{new_nut_label}' ให้ในแท็บอื่นๆ เรียบร้อยแล้ว!")
+                        st.rerun()
+                        
         with n_col2:
-            st.markdown("#### ❌ ลบสารอาหารออกจากระบบ")
-            # ไม่ยอมให้ลบราคาที่เป็นปัจจัยหลักในการคำนวณสูตรอาหาร
-            removable_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
-            nut_to_del = st.selectbox("เลือกสารอาหารที่จะลบทิ้งถาวร:", removable_keys, format_func=lambda x: st.session_state.db_nutrient_keys[x]["label"])
-            
-            if st.button("🗑️ ยืนยันลบสารอาหารนี้ออกจากระบบ", type="primary", use_container_width=True):
-                del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
-                # ลบออกจากโครงสร้างหลัก
-                del st.session_state.db_nutrient_keys[nut_to_del]
-                # ลบข้อมูลนี้ออกจากวัตถุดิบทุกตัวในคลัง
-                for ing in st.session_state.db_ingredients.values():
-                    if nut_to_del in ing:
-                        del ing[nut_to_del]
-                st.success(f"🔥 ลบสารอาหาร '{del_label}' ออกจากระบบการกรอกข้อมูลเรียบร้อยแล้ว")
-                st.rerun()
+            st.markdown("### ❌ ลบสารอาหาร")
+            with st.container(border=True):
+                removable_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
+                nut_to_del = st.selectbox("เลือกสารอาหารที่ต้องการถอดถอน:", removable_keys, format_func=lambda x: st.session_state.db_nutrient_keys[x]["label"])
+                st.markdown("<br><br><br>", unsafe_allow_html=True) # ปรับระยะเว้นให้ปุ่มเท่ากัน
+                if st.button("🗑️ ยืนยันลบออกจากระบบถาวร", type="secondary", use_container_width=True):
+                    del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
+                    del st.session_state.db_nutrient_keys[nut_to_del]
+                    for ing in st.session_state.db_ingredients.values():
+                        if nut_to_del in ing: del ing[nut_to_del]
+                    st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
+                    st.rerun()
 
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
     with admin_tabs[1]:
-        st.markdown("<div class='content-card'>### 🌽 คลังข้อมูลดิบวัตถุดิบและข้อจำกัดในสูตร ณ ปัจจุบัน</div>", unsafe_allow_html=True)
-        st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
+        with st.expander("📊 เปิดดูคลังวัตถุดิบและราคาปัจจุบันในระบบ", expanded=False):
+            st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
         
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        crud_mode = st.radio("เลือกการทำงานที่ต้องการ:", ["✏️ แก้ไขข้อมูลสารอาหารวัตถุดิบเดิม", "➕ เพิ่มวัตถุดิบใหม่เข้าคลัง", "🗑️ ลบวัตถุดิบออกจากระบบ"], horizontal=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+        # UX Improvement: เปลี่ยนมาใช้ Segmented Control เป็นปุ่มกดเลือกสไตล์แท็บย่อยแทน Radio Button
+        crud_mode = st.segmented_control(
+            "เลือกฟังก์ชันจัดการคลังวัตถุดิบ:", 
+            ["✏️ แก้ไขข้อมูลวัตถุดิบเดิม", "➕ เพิ่มวัตถุดิบใหม่", "🗑️ ลบวัตถุดิบออก"],
+            default="✏️ แก้ไขข้อมูลวัตถุดิบเดิม"
+        )
+        st.markdown("---")
 
-        if crud_mode == "✏️ แก้ไขข้อมูลสารอาหารวัตถุดิบเดิม":
-            st.markdown("#### ✏️ ปรับปรุงแก้ไขค่าสารอาหารและราคากลางรายวัตถุดิบ")
-            selected_ing_edit = st.selectbox("เลือกวัตถุดิบที่ต้องการเข้าไปแก้ไขข้อมูล:", list(st.session_state.db_ingredients.keys()))
+        if crud_mode == "✏️ แก้ไขข้อมูลวัตถุดิบเดิม":
+            selected_ing_edit = st.selectbox("เลือกวัตถุดิบที่จะปรับปรุงข้อมูล:", list(st.session_state.db_ingredients.keys()))
             target_ing = st.session_state.db_ingredients[selected_ing_edit]
             
-            # --- สร้างช่องกรอกข้อมูลตามสารอาหารที่มีในระบบ ณ ขณะนั้นโดยอัตโนมัติ (Dynamic Inputs) ---
-            edited_values = {}
-            ec = st.columns(3)
-            
-            # วนลูปสร้างช่องกรอกตามโครงสร้างที่แอดมินตั้งค่าไว้เอง
-            for idx, (nut_key, nut_info) in enumerate(st.session_state.db_nutrient_keys.items()):
-                col_to_use = ec[idx % 2] # กระจายลงคอลัมน์ 1 และ 2 สำหรับสารอาหารทั่วไป
-                with col_to_use:
-                    current_val = float(target_ing.get(nut_key, nut_info["default"]))
-                    edited_values[nut_key] = st.number_input(
-                        f"แก้ไข{nut_info['label']}:", 
-                        min_value=0.0, 
-                        value=current_val, 
-                        step=nut_info["step"], 
-                        key=f"edit_{nut_key}_{selected_ing_edit}"
-                    )
-            
-            # คอลัมน์ที่ 3 ล็อกไว้สำหรับข้อจำกัด AI เสมอ
-            with ec[2]:
-                st.markdown("<div style='background-color:#334155; padding:15px; border-radius:10px;'><strong>⚙️ เกณฑ์จำกัดข้อกำหนดในการคำนวณสูตรของ AI</strong></div>", unsafe_allow_html=True)
-                edit_ing_min = st.number_input("ข้อจำกัด: สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, max_value=100.0, value=float(target_ing.get("min_limit", 0.0)), step=0.1, key=f"e_min_{selected_ing_edit}")
-                edit_ing_max = st.number_input("ข้อจำกัด: สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, max_value=100.0, value=float(target_ing.get("max_limit", 100.0)), step=0.1, key=f"e_max_{selected_ing_edit}")
-
-            if st.button("💾 บันทึกอัปเดตการแก้ไขสารอาหารทั้งหมด", type="primary", use_container_width=True):
-                if edit_ing_min > edit_ing_max:
-                    st.error("❌ ไม่สามารถบันทึกได้: ค่าจำกัดต่ำสุด (% Min) ห้ามมากกว่าค่าจำกัดสูงสุด (% Max)")
-                else:
-                    # อัปเดตข้อมูลสารอาหารแปรผันตามไดนามิกลิสต์
-                    st.session_state.db_ingredients[selected_ing_edit].update(edited_values)
-                    # อัปเดตข้อจำกัด AI
-                    st.session_state.db_ingredients[selected_ing_edit].update({
-                        "min_limit": edit_ing_min, "max_limit": edit_ing_max
-                    })
-                    st.success(f"🎉 อัปเดตโครงสร้างข้อมูลสารอาหารของวัตถุดิบ '{selected_ing_edit}' สำเร็จเรียบร้อย!")
-                    st.rerun()
-
-        elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่เข้าคลัง":
-            st.markdown("#### ➕ เพิ่มรายการวัตถุดิบใหม่และสารอาหารตั้งต้น")
-            c = st.columns(2)
-            
-            with c[0]:
-                ing_name = st.text_input("ระบุชื่อวัตถุดิบใหม่:", placeholder="เช่น รำสกัดน้ำมันเกรด A")
+            # จัดกรอกข้อมูลเป็นฟอร์มล้อมกรอบสวยงาม
+            with st.form(key=f"form_edit_{selected_ing_edit}"):
+                st.markdown(f"#### 📝 แก้ไขข้อมูลสารอาหารของ: **{selected_ing_edit}**")
                 
-            # สร้างช่องกรอกสารอาหารใหม่แบบอัตโนมัติกระจายซ้ายขวาตามความเหมาะสม
-            new_material_data = {}
-            for idx, (nut_key, nut_info) in enumerate(st.session_state.db_nutrient_keys.items()):
-                col_idx = idx % 2
-                with c[col_idx]:
-                    new_material_data[nut_key] = st.number_input(
-                        f"ปริมาณ{nut_info['label']}:", 
-                        min_value=0.0, 
-                        value=nut_info["default"], 
-                        step=nut_info["step"],
-                        key=f"add_nut_{nut_key}"
-                    )
-            
-            with c[0]:
-                ing_min = st.number_input("ข้อจำกัดขั้นต่ำที่ต้องใส่ในสูตร (%):", min_value=0.0, value=0.0)
-            with c[1]:
-                ing_max = st.number_input("ข้อจำกัดสูงสุดที่ใส่ได้ในสูตร (%):", min_value=0.0, value=100.0)
-            
-            if st.button("➕ ยืนยันเพิ่มวัตถุดิบชิ้นใหม่นี้เข้าฐานข้อมูลหลัก", use_container_width=True):
-                if not ing_name.strip():
-                    st.warning("⚠️ กรุณาระบุชื่อวัตถุดิบก่อนกดบันทึก")
-                elif ing_name in st.session_state.db_ingredients:
-                    st.error(f"❌ มีวัตถุดิบชื่อ '{ing_name}' อยู่ในคลังแล้ว")
-                elif ing_min > ing_max:
-                    st.error("❌ ไม่สามารถบันทึกได้: ค่าจำกัดต่ำสุด ห้ามมากกว่าค่าจำกัดสูงสุด")
-                else:
-                    # รวมข้อมูลชื่อและสารอาหารแปรผันทั้งหมดเข้าตัวแปรฐานข้อมูล
-                    base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
-                    base_data.update(new_material_data)
-                    
-                    st.session_state.db_ingredients[ing_name] = base_data
-                    st.success(f"🎉 เพิ่มวัตถุดิบ '{ing_name}' เข้าสู่ระบบหลังบ้านเรียบร้อยแล้ว!")
-                    st.rerun()
+                # โซนกรอกข้อจำกัดของ AI
+                c_limits = st.columns(2)
+                with c_limits[0]:
+                    edit_ing_min = st.number_input("สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, max_value=100.0, value=float(target_ing.get("min_limit", 0.0)), step=0.1)
+                with c_limits[1]:
+                    edit_ing_max = st.number_input("สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, max_value=100.0, value=float(target_ing.get("max_limit", 100.0)), step=0.1)
+                
+                st.markdown("**📊 ค่าโภชนาการและสารอาหาร**")
+                # สร้าง Grid 3 คอลัมน์แบบ Dynamic ให้ช่องกรอกเรียงตัวสวยงามพอดีหน้าจอ
+                edited_values = {}
+                ec = st.columns(3)
+                for idx, (nut_key, nut_info) in enumerate(st.session_state.db_nutrient_keys.items()):
+                    with ec[idx % 3]:
+                        current_val = float(target_ing.get(nut_key, nut_info["default"]))
+                        edited_values[nut_key] = st.number_input(f"{nut_info['label']}:", min_value=0.0, value=current_val, step=nut_info["step"])
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.form_submit_button("💾 บันทึกการเปลี่ยนแปลงทั้งหมด", type="primary", use_container_width=True):
+                    if edit_ing_min > edit_ing_max:
+                        st.error("❌ ข้อผิดพลาด: สัดส่วนต่ำสุด (% Min) ห้ามมากกว่าสัดส่วนสูงสุด (% Max)")
+                    else:
+                        st.session_state.db_ingredients[selected_ing_edit].update(edited_values)
+                        st.session_state.db_ingredients[selected_ing_edit].update({"min_limit": edit_ing_min, "max_limit": edit_ing_max})
+                        st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' เรียบร้อยแล้ว")
+                        st.rerun()
 
-        elif crud_mode == "🗑️ ลบวัตถุดิบออกจากระบบ":
-            st.markdown("#### ❌ ลบรายการวัตถุดิบออกจากฐานข้อมูลระบบ")
-            to_del = st.selectbox("เลือกวัตถุดิบที่จะถูกถอดออกจากฐานข้อมูลกลางถาวร:", list(st.session_state.db_ingredients.keys()))
-            if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบนี้ออกจากฐานข้อมูล", type="primary", use_container_width=True):
+        elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
+            with st.form(key="form_add_new_ingredient"):
+                st.markdown("#### ➕ ลงทะเบียนวัตถุดิบตัวใหม่เข้าคลังกลาง")
+                ing_name = st.text_input("📝 ระบุชื่อวัตถุดิบใหม่:", placeholder="เช่น รำข้าวหอมมะลิบดละเอียด")
+                
+                c_limits = st.columns(2)
+                with c_limits[0]:
+                    ing_min = st.number_input("สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, value=0.0)
+                with c_limits[1]:
+                    ing_max = st.number_input("สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, value=100.0)
+                
+                st.markdown("**📊 ระบุสารอาหารตั้งต้น**")
+                new_material_data = {}
+                ac = st.columns(3)
+                for idx, (nut_key, nut_info) in enumerate(st.session_state.db_nutrient_keys.items()):
+                    with ac[idx % 3]:
+                        new_material_data[nut_key] = st.number_input(f"{nut_info['label']}:", min_value=0.0, value=nut_info["default"], step=nut_info["step"])
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.form_submit_button("➕ บันทึกเพิ่มเข้าคลังสินค้ากลาง", type="primary", use_container_width=True):
+                    if not ing_name.strip():
+                        st.error("❌ กรุณากรอกชื่อวัตถุดิบด้วยครับ")
+                    elif ing_name in st.session_state.db_ingredients:
+                        st.error(f"❌ รายการ '{ing_name}' มีในระบบอยู่แล้ว")
+                    elif ing_min > ing_max:
+                        st.error("❌ ข้อผิดพลาด: ค่าต่ำสุดห้ามมากกว่าค่าสูงสุด")
+                    else:
+                        base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
+                        base_data.update(new_material_data)
+                        st.session_state.db_ingredients[ing_name] = base_data
+                        st.success(f"🎉 นำเข้า '{ing_name}' สู่ฐานข้อมูลเรียบร้อย!")
+                        st.rerun()
+
+        elif crud_mode == "🗑️ ลบวัตถุดิบออก":
+            st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
+            to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
+            if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
                 del st.session_state.db_ingredients[to_del]
-                st.success(f"🔥 ถอนข้อมูล '{to_del}' ออกจากระบบเรียบร้อยแล้ว!")
+                st.success(f"🔥 ลบ '{to_del}' ออกจากระบบแล้ว")
                 st.rerun()
 
     # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ ---
     with admin_tabs[2]:
-        st.markdown("<div class='content-card'>### 🐓 รายชื่อสายพันธุ์ไก่ไข่ที่อนุญาตให้ใช้งานในระบบ</div>", unsafe_allow_html=True)
-        st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True)
+        with st.expander("📊 เปิดดูทำเนียบสายพันธุ์ไก่ไข่ในระบบทั้งหมด", expanded=True):
+            st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True, hide_index=True)
             
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        bc1, bc2 = st.columns(2)
+        st.markdown("---")
+        bc1, bc2 = st.columns(2, gap="large")
+        
         with bc1:
-            st.markdown("#### ➕ เพิ่มรายชื่อสายพันธุ์การค้าใหม่")
-            b_group = st.selectbox("กำหนดกลุ่มสายพันธุ์หลัก:", [g["group_name"] for g in st.session_state.db_groups])
-            b_name = st.text_input("ชื่อทางการค้าของสายพันธุ์ (Breed Name):", placeholder="เช่น นอฟ บราวน์")
-            b_egg = st.text_input("ลักษณะเด่น/สีของเปลือกไข่:", placeholder="เช่น น้ำตาลอ่อน")
-            b_feed = st.number_input("อัตราการบริโภคอาหารตามคู่มือสายพันธุ์ (กรัม/ตัว/วัน):", value=115.0)
-            
-            if st.button("➕ ยืนยันการเพิ่มสายพันธุ์เข้าทำเนียบ", use_container_width=True):
-                if b_name.strip():
-                    st.session_state.db_breeds.append({
-                        "group_name": b_group, "breed_name": b_name, "egg_color": b_egg, "default_feed": b_feed
-                    })
-                    st.success(f"🎉 เพิ่มข้อมูลสายพันธุ์ '{b_name}' เข้าสู่ระบบแล้ว!")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
+            st.markdown("### ➕ เพิ่มสายพันธุ์ใหม่")
+            with st.container(border=True):
+                b_group = st.selectbox("กลุ่มสายพันธุ์หลัก:", [g["group_name"] for g in st.session_state.db_groups])
+                b_name = st.text_input("ชื่อทางการค้า (Breed Name):", placeholder="เช่น ไฮ-เซ็กซ์ บราวน์")
+                b_egg = st.text_input("ลักษณะเด่น/สีของเปลือกไข่:", placeholder="เช่น เปลือกไข่สีน้ำตาลเข้ม")
+                b_feed = st.number_input("อัตรากินอาหารตามคู่มือ (กรัม/ตัว/วัน):", value=115.0, step=1.0)
+                if st.button("➕ บันทึกสายพันธุ์ใหม่", use_container_width=True, type="primary"):
+                    if b_name.strip():
+                        st.session_state.db_breeds.append({"group_name": b_group, "breed_name": b_name, "egg_color": b_egg, "default_feed": b_feed})
+                        st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
+                        st.rerun()
+                    else: st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
         with bc2:
-            st.markdown("#### ❌ ลบข้อมูลสายพันธุ์ออกจากทำเนียบ")
-            if st.session_state.db_breeds:
-                b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการถอนรากถอนโคน:", [b["breed_name"] for b in st.session_state.db_breeds])
-                if st.button("🗑️ ยืนยันลบสายพันธุ์นี้ออกจากระบบ", type="primary", use_container_width=True):
-                    st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
-                    st.success(f"🔥 ถอดสายพันธุ์ '{b_del}' ออกเรียบร้อยแล้ว!")
-                    st.rerun()
-            else:
-                st.info("ไม่มีข้อมูลสายพันธุ์ในระบบให้ลบ")
+            st.markdown("### ❌ ลบข้อมูลสายพันธุ์")
+            with st.container(border=True):
+                if st.session_state.db_breeds:
+                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b["breed_name"] for b in st.session_state.db_breeds])
+                    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+                    if st.button("🗑️ ยืนยันลบออกจากทำเนียบ", type="primary", use_container_width=True):
+                        st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
+                        st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
+                        st.rerun()
+                else: st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
 
     # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการสัตว์แยกตามอายุ ---
     with admin_tabs[3]:
-        st.markdown("<div class='content-card'>### 🧬 แก้ไขค่าเกณฑ์มาตรฐานความต้องการสารอาหารประจำช่วงอายุของสัตว์</div>", unsafe_allow_html=True)
-        st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
+        with st.expander("📊 เปิดดูค่าเกณฑ์มาตรฐานโภชนาการสัตว์ ณ ปัจจุบัน", expanded=False):
+            st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
         
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-        st.markdown("#### ✏️ ปรับเปลี่ยนเกณฑ์ข้อกำหนดสารอาหารขั้นต่ำประจำช่วงอายุ")
-        select_stage_crud = st.selectbox("เลือกช่วงระยะผลิตที่ต้องการปรับแก้เกณฑ์ควบคุม:", list(st.session_state.db_targets.keys()), format_func=lambda x: st.session_state.db_targets[x]["stage_name"])
+        st.markdown("### ✏️ ปรับเปลี่ยนเกณฑ์ข้อกำหนดสารอาหารขั้นต่ำประจำช่วงอายุ")
+        select_stage_crud = st.selectbox("เลือกช่วงระยะผลิตของไก่ไข่ที่ต้องการแก้ไขเกณฑ์:", list(st.session_state.db_targets.keys()), format_func=lambda x: st.session_state.db_targets[x]["stage_name"])
         
-        # ช่องกรอกความต้องการโภชนาการสัตว์งอกออกมาตามสารอาหารในระบบอัตโนมัติเช่นกัน (ยกเว้นราคา)
-        sc = st.columns(3)
-        updated_target_values = {}
-        
-        target_nut_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
-        for idx, nut_key in enumerate(target_nut_keys):
-            nut_info = st.session_state.db_nutrient_keys[nut_key]
-            col_idx = idx % 3
-            with sc[col_idx]:
-                # ดึงค่าเดิมที่มีในระบบ หากไม่มีให้ดึงค่า default
-                current_target_val = float(st.session_state.db_targets[select_stage_crud].get(nut_key, 0.0))
-                updated_target_values[nut_key] = st.number_input(
-                    f"แก้ไขเกณฑ์{nut_info['label']}:",
-                    value=current_target_val,
-                    step=nut_info["step"],
-                    key=f"target_edit_{nut_key}_{select_stage_crud}"
-                )
+        with st.form(key=f"form_target_{select_stage_crud}"):
+            st.markdown(f"📝 ตั้งค่าเกณฑ์ขั้นต่ำสำหรับช่วงอายุ: **{st.session_state.db_targets[select_stage_crud]['stage_name']}**")
             
-        if st.button("💾 ยืนยันบันทึกเกณฑ์โภชนาการช่วงอายุใหม่", use_container_width=True):
-            st.session_state.db_targets[select_stage_crud].update(updated_target_values)
-            st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการประจำช่วงอายุสำเร็จแล้ว!")
-            st.rerun()
+            sc = st.columns(3)
+            updated_target_values = {}
+            target_nut_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
+            
+            for idx, nut_key in enumerate(target_nut_keys):
+                nut_info = st.session_state.db_nutrient_keys[nut_key]
+                with sc[idx % 3]:
+                    current_target_val = float(st.session_state.db_targets[select_stage_crud].get(nut_key, 0.0))
+                    updated_target_values[nut_key] = st.number_input(f"ขั้นต่ำของ {nut_info['label']}:", value=current_target_val, step=nut_info["step"])
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้", type="primary", use_container_width=True):
+                st.session_state.db_targets[select_stage_crud].update(updated_target_values)
+                st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
+                st.rerun()
 
     # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
     with admin_tabs[4]:
-        st.markdown("<div class='content-card'>### 👤 บัญชีรายชื่อผู้ใช้งานและระดับสิทธิ์การเข้าถึงระบบทั้งหมด (User Management)</div>", unsafe_allow_html=True)
+        st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
         
+        # UX Improvement: ตกแต่งตารางผู้ใช้ให้อ่านง่าย แอดมินมองสิทธิ์ขาดได้ชัดเจน
         users_list = []
         for email, info in st.session_state.user_database.items():
+            role_badge = "🔑 ADMIN" if info.get("role") == "admin" else "👤 USER"
             users_list.append({
                 "Email ID / Username": email,
-                "ชื่อ": info.get("name", "-"),
-                "นามสกุล": info.get("surname", "-"),
+                "ชื่อ-นามสกุล": f"{info.get('name', '-')} {info.get('surname', '-')}",
                 "เบอร์โทรศัพท์": info.get("tel", "-"),
-                "บทบาทผู้ใช้ (Role)": info.get("role", "user"),
+                "ระดับสิทธิ์ (Role)": role_badge,
                 "วันที่ลงทะเบียน": info.get("reg_date", "2026-01-01")
             })
-        st.dataframe(pd.DataFrame(users_list), use_container_width=True)
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        st.dataframe(pd.DataFrame(users_list), use_container_width=True, hide_index=True)
+        st.markdown("---")
         
-        uc1, uc2 = st.columns(2)
+        uc1, uc2 = st.columns(2, gap="large")
         with uc1:
-            st.markdown("#### ✏️ เปลี่ยนแปลงสิทธิ์ของกลุ่มผู้ใช้ (Update User Role)")
-            selected_user_email = st.selectbox("เลือกบัญชีอีเมลที่ต้องการปรับระดับสิทธิ์:", list(st.session_state.user_database.keys()))
-            current_user_role = st.session_state.user_database[selected_user_email]["role"]
-            new_role = st.selectbox("มอบสิทธิ์การใช้งานใหม่:", ["user", "admin"], index=0 if current_user_role == "user" else 1, key=f"role_select_{selected_user_email}")
-            
-            if st.button("💾 บันทึกเปลี่ยนสิทธิ์การเข้าใช้งาน", use_container_width=True):
-                st.session_state.user_database[selected_user_email]["role"] = new_role
-                st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} เรียบร้อย!")
-                st.rerun()
+            st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
+            with st.container(border=True):
+                selected_user_email = st.selectbox("เลือกบัญชีอีเมลที่ต้องการแก้ไข:", list(st.session_state.user_database.keys()))
+                current_user_role = st.session_state.user_database[selected_user_email]["role"]
+                new_role = st.selectbox("ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:", ["user", "admin"], index=0 if current_user_role == "user" else 1)
+                if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
+                    st.session_state.user_database[selected_user_email]["role"] = new_role
+                    st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
+                    st.rerun()
                 
         with uc2:
-            st.markdown("#### ❌ ลบบัญชีผู้ใช้ (Delete User Account)")
-            user_to_delete = st.selectbox("เลือกไอดีผู้ใช้ที่ต้องการลบถาวร:", ["-- เลือกบัญชีเพื่อลบ --"] + list(st.session_state.user_database.keys()))
-            
-            if st.button("🗑️ ยืนยันคำสั่งระงับและลบบัญชีนี้", type="primary", use_container_width=True):
-                if user_to_delete != "-- เลือกบัญชีเพื่อลบ --":
-                    if user_to_delete in ["admin", "222"]:
-                        st.error("❌ บัญชีผู้ดูแลระบบตั้งต้น (System Root Account) ไม่สามารถลบได้")
+            st.markdown("### ❌ ระงับและลบบัญชี")
+            with st.container(border=True):
+                user_to_delete = st.selectbox("เลือกบัญชีที่จะลบออกจากระบบถาวร:", ["-- เลือกบัญชี --"] + list(st.session_state.user_database.keys()))
+                if st.button("🗑️ ยืนยันคำสั่งลบบัญชีผู้ใช้", type="primary", use_container_width=True):
+                    if user_to_delete == "-- เลือกบัญชี --":
+                        st.warning("⚠️ กรุณาเลือกบัญชีผู้ใช้ก่อนกดยืนยัน")
+                    elif user_to_delete in ["admin", "222"]:
+                        st.error("❌ บัญชี Root Account ของระบบ ไม่สามารถลบได้")
                     elif user_to_delete == st.session_state.get("current_user_key"):
-                        st.error("❌ คุณไม่สามารถสั่งลบบัญชีปัจจุบันที่คุณกำลังล็อกอินทำงานอยู่ได้")
+                        st.error("❌ คุณไม่สามารถสั่งลบบัญชีตัวเองที่กำลังใช้งานอยู่ได้")
                     else:
                         del st.session_state.user_database[user_to_delete]
-                        st.success(f"🔥 ลบบัญชีผู้ใช้ {user_to_delete} เรียบร้อยแล้ว")
+                        st.success(f"🔥 ลบบัญชี {user_to_delete} เรียบร้อย")
                         st.rerun()
-                else:
-                    st.warning("⚠️ กรุณาเลือกบัญชีผู้ใช้ที่ต้องการลบออกก่อน")
         
-    if st.button("🔄 ออกจากโหมดแอดมิน เพื่อไปหน้าสลับสูตรอาหาร (User Dashboard)"):
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("🔄 สลับบทบาทกลับไปโหมดผู้ใช้งานทั่วไป (User Dashboard)", use_container_width=True):
         st.session_state.user_role = "user"
         st.rerun()
         
