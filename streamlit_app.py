@@ -11,8 +11,8 @@ from supabase import create_client, Client
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
 # ⚠️ เปลี่ยนค่า URL และ KEY ด้านล่างนี้ให้ตรงกับของคุณที่ได้จากหน้า Settings > API ของ Supabase
-SUPABASE_URL = "https://your-project-id.supabase.co"
-SUPABASE_KEY = "your-anon-key-here"
+SUPABASE_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
+SUPABASE_KEY = "A0927442339zxc*"
 
 @st.cache_resource
 def init_supabase() -> Client:
