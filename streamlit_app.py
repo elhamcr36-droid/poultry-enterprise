@@ -101,7 +101,7 @@ if "threshold_drop_rate" not in st.session_state: st.session_state.threshold_dro
 if "threshold_mortality_rate" not in st.session_state: st.session_state.threshold_mortality_rate = 0.1
 if "threshold_broken_egg" not in st.session_state: st.session_state.threshold_broken_egg = 2.0
 
-# 🔴 คืนค่าบัญชีแอดมินด้วยรหัสเดิม (admin1234) เรียบร้อยแล้วครับ
+# บัญชีแอดมินใช้รหัสเดิม (admin1234) คงอยู่ครบถ้วนครับ
 if "user_database" not in st.session_state:
     st.session_state.user_database = {
         "admin": {"password": "admin1234", "name": "ผู้จัดการฟาร์ม/เจ้าของกิจการ", "role": "admin"},
@@ -226,7 +226,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ─── หน้าหลักที่ 2: สมัครสมาชิก (REGISTER MODE - เอาการเลือกตำแหน่งออก) ───
+    # ─── หน้าหลักที่ 2: สมัครสมาชิก ───
     elif st.session_state.auth_mode == "register":
         st.markdown("<div class='content-card' style='max-width: 450px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; margin-bottom: 5px;'>สมัครใช้งานระบบ</h2>", unsafe_allow_html=True)
@@ -259,7 +259,7 @@ if not st.session_state.is_authenticated:
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ─── หน้าหลักที่ 3: ลืมรหัสผ่าน (FORGOT PASSWORD MODE) ───
+    # ─── หน้าหลักที่ 3: ลืมรหัสผ่าน ───
     elif st.session_state.auth_mode == "forgot":
         st.markdown("<div class='content-card' style='max-width: 450px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; margin-bottom: 5px;'>ค้นหาบัญชีของคุณ</h2>", unsafe_allow_html=True)
@@ -351,7 +351,8 @@ else:
         "📊 บันทึกผลผลิตประจำเล้า & วิเคราะห์วิกฤต (Production KPIs)",
         "📦 ระบบจัดการคลังวัตถุดิบ (Inventory & Cloud Stock)",
         "📋 แผนใบสั่งชั่งและตัดคลังสินค้า (Procurement Sheets)",
-        "📈 คลังประวัติสูตรอาหารออนไลน์ (Cloud Recipes Vault)"
+        "📈 คลังประวัติสูตรอาหารออนไลน์ (Cloud Recipes Vault)",
+        "🐔 ข้อมูลกลุ่มและสายพันธุ์ไก่ไข่ (Breeds Reference)" # 🟢 ดึงกลับมาแสดงผลให้ฝั่ง User เรียบร้อยครับ
     ])
     
     # -------------------------------------------------------------
@@ -513,7 +514,7 @@ else:
         df_ing = pd.DataFrame(ing_table_data)
         st.dataframe(df_ing, use_container_width=True)
         
-        with st.expander("🛠️ แก้ไขราคา ข้อจำกัด หรือเติมยอดสต็อกวัตถิบเข้าฟาร์ม"):
+        with st.expander("🛠️ แก้ไขราคา ข้อจำกัด หรือเติมยอดสต็อกวัตถุดิบเข้าฟาร์ม"):
             target_ing = st.selectbox("เลือกวัตถุดิบที่ต้องการปรับค่าข้อมูล:", list(current_db_ingredients.keys()))
             ed = current_db_ingredients[target_ing]
             
@@ -608,3 +609,16 @@ else:
                 st.info("ยังไม่มีบันทึกข้อมูลสูตรอาหารเก่าในฐานข้อมูลระบบฟาร์มประจำฤดูกาลนี้")
         except Exception as e:
             st.info("ระบบคลาวด์พร้อมเชื่อมต่อ แต่ยังไม่มีข้อมูลสูตรถูกบันทึก")
+
+    # -------------------------------------------------------------
+    # 🐔 TAB 6: BREEDS & GROUPS REFERENCE (เพิ่มกลับคืนให้สัตวบาล)
+    # -------------------------------------------------------------
+    with page_tabs[5]:
+        st.markdown("### 🐔 ทะเบียนอ้างอิงกลุ่มและสายพันธุ์ไก่ไข่มาตรฐานประจำฟาร์ม")
+        col_u_g1, col_u_g2 = st.columns(2)
+        with col_u_g1:
+            st.markdown("#### 📁 กลุ่มไก่ไข่ที่ลงเลี้ยงทั้งหมด")
+            st.dataframe(pd.DataFrame(st.session_state.db_groups), use_container_width=True)
+        with col_u_g2:
+            st.markdown("#### 🧬 รายชื่อสายพันธุ์ย่อยและเป้าหมายความดกมาตรฐาน (% Standard Curve)")
+            st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True)
