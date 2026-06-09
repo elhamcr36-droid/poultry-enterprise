@@ -635,6 +635,7 @@ if st.session_state.user_role == "admin":
     if st.button("🔄 ออกจากโหมดแอดมิน เพื่อไปหน้าสลับสูตรอาหาร (User Dashboard)"):
         st.session_state.user_role = "user"
         st.rerun()
+        
 else:
     # ==========================================
     # 🎨 CUSTOM UI/UX FOR ALL AGES (BIG FONT & HIGH CONTRAST)
