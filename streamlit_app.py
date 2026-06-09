@@ -141,12 +141,24 @@ if "db_targets" not in st.session_state:
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
 
+# โครงสร้างสารอาหารหลัก (แก้ไข Bug ประกาศซ้ำและยุบรวมไว้ที่ส่วนต้นของ State เพื่อเรียกใช้งานได้เป็นระบบ)
+if "db_nutrient_keys" not in st.session_state:
+    st.session_state.db_nutrient_keys = {
+        "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
+        "protein": {"label": "โปรตีนดิบ (% CP)", "step": 0.1, "default": 0.0},
+        "me": {"label": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "step": 10.0, "default": 0.0},
+        "calcium": {"label": "แคลเซียม (% Ca)", "step": 0.01, "default": 0.0},
+        "phos": {"label": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "step": 0.01, "default": 0.0},
+        "lysine": {"label": "อะมิโน ไลซีน (% Lys)", "step": 0.01, "default": 0.0},
+        "methionine": {"label": "อะมิโน เมทไธโอนีน (% Met)", "step": 0.01, "default": 0.0},
+        "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0}
+    }
+
 # 🔄 ฟังก์ชันดึงข้อมูลวัตถุดิบแบบ Real-time จาก Supabase
 def fetch_ingredients_from_supabase():
     try:
         response = supabase.table("db_ingredients").select("*").execute()
         if response.data:
-            # แปลงรูปแบบจาก List เป็น Dict ให้เข้ากับโค้ดการคำนวณเดิมของคุณ
             ingredients_dict = {}
             for item in response.data:
                 ingredients_dict[item["name"]] = item
@@ -161,7 +173,6 @@ def fetch_ingredients_from_supabase():
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     
-    # 🔴 เปลี่ยนมาดึงข้อมูลสดจาก Supabase เพื่อให้สูตรคำนวณอัปเดตตามคลาวด์ตลอดเวลา
     current_ingredients = fetch_ingredients_from_supabase()
     if not current_ingredients:
         st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
@@ -195,7 +206,7 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
 # ==========================================
 if not st.session_state.is_authenticated:
     
-    # --- 4.1 หน้า LOGIN (ผ่าน Supabase Auth) ---
+    # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
@@ -208,13 +219,11 @@ if not st.session_state.is_authenticated:
         with col_btn1:
             if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
                 try:
-                    # 🔐 ล็อกอินโดยยิงไปเช็คที่ตัวจัดการสิทธิ์ของ Supabase
                     auth_res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
                     if auth_res.user:
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = email_login
                         
-                        # แยกสิทธิ์ผู้ใช้ (เช่นถ้าอีเมลมีคำว่า admin หรือระบุไว้ จะได้สิทธิ์ควบคุมระบบ)
                         if "admin" in email_login.lower() or email_login == "admin@farm.com":
                             st.session_state.user_role = "admin"
                         else:
@@ -238,7 +247,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.2 หน้า SIGN UP (สมัครสมาชิกและบันทึกบน Supabase Auth) ---
+    # --- 4.2 หน้า SIGN UP ---
     elif st.session_state.auth_page_mode == "signup":
         st.markdown("<div class='content-card' style='max-width: 600px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>📝 สมัครสมาชิกฟาร์มใหม่ (Sign Up)</h2>", unsafe_allow_html=True)
@@ -274,7 +283,6 @@ if not st.session_state.is_authenticated:
                         st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
                     else:
                         try:
-                            # 📝 ยิงคำสั่งสร้าง User ใหม่เข้าไปในระบบความปลอดภัยของ Supabase Auth
                             supabase.auth.sign_up({
                                 "email": su_email, 
                                 "password": su_pass,
@@ -286,7 +294,7 @@ if not st.session_state.is_authenticated:
                                     }
                                 }
                             })
-                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ จากนั้นระบบจะพากลับหน้าล็อกอิน")
+                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ")
                             st.session_state.auth_page_mode = "login"
                             st.rerun()
                         except Exception as error:
@@ -300,7 +308,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.3 หน้า FORGOT PASSWORD (กู้คืนรหัสผ่านด้วยบริการของ Supabase) ---
+    # --- 4.3 หน้า FORGOT PASSWORD ---
     elif st.session_state.auth_page_mode == "forgot":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
@@ -313,7 +321,7 @@ if not st.session_state.is_authenticated:
             if fg_email:
                 try:
                     supabase.auth.reset_password_for_email(fg_email)
-                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คกล่องข้อความในอีเมลของคุณเพื่อตั้งรหัสผ่านใหม่")
+                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
                 except Exception as error:
                     st.error(f"❌ เกิดข้อผิดพลาด: {error}")
             else:
@@ -346,7 +354,7 @@ with col_h2:
     with cc2:
         if st.button("🔴 ออกจากระบบ", use_container_width=True):
             try:
-                supabase.auth.sign_out()  # ทำการทำลาย Session ฝั่งเซิร์ฟเวอร์คลาวด์
+                supabase.auth.sign_out()
             except:
                 pass
             st.session_state.is_authenticated = False
@@ -355,48 +363,13 @@ with col_h2:
             st.rerun()
 st.markdown("---")
 
-# [คุณสามารถนำแท็บเนื้อหาเดิม (Tab 1, Tab 2, Tab 3) ของคุณมาต่อท้ายตรงนี้ เพื่อใช้งานตัวแปรโภชนาการแบบคลาวด์ได้ทันที]
-
-# ==========================================
-# 🧠 SYSTEM INITIALIZATION (ระบบจำลองโครงสร้างสารอาหารเริ่มต้น)
-# ==========================================
-# เพิ่มการเก็บโครงสร้างสารอาหารหลักไว้ใน session_state เพื่อให้สามารถลบ/เพิ่ม ได้เอง
-if "db_nutrient_keys" not in st.session_state:
-    st.session_state.db_nutrient_keys = {
-        "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
-        "protein": {"label": "โปรตีนดิบ (% CP)", "step": 0.1, "default": 0.0},
-        "me": {"label": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "step": 10.0, "default": 0.0},
-        "calcium": {"label": "แคลเซียม (% Ca)", "step": 0.01, "default": 0.0},
-        "phos": {"label": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "step": 0.01, "default": 0.0},
-        "lysine": {"label": "อะมิโน ไลซีน (% Lys)", "step": 0.01, "default": 0.0},
-        "methionine": {"label": "อะมิโน เมทไธโอนีน (% Met)", "step": 0.01, "default": 0.0},
-        "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0}
-    }
-
-# ==========================================
-# 🧠 SYSTEM INITIALIZATION (ระบบจำลองโครงสร้างสารอาหารเริ่มต้น)
-# ==========================================
-if "db_nutrient_keys" not in st.session_state:
-    st.session_state.db_nutrient_keys = {
-        "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
-        "protein": {"label": "โปรตีนดิบ (% CP)", "step": 0.1, "default": 0.0},
-        "me": {"label": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "step": 10.0, "default": 0.0},
-        "calcium": {"label": "แคลเซียม (% Ca)", "step": 0.01, "default": 0.0},
-        "phos": {"label": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "step": 0.01, "default": 0.0},
-        "lysine": {"label": "อะมิโน ไลซีน (% Lys)", "step": 0.01, "default": 0.0},
-        "methionine": {"label": "อะมิโน เมทไธโอนีน (% Met)", "step": 0.01, "default": 0.0},
-        "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0}
-    }
-
 # ==========================================
 # 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE (UX/UI PREMIUM VERSION)
 # ==========================================
 if st.session_state.user_role == "admin":
-    # ส่วนหัวดีไซน์ให้โปร่งและเรียบหรูขึ้น
     st.title("💻 Admin Master Data Control")
     st.caption("ระบบจัดการโครงสร้างสารอาหาร วัตถุดิบ สายพันธุ์ และผู้ใช้งานแบบ Dynamic")
     
-    # เมนูแท็บหลัก
     admin_tabs = st.tabs([
         "⚙️ ตั้งค่าหัวข้อสารอาหาร",
         "🌽 คลังวัตถุดิบ & สารอาหาร", 
@@ -409,7 +382,6 @@ if st.session_state.user_role == "admin":
     with admin_tabs[0]:
         st.subheader("⚙️ สารอาหารที่มีในระบบปัจจุบัน")
         
-        # ยุบตารางสรุปไว้ใน Expander เพื่อไม่ให้รกสายตา
         with st.expander("📊 ดูโครงสร้างสารอาหารที่ใช้งานอยู่ทั้งหมด", expanded=True):
             df_nutrients = pd.DataFrame([
                 {"รหัสระบบ (Key)": k, "ชื่อตัวชี้วัด (Label)": v["label"], "ความละเอียด (Step)": v["step"]} 
@@ -423,35 +395,44 @@ if st.session_state.user_role == "admin":
         with n_col1:
             st.markdown("### ➕ เพิ่มสารอาหารใหม่")
             with st.container(border=True):
-                new_nut_key = st.text_input("รหัสอังกฤษ (เช่น fat, ash):", placeholder="กรอกพิมพ์เล็กห้ามมีช่องว่าง").strip().lower()
-                new_nut_label = st.text_input("ชื่อภาษาไทยที่แสดง (เช่น ไขมันดิบ (%)):", placeholder="เช่น วิตามินอี (mg/kg)")
-                new_nut_step = st.number_input("ความละเอียดในการกดปุ่มเพิ่ม/ลดค่า:", min_value=0.001, max_value=100.0, value=0.1, format="%.3f")
+                new_nut_key = st.text_input("รหัสอังกฤษ (เช่น fat, ash):", placeholder="กรอกพิมพ์เล็กห้ามมีช่องว่าง", key="add_nut_key").strip().lower()
+                new_nut_label = st.text_input("ชื่อภาษาไทยที่แสดง (เช่น ไขมันดิบ (%)):", placeholder="เช่น วิตามินอี (mg/kg)", key="add_nut_label")
+                new_nut_step = st.number_input("ความละเอียดในการกดปุ่มเพิ่ม/ลดค่า:", min_value=0.001, max_value=100.0, value=0.1, format="%.3f", key="add_nut_step")
                 st.markdown("<br>", unsafe_allow_html=True)
+                
                 if st.button("✨ ยืนยันสร้างหัวข้อสารอาหาร", type="primary", use_container_width=True):
                     if not new_nut_key or not new_nut_label:
                         st.error("❌ กรุณากรอกข้อมูลให้ครบทั้งสองช่อง")
                     elif new_nut_key in st.session_state.db_nutrient_keys or new_nut_key in ["name", "min_limit", "max_limit"]:
                         st.error("❌ รหัสนี้ซ้ำหรือเป็นคำต้องห้ามของระบบ")
                     else:
+                        # อัปเดตลง Local Session State
                         st.session_state.db_nutrient_keys[new_nut_key] = {"label": new_nut_label, "step": new_nut_step, "default": 0.0}
-                        for ing in st.session_state.db_ingredients.values():
-                            if new_nut_key not in ing: ing[new_nut_key] = 0.0
-                        st.success(f"🎉 ระบบงอกช่องกรอก '{new_nut_label}' ให้ในแท็บอื่นๆ เรียบร้อยแล้ว!")
+                        
+                        # 💡 คำแนะนำทางเทคนิค: สั่ง INSERT ไปยังตาราง schema สารอาหารบน Supabase ได้ที่ตรงนี้เพื่อความถาวร
+                        st.success(f"🎉 เพิ่มโครงสร้างหัวข้อสารอาหาร '{new_nut_label}' เรียบร้อยแล้ว!")
                         st.rerun()
                         
         with n_col2:
             st.markdown("### ❌ ลบสารอาหาร")
             with st.container(border=True):
                 removable_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
-                nut_to_del = st.selectbox("เลือกสารอาหารที่ต้องการถอดถอน:", removable_keys, format_func=lambda x: st.session_state.db_nutrient_keys[x]["label"])
-                st.markdown("<br><br><br>", unsafe_allow_html=True) # ปรับระยะเว้นให้ปุ่มเท่ากัน
-                if st.button("🗑️ ยืนยันลบออกจากระบบถาวร", type="secondary", use_container_width=True):
-                    del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
-                    del st.session_state.db_nutrient_keys[nut_to_del]
-                    for ing in st.session_state.db_ingredients.values():
-                        if nut_to_del in ing: del ing[nut_to_del]
-                    st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
-                    st.rerun()
+                
+                if removable_keys:
+                    nut_to_del = st.selectbox("เลือกสารอาหารที่ต้องการถอดถอน:", removable_keys, format_func=lambda x: st.session_state.db_nutrient_keys[x]["label"], key="del_nut_select")
+                    st.markdown("<br><br><br>", unsafe_allow_html=True)
+                    
+                    if st.button("🗑️ ยืนยันลบออกจากระบบถาวร", type="secondary", use_container_width=True):
+                        del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
+                        
+                        # ลบหัวข้อออกจาก Session State ตัวหลัก
+                        del st.session_state.db_nutrient_keys[nut_to_del]
+                        
+                        # 💡 คำแนะนำทางเทคนิค: ยิงคำสั่ง RPC หรือ Supabase .delete() เพื่อนำคอลัมน์/ข้อมูลออกจาก cloud
+                        st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
+                        st.rerun()
+                else:
+                    st.warning("⚠️ ไม่มีสารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
 
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
     with admin_tabs[1]:
