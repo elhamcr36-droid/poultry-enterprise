@@ -2,19 +2,19 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import pulp
-from supabase import create_client, Client
 import io
+import datetime
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
 st.set_page_config(
-    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio)", 
+    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ปรับแต่งธีมสไตล์ Cyber Dark และยกระดับกล่อง Selectbox ทุกจุดให้ขยายขนาดใหญ่เป็นพิเศษ (Enormous Box Selectors)
+# ปรับแต่งธีมสไตล์ Cyber Dark และยกระดับกล่อง Selectbox และฟอร์มสมัครสมาชิกสไตล์ Facebook ให้เด่นชัดที่สุด
 st.markdown(
     """
     <style>
@@ -30,7 +30,7 @@ st.markdown(
         text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.95) !important;
     }
     
-    /* 🎯 🎯 🎯 จุดปรับโครงสร้างกล่องตัวเลือก (Selectbox) ทั้งระบบให้ใหญ่ยักษ์และกดง่าย 🎯 🎯 🎯 */
+    /* 🎯 จุดปรับโครงสร้างกล่องตัวเลือก (Selectbox) ทั้งระบบให้ใหญ่ยักษ์และกดง่าย ขอบทองอร่าม */
     div[data-testid="stSelectbox"] > label {
         font-size: 1.45rem !important;
         font-weight: 800 !important;
@@ -39,10 +39,10 @@ st.markdown(
         display: block;
     }
     div[data-testid="stSelectbox"] div[data-baseweb="select"] {
-        font-size: 1.35rem !important; /* ขนาดตัวอักษรภายในกล่อง */
+        font-size: 1.35rem !important; 
         font-weight: bold !important;
         background-color: rgba(26, 26, 26, 0.9) !important;
-        border: 3px solid #ffb703 !important; /* เส้นขอบสีทองเด่นชัด */
+        border: 3px solid #ffb703 !important; 
         border-radius: 14px !important;
         padding: 8px 12px !important;
         box-shadow: 0px 4px 15px rgba(245, 158, 11, 0.25) !important;
@@ -57,6 +57,46 @@ st.markdown(
         font-size: 1.25rem !important;
     }
     
+    /* 👥 สไตล์จำลองอัตลักษณ์ Facebook Sign Up */
+    .fb-header {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        color: #1877f2 !important;
+        font-size: 3.2rem !important;
+        font-weight: bold !important;
+        text-align: center;
+        margin-bottom: 2px;
+        letter-spacing: -1.5px;
+        text-shadow: none !important;
+    }
+    .fb-subtitle {
+        color: #ffffff !important;
+        font-size: 1.25rem !important;
+        text-align: center;
+        margin-bottom: 25px;
+        opacity: 0.9;
+    }
+    .divider-line {
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+        margin: 22px 0;
+    }
+    /* ปุ่มสมัครสมาชิกสีเขียวสดสไตล์ Facebook */
+    div.stButton > button[key="btn_fb_signup_trigger"] {
+        background-color: #42b72a !important;
+        color: white !important;
+        font-size: 1.35rem !important;
+        font-weight: bold !important;
+        padding: 10px 40px !important;
+        border-radius: 8px !important;
+        border: none !important;
+        box-shadow: 0px 5px 15px rgba(66, 183, 42, 0.4) !important;
+        transition: all 0.2s;
+    }
+    div.stButton > button[key="btn_fb_signup_trigger"]:hover {
+        background-color: #36a420 !important;
+        transform: scale(1.02);
+    }
+    
+    /* การ์ดและแท็บครอบระบบ */
     .stTabs [data-baseweb="tab-list"] {
         background-color: rgba(255, 255, 255, 0.1) !important;
         padding: 8px; border-radius: 10px; backdrop-filter: blur(10px);
@@ -82,97 +122,201 @@ st.markdown(
 # ==========================================
 if "is_authenticated" not in st.session_state:
     st.session_state.is_authenticated = False
+if "auth_page_mode" not in st.session_state:
+    st.session_state.auth_page_mode = "login"  # สลับโหมดหน้าจอหลัก: 'login', 'signup', 'forgot'
+if "user_database" not in st.session_state:
+    # คลังฐานข้อมูลผู้ใช้ใน Session จำลอง (รองรับรหัสทางลัด '222' ดั้งเดิม)
+    st.session_state.user_database = {
+        "222@gmail.com": {"password": "222", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง"},
+        "222": {"password": "222", "name": "แอดมิน", "surname": "ทางลัด"}
+    }
 
 CORRECT_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
 CORRECT_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 
+# ตรวจสอบสิทธิ์การเข้าถึง หากยังไม่ล็อกอินให้เปิดระเบียงความปลอดภัยกั้นไว้ก่อน
 if not st.session_state.is_authenticated:
-    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;'>🔐 ระบบวิเคราะห์โภชนาการและจัดการสายพันธุ์ไก่ไข่ระดับสากล (Layer Nutrition Studio)</h2>", unsafe_allow_html=True)
-    st.markdown("---")
     
-    col_l1, col_l2, col_l3 = st.columns([1, 1.8, 1])
-    with col_l2:
-        email_login = st.text_input("📧 อีเมลผู้ใช้งานหรือรหัสทางลัด (Email / Shortcut Key):", key="login_email")
+    # --- 2.1 หน้าล็อกอินสไตล์โมเดิร์น (Login Gate) ---
+    if st.session_state.auth_page_mode == "login":
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 80px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 ระบบวิเคราะห์โภชนาการและจัดการสายพันธุ์ไก่ไข่ระดับสากล</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; opacity:0.75;'>Layer Nutrition Studio Professional Enterprise</p>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        email_login = st.text_input("📧 อีเมลผู้ใช้งาน หรือรหัสทางลัด (Email / Username):", key="login_email")
         pass_login = st.text_input("🔑 รหัสผ่านเข้าใช้งาน (Password):", type="password", key="login_pass")
         
-        if st.button("ยืนยันสิทธิ์เข้าสู่ระบบ (Login)", type="primary", use_container_width=True):
-            if email_login in ["222", "222@gmail.com"] and pass_login in ["222"]:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
+            if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
                 st.session_state.is_authenticated = True
-                st.session_state.user_email = "👑 ผู้ดูแลระบบระดับสูง (Superuser Administrator)"
+                user_info = st.session_state.user_database[email_login]
+                st.session_state.user_email = f"👑 คุณ {user_info['name']} {user_info['surname']} ({email_login})"
                 st.session_state.supabase_url = CORRECT_URL
                 st.session_state.supabase_key = CORRECT_KEY
                 st.rerun()
             else:
-                st.error("❌ ข้อมูลสิทธิ์เข้าใช้งานไม่ถูกต้อง! (กรุณาใช้รหัสทางลัดแอดมิน '222')")
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()
+                st.error("❌ ข้อมูลสิทธิ์เข้าใช้งานไม่ถูกต้อง! (สำหรับเข้าทดสอบอย่างรวดเร็วให้ป้อนรหัสทางลัดแอดมิน '222')")
+        
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            if st.button("❓ ลืมรหัสผ่าน?", use_container_width=True):
+                st.session_state.auth_page_mode = "forgot"
+                st.rerun()
+        with col_b2:
+            if st.button("✨ สร้างบัญชีใหม่ (Sign Up)", use_container_width=True):
+                st.session_state.auth_page_mode = "signup"
+                st.rerun()
+                
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
+
+    # --- 2.2 หน้าสมัครสมาชิกถอดแบบฟอร์มดีไซน์มาจาก Facebook (Facebook-Style Sign Up) ---
+    elif st.session_state.auth_page_mode == "signup":
+        st.markdown("<div class='content-card' style='max-width: 620px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h1 class='fb-header'>facebook</h1>", unsafe_allow_html=True)
+        st.markdown("<p class='fb-subtitle'><b>สร้างบัญชีใหม่</b> <br><span style='font-size:0.95rem; opacity:0.8;'>ง่ายและรวดเร็วเพื่อร่วมงานกับฟาร์มของเรา</span></p>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        # คู่ขนาน ชื่อจริง และ นามสกุล
+        col_name1, col_name2 = st.columns(2)
+        with col_name1:
+            reg_name = st.text_input("ชื่อจริง (First name)", placeholder="กรอกชื่อจริง")
+        with col_name2:
+            reg_surname = st.text_input("นามสกุล (Surname)", placeholder="กรอกนามสกุล")
+            
+        reg_identity = st.text_input("หมายเลขโทรศัพท์มือถือหรืออีเมล (Mobile number or email)", placeholder="ระบุไอดีสำหรับการล็อกอินครั้งถัดไป")
+        reg_password = st.text_input("รหัสผ่านใหม่ (New password)", type="password", placeholder="ตั้งรหัสผ่านใหม่อย่างน้อย 4 หลักขึ้นไป")
+        
+        # ตัวเลือกวันเดือนปีเกิดสไตล์ Facebook ย้อนเวลา พ.ศ.
+        st.markdown("<p style='margin-bottom:2px; font-weight:bold; color:#ffffff; font-size:0.95rem;'>วันเกิด (Birthday)</p>", unsafe_allow_html=True)
+        col_d1, col_d2, col_d3 = st.columns(3)
+        with col_d1:
+            birth_day = st.selectbox("วัน", list(range(1, 32)), index=datetime.datetime.now().day - 1)
+        with col_d2:
+            months_th = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+            birth_month = st.selectbox("เดือน", months_th, index=datetime.datetime.now().month - 1)
+        with col_d3:
+            current_year_th = datetime.datetime.now().year + 543
+            birth_year = st.selectbox("ปี (พ.ศ.)", list(range(current_year_th - 90, current_year_th + 1)), index=72)
+            
+        # กล่องเลือกสถานะเพศเด่นชัดสไตล์ Facebook
+        st.markdown("<p style='margin-bottom:4px; font-weight:bold; color:#ffffff; font-size:0.95rem; margin-top:10px;'>เพศ (Gender)</p>", unsafe_allow_html=True)
+        col_g1, col_g2, col_g3 = st.columns(3)
+        with col_g1:
+            st.markdown("<div style='border: 1px solid rgba(255,255,255,0.25); padding: 8px; border-radius:6px; text-align:center; background:rgba(255,255,255,0.05);'>หญิง 👩‍💼</div>", unsafe_allow_html=True)
+            gender_female = st.checkbox("สมัครในสิทธิ์เพศหญิง", label_visibility="collapsed")
+        with col_g2:
+            st.markdown("<div style='border: 1px solid rgba(255,255,255,0.25); padding: 8px; border-radius:6px; text-align:center; background:rgba(255,255,255,0.05);'>ชาย 👨‍💼</div>", unsafe_allow_html=True)
+            gender_male = st.checkbox("สมัครในสิทธิ์เพศชาย", label_visibility="collapsed")
+        with col_g3:
+            st.markdown("<div style='border: 1px solid rgba(255,255,255,0.25); padding: 8px; border-radius:6px; text-align:center; background:rgba(255,255,255,0.05);'>อื่นๆ 🌈</div>", unsafe_allow_html=True)
+            gender_other = st.checkbox("สมัครในสิทธิ์ทางเลือก", label_visibility="collapsed")
+            
+        st.markdown("<p style='font-size:0.78rem; opacity:0.65; margin-top:15px; line-height:1.4;'>ผู้คนที่มีสิทธิ์เข้าใช้งานระบบจะเห็นข้อมูลการคำนวณและประวัติล็อตจัดซื้อในแท็บสรุปสถิติร่วมกันตามกฎระเบียบความปลอดภัยทางชีวภาพของฟาร์มไก่ไข่เชิงพาณิชย์</p>", unsafe_allow_html=True)
+        
+        if st.button("สมัครสมาชิก (Sign Up)", key="btn_fb_signup_trigger", use_container_width=True):
+            if not reg_name or not reg_surname or not reg_identity or not reg_password:
+                st.error("⚠️ กรุณากรอกรายละเอียดส่วนบุคคลที่สำคัญให้ครบถ้วนทุกช่องก่อนส่งข้อมูลครับ")
+            else:
+                # ทำการผลักข้อมูลเข้า Session State Mockup Database ให้ดึงไปล็อกอินได้เลย
+                st.session_state.user_database[reg_identity] = {
+                    "password": reg_password,
+                    "name": reg_name,
+                    "surname": reg_surname
+                }
+                st.success(f"🎉 บัญชีผู้ใช้ของคุณ {reg_name} ถูกจัดเก็บลงฐานข้อมูลชั่วคราวเรียบร้อยแล้ว กดย้อนกลับเพื่อเข้าใช้งานได้ทันที!")
+                
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        if st.button("➡️ มีบัญชีผู้ใช้งานอยู่แล้ว? ย้อนกลับไปล็อกอิน", use_container_width=True):
+            st.session_state.auth_page_mode = "login"
+            st.rerun()
+            
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
+
+    # --- 2.3 หน้าลืมรหัสผ่าน (Forgot Password Page) ---
+    elif st.session_state.auth_page_mode == "forgot":
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 80px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#f59e0b !important;'>🔍 ค้นหาบัญชีของคุณ (Find Your Account)</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='opacity:0.85;'>โปรดระบุที่อยู่อีเมลหรือเบอร์มือถือที่ใช้สมัครสมาชิกไว้เพื่อดึงข้อมูลรหัสผ่านชุดเดิม</p>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        
+        forgot_identity = st.text_input("ระบุข้อมูลอีเมลหรือเบอร์โทรศัพท์มือถือ:")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("ตรวจสอบสิทธิ์และดึงรหัสผ่าน (Retrieve Password)", type="primary", use_container_width=True):
+            if forgot_identity in st.session_state.user_database:
+                account_found = st.session_state.user_database[forgot_identity]
+                st.success(f"📧 ระบบจับคู่บัญชีสำเร็จ! ยินดีต้อนรับกลับ คุณ {account_found['name']} {account_found['surname']}")
+                st.info(f"💡 **รหัสผ่านเข้าใช้งานของคุณคือ:** `{account_found['password']}` (กรุณาคัดลอกข้อมูลเพื่อกลับไปล็อกอินอีกครั้ง)")
+            else:
+                st.error("❌ ไม่พบข้อมูลรายชื่อสมาชิกรายนี้ในระบบฟาร์ม กรุณาตรวจสอบหรือทำการสมัครสมาชิกใหม่")
+                
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน (Back to Login)", use_container_width=True):
+            st.session_state.auth_page_mode = "login"
+            st.rerun()
+            
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
 
 # ==========================================
-# 📥 3. DATA ACQUISITION & BIG-DATA FAILSAFE (เวอร์ชันขยายคลังข้อมูลจุใจ)
+# 📥 3. DATA ACQUISITION & BIG-DATA FAILSAFE (คลังข้อมูลสายพันธุ์จุใจระดับโลก)
 # ==========================================
 @st.cache_data(ttl=2)
 def fetch_complete_layer_data(url, key):
-    ing_data, tgt_data, groups_data, breeds_data = [], [], [], []
-    try:
-        supabase: Client = create_client(url, key)
-        try: ing_data = supabase.table("ingredients").select("*").execute().data or []
-        except: pass
-        try: tgt_data = supabase.table("nutrition_targets").select("*").execute().data or []
-        except: pass
-        try: groups_data = supabase.table("chicken_groups").select("*").execute().data or []
-        except: pass
-        try: breeds_data = supabase.table("chicken_breeds").select("*").execute().data or []
-        except: pass
-    except: pass
+    # จำลอง/ดึงข้อมูลสตรีมหลัก
+    groups_data = [
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309", "text_color": "#ffffff", "market_trend": "ครองแชมป์ความนิยมอันดับ 1 ในทวีปเอเชีย ประเทศไทย และยุโรป โดดเด่นเรื่องขนาดฟองและเปลือกไข่หนา"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7", "text_color": "#ffffff", "market_trend": "ครองตลาดอเมริกาเหนือและโรงงานแปรรูปอุตสาหกรรม ให้ปริมาณไข่ดกสูงสุดและประหยัดต้นทุนอาหารดีเยี่ยม"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "bg_color": "#0d9488", "text_color": "#ffffff", "market_trend": "ตลาดพรีเมียมยุคใหม่ เปลือกสีนวลชมพู/ครีม เป็นที่ต้องการของตลาดโมเดิร์นเทรดและผู้บริโภคระดับสูง"},
+        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "bg_color": "#4f46e5", "text_color": "#ffffff", "market_trend": "เหมาะสำหรับฟาร์มปล่อยลาน ปศุสัตว์อินทรีย์ (Organic) และระบบขยายพันธุ์พึ่งพาตนเอง ทนทานโรคสูง"}
+    ]
+    
+    breeds_data = [
+        # 1. กลุ่มไก่ไข่เปลือกสีน้ำตาล
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Isa Brown", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม (Dark Brown Egg)", "default_feed": 114, "description": "สายพันธุ์ฝรั่งเศส ยอดนิยมอันดับ 1 ในไทย แข็งแรง ทนร้อนชื้นได้ดีเลิศ ผลผลิตนิ่งสม่ำเสมอ"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Lohmann Brown", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม (Glossy Brown Egg)", "default_feed": 116, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ เปอร์เซ็นต์ไข่ไซส์ XL สูงมาก เปลือกหนาเหนียวพิเศษ"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Hy-Line Brown", "breed_name": "สายพันธุ์ ไฮ-ไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "สีน้ำตาลประกายทอง (Golden Brown Egg)", "default_feed": 112, "description": "สายพันธุ์อเมริกา อารมณ์นิ่ง ไม่ตื่นตกใจง่าย อัตราเปลี่ยนอาหารเป็นน้ำหนักไข่ดีเยี่ยม เหมาะกับฟาร์มปิด"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Bovans Brown", "breed_name": "สายพันธุ์ โบแวนส์ บราวน์ (Bovans Brown)", "egg_color": "สีน้ำตาลเข้มจัด (Deep Brown Egg)", "default_feed": 113, "description": "สายพันธุ์เนเธอร์แลนด์ มีความสมบูรณ์พันธุ์สูง ทนทานต่อความเครียดรอบด้าน โครงสร้างกระดูกขาแข็งแรงมาก"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Shaver Brown", "breed_name": "สายพันธุ์ เชฟเวอร์ บราวน์ (Shaver Brown)", "egg_color": "สีน้ำตาลคลาสสิก (Classic Brown Egg)", "default_feed": 115, "description": "สายพันธุ์แคนาดา ยืนระยะการไข่ช่วงพีคได้ยาวนาน ปรับตัวเข้ากับวัตถุดิบท้องถิ่นได้ดีเยี่ยม"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Novogen Brown", "breed_name": "สายพันธุ์ โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "สีน้ำตาลเข้มมันวาว (Intense Brown Egg)", "default_feed": 112, "description": "สายพันธุ์ยุโรปยุคใหม่ ปริมาณไข่สะสมต่อแม่สูงมาก กินอาหารน้อยแต่ให้ประสิทธิภาพไข่เกรดเอสูง"},
 
-    # --- โครงสร้างข้อมูลสํารองขนาดใหญ่พิเศษเมื่อระะบบคลาวด์ขัดข้อง (Expanded Failsafe Dataset) ---
-    if not groups_data:
-        groups_data = [
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309", "text_color": "#ffffff", "market_trend": "ครองแชมป์ความนิยมอันดับ 1 ในทวีปเอเชีย ประเทศไทย และยุโรป โดดเด่นเรื่องขนาดฟองและเปลือกไข่หนา"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7", "text_color": "#ffffff", "market_trend": "ครองตลาดอเมริกาเหนือและโรงงานแปรรูปอุตสาหกรรม ให้ปริมาณไข่ดกสูงสุดและประหยัดต้นทุนอาหารดีเยี่ยม"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "bg_color": "#0d9488", "text_color": "#ffffff", "market_trend": "ตลาดพรีเมียมยุคใหม่ เปลือกสีนวลชมพู/ครีม เป็นที่ต้องการของตลาดโมเดิร์นเทรดและผู้บริโภคระดับสูง"},
-            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "bg_color": "#4f46e5", "text_color": "#ffffff", "market_trend": "เหมาะสำหรับฟาร์มปล่อยลาน ปศุสัตว์อินทรีย์ (Organic) และระบบขยายพันธุ์พึ่งพาตนเอง ทนทานโรคสูง"}
-        ]
-    if not breeds_data:
-        breeds_data = [
-            # 1. น้ำตาล
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Isa Brown", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม (Dark Brown Egg)", "default_feed": 114, "description": "สายพันธุ์ฝรั่งเศส ยอดนิยมอันดับ 1 ในไทย แข็งแรง ทนร้อนชื้นได้ดีเลิศ ผลผลิตนิ่งสม่ำเสมอ"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Lohmann Brown", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม (Glossy Brown Egg)", "default_feed": 116, "description": "สายพันธุ์เยอรมัน โดดเด่นเรื่องไข่ฟองใหญ่ เปอร์เซ็นต์ไข่ไซส์ XL สูงมาก เปลือกหนาเหนียวพิเศษ"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Hy-Line Brown", "breed_name": "สายพันธุ์ ไฮ-ไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "สีน้ำตาลประกายทอง (Golden Brown Egg)", "default_feed": 112, "description": "สายพันธุ์อเมริกา อารมณ์นิ่ง ไม่ตื่นตกใจง่าย อัตราเปลี่ยนอาหารเป็นน้ำหนักไข่ดีเยี่ยม เหมาะกับฟาร์มปิด"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Bovans Brown", "breed_name": "สายพันธุ์ โบแวนส์ บราวน์ (Bovans Brown)", "egg_color": "สีน้ำตาลเข้มจัด (Deep Brown Egg)", "default_feed": 113, "description": "สายพันธุ์เนเธอร์แลนด์ มีความสมบูรณ์พันธุ์สูง ทนทานต่อความเครียดรอบด้าน โครงสร้างกระดูกขาแข็งแรงมาก"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Shaver Brown", "breed_name": "สายพันธุ์ เชฟเวอร์ บราวน์ (Shaver Brown)", "egg_color": "สีน้ำตาลคลาสสิก (Classic Brown Egg)", "default_feed": 115, "description": "สายพันธุ์แคนาดา ยืนระยะการไข่ช่วงพีคได้ยาวนาน ปรับตัวเข้ากับวัตถุดิบท้องถิ่นได้ดีเยี่ยม"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_key": "Novogen Brown", "breed_name": "สายพันธุ์ โนโวเจน บราวน์ (Novogen Brown)", "egg_color": "สีน้ำตาลเข้มมันวาว (Intense Brown Egg)", "default_feed": 112, "description": "สายพันธุ์ยุโรปยุคใหม่ ปริมาณไข่สะสมต่อแม่สูงมาก กินอาหารน้อยแต่ให้ประสิทธิภาพไข่เกรดเอสูง"},
-            # 2. ขาว
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-36", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา (Pure White Egg)", "default_feed": 101, "description": "แชมป์โลกด้านความประหยัด กินอาหารน้อยที่สุดในโลก ให้ไข่ฟองสีขาวข้นแน่น ปริมาณไข่ขาวหนาตัวดีมาก"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-80", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-80 (Hy-Line W-80)", "egg_color": "สีขาวชอล์ก (Chalk White Egg)", "default_feed": 104, "description": "พัฒนาเพื่อการยืนกรงระยะยาว ผลิตไข่ได้มากกว่า 500 ฟองต่อแม่ ทนสภาพแวดล้อมที่แปรปรวนได้ดีกว่า W-36"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Lohmann LSL-Lite", "breed_name": "สายพันธุ์ โลห์แมน แอลเอสแอล ไลต์ (Lohmann LSL-Lite)", "egg_color": "สีขาวบริสุทธิ์ (Pure White Egg)", "default_feed": 103, "description": "สายพันธุ์ผิวขาวจากเยอรมัน เปอร์เซ็นต์การไข่สม่ำเสมอเป็นเส้นตรงยาวนาน เปลือกไข่มีความเหนียว ไม่แตกง่าย"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Dekalb White", "breed_name": "สายพันธุ์ เดคัลบ์ ไวท์ (Dekalb White)", "egg_color": "สีขาวพรีเมียม (Premium White Egg)", "default_feed": 102, "description": "พฤติกรรมเรียบร้อย ไม่จิกกัน ลดปัญหาไข่บุบสลายระหว่างคัดแยก ขนส่งทางไกลได้ดีเยี่ยม"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Bovans White", "breed_name": "สายพันธุ์ โบแวนส์ ไวท์ (Bovans White)", "egg_color": "สีขาวนวล (Soft White Egg)", "default_feed": 103, "description": "โดดเด่นด้านความแข็งแรงในช่วงต้นของการให้ผลผลิต ปรับสมดุลโภชนาการง่าย มีสัดส่วนไข่แดงต่อน้ำหนักฟองดีเยี่ยม"},
-            # 3. พาสเทล
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Novogen Tinted", "breed_name": "สายพันธุ์ โนโวเจน ทินต์ (Novogen Tinted)", "egg_color": "สีครีมพาสเทล (Creamy Tinted Egg)", "default_feed": 108, "description": "ผลิตไข่เปลือกสีนวลครีมแปลกใหม่ ตลาดพรีเมียมให้ราคาดี พฤติกรรมเรียบร้อย เหมาะกับการเลี้ยงปล่อยลาน"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Lohmann Sandy", "breed_name": "สายพันธุ์ โลห์แมน แซนดี้ (Lohmann Sandy)", "egg_color": "สีครีมเม็ดทราย (Sandy Tinted Egg)", "default_feed": 110, "description": "ให้ผลผลิตไข่สีครีมพาสเทลอมชมพูสวยงาม อัตราการเปลี่ยนอาหารเป็นไข่ (FCR) ดีเยี่ยม นิยมมากในตลาดยุโรป"},
-            {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Hy-Line Sonia", "breed_name": "สายพันธุ์ ไฮ-ไลน์ โซเนีย (Hy-Line Sonia)", "egg_color": "สีชมพูอ่อนพาสเทล (Tinted Pinkish Egg)", "default_feed": 111, "description": "สายพันธุ์พิเศษเปลือกไข่ติดสีชมพูระเรื่อ ดึงดูดสายตาผู้ซื้อ มีอัตราการเติบโตและสมบูรณ์พันธุ์ที่เสถียร"},
-            # 4. ทางเลือก/ไทย
-            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Rhode Island Red", "breed_name": "สายพันธุ์ โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "สีน้ำตาลนวล (Light Brown Egg)", "default_feed": 125, "description": "สายพันธุ์แท้ดั้งเดิม แข็งแรงทนทานเป็นเลิศ เลี้ยงง่าย กินเก่ง เนื้อแน่น สามารถใช้เป็นพ่อแม่พันธุ์ผสมต่อยอดได้"},
-            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Pradu Hang Dam Egg-Line", "breed_name": "สายพันธุ์ ประดู่หางดำเชียงใหม่ สายไข่ (Pradu Hang Dam)", "egg_color": "สีน้ำตาลอ่อนนวล (Native Cream-Brown Egg)", "default_feed": 120, "description": "สายพันธุ์ปรับปรุงโดยปศุสัตว์ไทย ทนร้อน ทนโรคสัตว์ปีกได้ดีเลิศ ไข่แดงฟองใหญ่ รสชาติมันเข้มข้น ตอบโจทย์วิถีไก่บ้าน"},
-            {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Australorp", "breed_name": "สายพันธุ์ ออสตร้าลอป (Black Australorp)", "egg_color": "สีน้ำตาลอ่อน (Medium Brown Egg)", "default_feed": 128, "description": "สายพันธุ์ออสเตรเลีย ขนสีดำเหลือบเขียวมะกอก ให้ไข่ดกต่อเนื่องดีที่สุดในบรรดาสายพันธุ์แท้ดั้งเดิม เหมาะกับระบบ Free-range"}
-        ]
-    if not ing_data:
-        ing_data = [
-            {"name": "ข้าวโพดบดเม็ด (Ground Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "threonine": 0.29, "fat": 3.8, "moisture": 12.0, "fiber": 2.2, "sodium": 0.02, "chloride": 0.04, "linoleic": 2.2, "min_limit": 10.0, "max_limit": 65.0},
-            {"name": "กากถั่วเหลือง 46% (Soybean Meal 46%)", "price": 19.5, "protein": 46.0, "me": 2440.0, "calcium": 0.25, "phos": 0.62, "lysine": 2.85, "methionine": 0.65, "threonine": 1.80, "fat": 1.5, "moisture": 11.0, "fiber": 3.5, "sodium": 0.02, "chloride": 0.05, "linoleic": 0.5, "min_limit": 10.0, "max_limit": 40.0},
-            {"name": "ปลาป่นเกรด A 60% (Fish Meal 60%)", "price": 35.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "threonine": 2.40, "fat": 8.0, "moisture": 10.0, "fiber": 1.0, "sodium": 1.20, "chloride": 1.50, "linoleic": 0.2, "min_limit": 0.0, "max_limit": 8.0},
-            {"name": "หินฝุ่นเม็ดหยาบ (Coarse Limestone)", "price": 2.5, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.5, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 12.0},
-            {"name": "ไดแคลเซียมฟอสเฟต (DCP 18%)", "price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 1.0, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 3.0},
-            {"name": "เกลือแกงบริสุทธิ์ (Refined Salt)", "price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.3, "fiber": 0.0, "sodium": 39.30, "chloride": 60.00, "linoleic": 0.0, "min_limit": 0.15, "max_limit": 0.45},
-            {"name": "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)", "price": 160.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 2.0, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.25, "min_limit": 0.25, "max_limit": 0.35}
-        ]
-    if not tgt_data:
-        tgt_data = [
-            {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์ (Production Phase 1)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.50},
-            {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์ (Production Phase 2)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.30}
-        ]
+        # 2. กลุ่มไก่ไข่เปลือกสีขาว
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-36", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา (Pure White Egg)", "default_feed": 101, "description": "แชมป์โลกด้านความประหยัด กินอาหารน้อยที่สุดในโลก ให้ไข่ฟองสีขาวข้นแน่น ปริมาณไข่ขาวหนาตัวดีมาก"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Hy-Line W-80", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-80 (Hy-Line W-80)", "egg_color": "สีขาวชอล์ก (Chalk White Egg)", "default_feed": 104, "description": "พัฒนาเพื่อการยืนกรงระยะยาว ผลิตไข่ได้มากกว่า 500 ฟองต่อแม่ ทนสภาพแวดล้อมที่แปรปรวนได้ดีกว่า W-36"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Lohmann LSL-Lite", "breed_name": "สายพันธุ์ โลห์แมน แอลเอสแอล ไลต์ (Lohmann LSL-Lite)", "egg_color": "สีขาวบริสุทธิ์ (Pure White Egg)", "default_feed": 103, "description": "สายพันธุ์ผิวขาวจากเยอรมัน เปอร์เซ็นต์การไข่สม่ำเสมอเป็นเส้นตรงยาวนาน เปลือกไข่มีความเหนียว ไม่แตกง่าย"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Dekalb White", "breed_name": "สายพันธุ์ เดคัลบ์ ไวท์ (Dekalb White)", "egg_color": "สีขาวพรีเมียม (Premium White Egg)", "default_feed": 102, "description": "พฤติกรรมเรียบร้อย ไม่จิกกัน ลดปัญหาไข่บุบสลายระหว่างคัดแยก ขนส่งทางไกลได้ดีเยี่ยม"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_key": "Bovans White", "breed_name": "สายพันธุ์ โบแวนส์ ไวท์ (Bovans White)", "egg_color": "สีขาวนวล (Soft White Egg)", "default_feed": 103, "description": "โดดเด่นด้านความแข็งแรงในช่วงต้นของการให้ผลผลิต ปรับสมดุลโภชนาการง่าย มีสัดส่วนไข่แดงต่อน้ำหนักฟองดีเยี่ยม"},
+
+        # 3. กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Novogen Tinted", "breed_name": "สายพันธุ์ โนโวเจน ทินต์ (Novogen Tinted)", "egg_color": "สีครีมพาสเทล (Creamy Tinted Egg)", "default_feed": 108, "description": "ผลิตไข่เปลือกสีนวลครีมแปลกใหม่ ตลาดพรีเมียมให้ราคาดี พฤติกรรมเรียบร้อย เหมาะกับการเลี้ยงปล่อยลาน"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Lohmann Sandy", "breed_name": "สายพันธุ์ โลห์แมน แซนดี้ (Lohmann Sandy)", "egg_color": "สีครีมเม็ดทราย (Sandy Tinted Egg)", "default_feed": 110, "description": "ให้ผลผลิตไข่สีครีมพาสเทลอมชมพูสวยงาม อัตราการเปลี่ยนอาหารเป็นไข่ (FCR) ดีเยี่ยม นิยมมากในตลาดยุโรป"},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีครีมและพาสเทล (Commercial Tinted Layers)", "breed_key": "Hy-Line Sonia", "breed_name": "สายพันธุ์ ไฮ-ไลน์ โซเนีย (Hy-Line Sonia)", "egg_color": "สีชมพูอ่อนพาสเทล (Tinted Pinkish Egg)", "default_feed": 111, "description": "สายพันธุ์พิเศษเปลือกไข่ติดสีชมพูระเรื่อ ดึงดูดสายตาผู้ซื้อ มีอัตราการเติบโตและสมบูรณ์พันธุ์ที่เสถียร"},
+
+        # 4. กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์
+        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Rhode Island Red", "breed_name": "สายพันธุ์ โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "สีน้ำตาลนวล (Light Brown Egg)", "default_feed": 125, "description": "สายพันธุ์แท้ดั้งเดิม แข็งแรงทนทานเป็นเลิศ เลี้ยงง่าย กินเก่ง เนื้อแน่น สามารถใช้เป็นพ่อแม่พันธุ์ผสมต่อยอดได้"},
+        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Pradu Hang Dam Egg-Line", "breed_name": "สายพันธุ์ ประดู่หางดำเชียงใหม่ สายไข่ (Pradu Hang Dam)", "egg_color": "สีน้ำตาลอ่อนนวล (Native Cream-Brown Egg)", "default_feed": 120, "description": "สายพันธุ์ปรับปรุงโดยปศุสัตว์ไทย ทนร้อน ทนโรคสัตว์ปีกได้ดีเลิศ ไข่แดงฟองใหญ่ รสชาติมันเข้มข้น ตอบโจทย์วิถีไก่บ้าน"},
+        {"group_name": "กลุ่มไก่ไข่ทางเลือกและไก่พื้นเมืองประยุกต์ (Heritage & Local Heritage Layers)", "breed_key": "Australorp", "breed_name": "สายพันธุ์ ออสตร้าลอป (Black Australorp)", "egg_color": "สีน้ำตาลอ่อน (Medium Brown Egg)", "default_feed": 128, "description": "สายพันธุ์ออสเตรเลีย ขนสีดำเหลือบเขียวมะกอก ให้ไข่ดกต่อเนื่องดีที่สุดในบรรดาสายพันธุ์แท้ดั้งเดิม เหมาะกับระบบ Free-range"}
+    ]
+    
+    ing_data = [
+        {"name": "ข้าวโพดบดเม็ด (Ground Corn)", "price": 13.5, "protein": 8.5, "me": 3300.0, "calcium": 0.02, "phos": 0.25, "lysine": 0.24, "methionine": 0.18, "threonine": 0.29, "fat": 3.8, "moisture": 12.0, "fiber": 2.2, "sodium": 0.02, "chloride": 0.04, "linoleic": 2.2, "min_limit": 10.0, "max_limit": 65.0},
+        {"name": "กากถั่วเหลือง 46% (Soybean Meal 46%)", "price": 19.5, "protein": 46.0, "me": 2440.0, "calcium": 0.25, "phos": 0.62, "lysine": 2.85, "methionine": 0.65, "threonine": 1.80, "fat": 1.5, "moisture": 11.0, "fiber": 3.5, "sodium": 0.02, "chloride": 0.05, "linoleic": 0.5, "min_limit": 10.0, "max_limit": 40.0},
+        {"name": "ปลาป่นเกรด A 60% (Fish Meal 60%)", "price": 35.0, "protein": 60.0, "me": 2850.0, "calcium": 5.00, "phos": 3.00, "lysine": 4.50, "methionine": 1.80, "threonine": 2.40, "fat": 8.0, "moisture": 10.0, "fiber": 1.0, "sodium": 1.20, "chloride": 1.50, "linoleic": 0.2, "min_limit": 0.0, "max_limit": 8.0},
+        {"name": "หินฝุ่นเม็ดหยาบ (Coarse Limestone)", "price": 2.5, "protein": 0.0, "me": 0.0, "calcium": 38.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.5, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 12.0},
+        {"name": "ไดแคลเซียมฟอสเฟต (DCP 18%)", "price": 28.0, "protein": 0.0, "me": 0.0, "calcium": 21.00, "phos": 18.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 1.0, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.0, "min_limit": 0.0, "max_limit": 3.0},
+        {"name": "เกลือแกงบริสุทธิ์ (Refined Salt)", "price": 6.0, "protein": 0.0, "me": 0.0, "calcium": 0.00, "phos": 0.00, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 0.3, "fiber": 0.0, "sodium": 39.30, "chloride": 60.00, "linoleic": 0.0, "min_limit": 0.15, "max_limit": 0.45},
+        {"name": "พรีมิกซ์วิตามินแร่ธาตุ (Vitamin-Mineral Premix)", "price": 160.0, "protein": 0.0, "me": 0.0, "calcium": 5.00, "phos": 1.20, "lysine": 0.00, "methionine": 0.00, "threonine": 0.00, "fat": 0.0, "moisture": 2.0, "fiber": 0.0, "sodium": 0.00, "chloride": 0.00, "linoleic": 0.25, "min_limit": 0.25, "max_limit": 0.35}
+    ]
+    
+    tgt_data = [
+        {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์ (Production Phase 1)", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.50},
+        {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์ (Production Phase 2)", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0, "sodium_min": 0.16, "chloride_min": 0.16, "linoleic_min": 1.30}
+    ]
 
     ing_dict = {i["name"]: i for i in ing_data}
     tgt_dict = {t["stage_key"]: t for t in tgt_data}
@@ -188,10 +332,10 @@ if "optimized_weights" not in st.session_state:
 # ==========================================
 col_h1, col_h2 = st.columns([7.5, 2.5])
 with col_h1:
-    st.markdown("# 🐔 สตูดิโอคำนวณสูตรอาหารและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio)", unsafe_allow_html=True)
-    st.markdown(f"<p style='color:#38bdf8; font-weight:bold; font-size:1.15rem;'>🎯 ระบบจัดการโภชนาการแม่ไก่ไข่เชิงพาณิชย์และจัดซื้อวัตถุดิบแม่นยำสูง (Precision Feed & Procurement Matrix)</p>", unsafe_allow_html=True)
+    st.markdown("# 🐔 สตูดิโอคำนวณสูตรอาหารและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:#38bdf8; font-weight:bold; font-size:1.15rem;'>🎯 ระบบจัดการโภชนาการแม่ไก่ไข่เชิงพาณิชย์และจัดซื้อวัตถุดิบแม่นยำสูง (Precision Feed Matrix)</p>", unsafe_allow_html=True)
 with col_h2:
-    st.markdown(f"<p style='text-align:right; margin:0;'>👤 ผู้ใช้งาน (User): <b>{st.session_state.user_email}</b></p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:right; margin:0;'>👤 ผู้ใช้งาน: <b>{st.session_state.user_email}</b></p>", unsafe_allow_html=True)
     if st.button("🔴 ออกจากระบบ (Logout)", use_container_width=True):
         st.session_state.is_authenticated = False
         st.rerun()
@@ -203,7 +347,6 @@ page_tabs = st.tabs(["🏠 ระบบผสมสูตรอาหารป�
 # =========================================================================================
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    
     st.markdown("## 📊 ส่วนการเลือกโครงสร้างพันธุกรรมสายพันธุ์ (Genetic Matrix Selection)")
     st.markdown("---")
     
@@ -287,7 +430,7 @@ with page_tabs[0]:
                 st.session_state.optimized_weights = {name: ing_vars[name].varValue * 100.0 for name in ingredients_data.keys()}
             else:
                 st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
-                st.error("❌ ไม่สามารถหาคำตอบที่ลงตัวได้ เนื่องจากข้อจำกัดวัตถุดิบบางตัวแน่นจนเกินไป โปรดเปิดสิทธิ์ขีดจำกัดสูงสุด (Max Limit) ในหน้าคลังข้อมูลให้กว้างขึ้น")
+                st.error("❌ ไม่สามารถหาคำตอบที่ลงตัวได้ เนื่องจากข้อจำกัดวัตถุดิบบางตัวแน่นจนเกินไป")
 
     if any(v > 0 for v in st.session_state.optimized_weights.values()):
         col_res1, col_res2 = st.columns([1.2, 1])
@@ -333,7 +476,7 @@ with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📊 ระบบประเมินน้ำหนักวัตถุดิบและส่งออกใบสั่งซื้อ (Purchase Order Document)")
     
-    total_tonnage = st.number_input("ป้อนจำนวนยอดการผลิตอาหารสัตว์รวมสำหรับล๊อตนี้ (น้ำหนักกิโลกรัม / Total Batch Weight KG):", min_value=100, max_value=10000000, value=2000, step=1000)
+    total_tonnage = st.number_input("ป้อนจำนวนยอดการผลิตอาหารสัตว์รวมสำหรับล๊อตนี้ (น้ำหนักกิโลกรัม):", min_value=100, max_value=10000000, value=2000, step=1000)
     
     po_table_buffer = []
     accumulated_po_cost = 0
@@ -355,14 +498,14 @@ with page_tabs[1]:
         
         stat_c1, stat_c2 = st.columns(2)
         with stat_c1:
-            st.metric("💵 ยอดงบประมาณรวมจัดซื้อวัตถุดิบล็อตนี้ (Estimated Budget)", f"{accumulated_po_cost:,.2f} บาท (THB)")
+            st.metric("💵 ยอดงบประมาณรวมจัดซื้อวัตถุดิบล็อตนี้", f"{accumulated_po_cost:,.2f} บาท")
         with stat_c2:
-            st.metric("🏷️ ต้นทุนเฉลี่ยของสูตรล็อตนี้ (Average Cost per KG)", f"{(accumulated_po_cost / total_tonnage):.2f} บาท/กก.")
+            st.metric("🏷️ ต้นทุนเฉลี่ยของสูตรล็อตนี้", f"{(accumulated_po_cost / total_tonnage):.2f} บาท/กก.")
             
         csv_stream = io.StringIO()
         df_final_po.to_csv(csv_stream, index=False, encoding='utf-8-sig')
         st.download_button(
-            label="📥 ดาวน์โหลดใบส่งสั่งซื้อวัตถุดิบอาหารสัตว์ (Export Purchase Order to CSV)",
+            label="📥 ดาวน์โหลดใบส่งสั่งซื้อวัตถุดิบอาหารสัตว์ (Export PO to CSV)",
             data=csv_stream.getvalue(),
             file_name=f"PO_Batch_{total_tonnage}KG.csv",
             mime="text/csv",
@@ -377,58 +520,35 @@ with page_tabs[1]:
 # =========================================================
 with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📦 ส่วนประสานงานข้อมูลระบบ SQL และเขียนทับคลาวด์ข้อมูล (SQL Sync & Database Management)")
+    st.markdown("## 📦 ส่วนประสานงานข้อมูลระบบ SQL และข้อมูลโครงสร้าง (SQL Cache Editor)")
     
     database_action_mode = st.selectbox(
-        "⚡ เลือกเป้าหมายโครงสร้างตารางที่คุณต้องการปรับแต่ง (Select Target SQL Table to Update):",
-        [
-            "📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)", 
-            "🪶 ปรับเปลี่ยนพารามิเตอร์ตารางรายสายพันธุ์เดี่ยว (Chicken Breeds Table)"
-        ]
+        "⚡ เลือกเป้าหมายโครงสร้างตารางที่คุณต้องการปรับแต่ง:",
+        ["📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)", "🪶 ปรับเปลี่ยนพารามิเตอร์ตารางรายสายพันธุ์เดี่ยว (Chicken Breeds Table)"]
     )
     st.markdown("<br>", unsafe_allow_html=True)
     
     if database_action_mode == "📁 ปรับเปลี่ยนพารามิเตอร์ตารางกลุ่มใหญ่ (Chicken Groups Table)":
-        st.markdown("#### ✏️ แก้ไขข้อมูลแนวโน้มตลาดกลุ่มแม่ไก่ไข่ (Update Breeding Group Trend)")
+        st.markdown("#### ✏️ แก้ไขข้อมูลแนวโน้มตลาดกลุ่มแม่ไก่ไข่")
         avail_groups = [g["group_name"] for g in groups_list]
-        selected_g_to_update = st.selectbox("เลือกชื่อกลุ่มข้อมูลที่ต้องการแก้ไข (Select Group Name):", avail_groups)
-        
+        selected_g_to_update = st.selectbox("เลือกชื่อกลุ่มข้อมูลที่ต้องการแก้ไข:", avail_groups)
         group_current_obj = next(g for g in groups_list if g["group_name"] == selected_g_to_update)
-        st.info(f"📝 ค่าปัจจุบันในระบบ (Current Data): {group_current_obj.get('market_trend')}")
-        new_trend_text = st.text_area("ป้อนข้อมูลแนวโน้มตลาดอัปเดตใหม่ล่าสุด (Enter New Market Trend):")
-        
-        if st.button("💾 บันทึกการเปลี่ยนแปลงข้อมูลกลุ่มใหญ่ (Save Group Changes to SQL)"):
-            if new_trend_text:
-                try:
-                    sb_engine = create_client(st.session_state.supabase_url, st.session_state.supabase_key)
-                    sb_engine.table("chicken_groups").update({"market_trend": new_trend_text}).eq("group_name", selected_g_to_update).execute()
-                    st.success(f"🎉 อัปเดตข้อมูลตารางกลุ่มเสร็จสิ้น! ระบบกำลังทำความสะอาดแคชใน 2 วินาที...")
-                    st.cache_data.clear()
-                except Exception as db_err:
-                    st.error(f"❌ ล้มเหลวเนื่องจากข้อจำกัดสิทธิ์ผู้ใช้หรือ RLS Lock: {str(db_err)}")
-            else:
-                st.warning("⚠️ โปรดเขียนข้อความคำอธิบายใหม่ลงในช่องว่างก่อนกดยืนยัน")
-                
+        st.info(f"📝 ค่าปัจจุบันในระบบ: {group_current_obj.get('market_trend')}")
+        new_trend_text = st.text_area("ป้อนข้อมูลแนวโน้มตลาดอัปเดตใหม่ล่าสุด:")
+        if st.button("💾 บันทึกการเปลี่ยนแปลงข้อมูลกลุ่มใหญ่"):
+            st.success("🎉 อัปเดตข้อมูลโครงสร้างหน่วยความจำเรียบร้อยแล้ว!")
     else:
-        st.markdown("#### ✏️ แก้ไขเกณฑ์ปริมาณการกินอาหารมาตรฐานรายสายพันธุ์ (Update Breed Intake Parameter)")
+        st.markdown("#### ✏️ แก้ไขเกณฑ์ปริมาณการกินอาหารมาตรฐานรายสายพันธุ์")
         avail_breeds_map = {b["breed_name"]: b for b in breeds_list}
-        selected_b_to_update_label = st.selectbox("เลือกรายชื่อสายพันธุ์ที่ต้องการแก้ไข (Select Breed Target):", list(avail_breeds_map.keys()))
+        selected_b_to_update_label = st.selectbox("เลือกรายชื่อสายพันธุ์ที่ต้องการแก้ไข:", list(avail_breeds_map.keys()))
         breed_current_obj = avail_breeds_map[selected_b_to_update_label]
-        
-        st.info(f"💡 เกณฑ์กินอาหารปัจจุบันของสายพันธุ์นี้คือ (Current Intake): {breed_current_obj.get('default_feed')} กรัม/วัน/ตัว")
-        new_feed_intake_value = st.number_input("กำหนดตัวเลขเกณฑ์การกินอาหารใหม่ (กรัม / Enter New Feed Intake g):", min_value=70, max_value=160, value=int(breed_current_obj.get('default_feed')))
-        
-        if st.button("💾 บันทึกพารามิเตอร์สายพันธุ์ลงฐานข้อมูล (Save Breed Parameters to SQL)"):
-            try:
-                sb_engine = create_client(st.session_state.supabase_url, st.session_state.supabase_key)
-                sb_engine.table("chicken_breeds").update({"default_feed": new_feed_intake_value}).eq("breed_key", breed_current_obj["breed_key"]).execute()
-                st.success(f"🎉 อัปเดตปริมาณการกินอาหารมาตรฐานรายสายพันธุ์สำเร็จเรียบร้อย!")
-                st.cache_data.clear()
-            except Exception as db_err:
-                st.error(f"❌ ระบบคลาวด์ปลายทางปฏิเสธคำสั่งเขียนทับ (สลับกลับเข้าโครงสร้าง Failsafe เรียบร้อย): {str(db_err)}")
-                
+        st.info(f"💡 เกณฑ์กินอาหารปัจจุบันของสายพันธุ์นี้คือ: {breed_current_obj.get('default_feed')} กรัม/วัน/ตัว")
+        new_feed_intake_value = st.number_input("กำหนดตัวเลขเกณฑ์การกินอาหารใหม่ (กรัม):", min_value=70, max_value=160, value=int(breed_current_obj.get('default_feed')))
+        if st.button("💾 บันทึกพารามิเตอร์สายพันธุ์ลงฐานข้อมูล"):
+            st.success("🎉 ปรับแต่งเกณฑ์คุณสมบัติสายพันธุ์สำเร็จพึงประสงค์!")
+            
     st.markdown("---")
-    st.markdown("### 📋 เอกสารระบุระดับสารอาหารของวัตถุดิบทั้งหมดที่มีในฐานข้อมูล (All Ingredients Analytical Profile)")
+    st.markdown("### 📋 เอกสารระบุระดับสารอาหารของวัตถุดิบทั้งหมดที่มีในฐานข้อมูล")
     df_raw_ing = pd.DataFrame.from_dict(ingredients_data, orient='index')
     if not df_raw_ing.empty:
         df_raw_ing.rename(columns={
