@@ -1,5 +1,5 @@
-supabase
+streamlit
+pandas
 pulp
 plotly
-pandas
-streamlit
+supabase
