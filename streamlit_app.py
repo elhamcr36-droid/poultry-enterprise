@@ -128,7 +128,6 @@ if "user_role" not in st.session_state:
     st.session_state.user_role = "user"  
 
 if "user_database" not in st.session_state:
-    # ฝังโครงสร้าง 'role' ให้ครบถ้วนสมบูรณ์ในทุกบัญชีเริ่มต้น ป้องกัน KeyError 100%
     st.session_state.user_database = {
         "admin": {"password": "222", "name": "ผู้ดูแลระบบ", "surname": "ระดับสูง", "role": "admin", "tel": "089-999-9999", "reg_date": "2026-01-01"},
         "222": {"password": "222", "name": "แอดมิน", "surname": "ทางลัด", "role": "admin", "tel": "088-888-8888", "reg_date": "2026-01-02"},
@@ -138,10 +137,10 @@ if "user_database" not in st.session_state:
 CORRECT_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
 CORRECT_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 
-# ตรวจสอบสิทธิ์การเข้าถึง หากยังไม่ล็อกอินให้เปิดระเบียงความปลอดภัยกั้นไว้ก่อน
+# ตรวจสอบสิทธิ์การเข้าถึง หากยังไม่ล็อกอินให้แสดงหน้า Login/Register กั้นไว้ก่อน
 if not st.session_state.is_authenticated:
     
-    # --- 2.1 หน้าล็อกอินสไตล์โมเดิร์น (Login Gate) ---
+    # --- 2.1 หน้าล็อกอิน (Login Gate) ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 80px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 ระบบวิเคราะห์โภชนาการและจัดการสายพันธุ์ไก่ไข่ระดับสากล</h2>", unsafe_allow_html=True)
@@ -154,10 +153,10 @@ if not st.session_state.is_authenticated:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
             if email_login in st.session_state.user_database and st.session_state.user_database[email_login]["password"] == pass_login:
-                st.session_state.is_authenticated = True
                 user_info = st.session_state.user_database[email_login]
                 
-                # 🛡️ Failsafe: ดักจับและป้องกัน KeyError หากตรวจไม่เจอบทบาท ให้เซ็ตเป็น 'user' อัตโนมัติ
+                # ฝังค่าสถานะและสิทธิ์ลงใน Session ทันทีก่อน Rerun
+                st.session_state.is_authenticated = True
                 st.session_state.user_role = user_info.get("role", "user")
                 
                 if st.session_state.user_role == "admin":
@@ -167,10 +166,9 @@ if not st.session_state.is_authenticated:
                     
                 st.session_state.supabase_url = CORRECT_URL
                 st.session_state.supabase_key = CORRECT_KEY
-                st.success("กำลังพาท่านไปยังหน้าจอตามสิทธิ์ความปลอดภัย...")
                 st.rerun()
             else:
-                st.error("❌ ข้อมูลสิทธิ์เข้าใช้งานไม่ถูกต้อง! (สำหรับเข้าทดสอบระบบแอดมินหลังบ้าน ให้ป้อนไอดี '222' และรหัสผ่าน '222')")
+                st.error("❌ ข้อมูลสิทธิ์เข้าใช้งานไม่ถูกต้อง! (สำหรับแอดมินทดสอบระบบ ให้ป้อนไอดี '222' และรหัสผ่าน '222')")
         
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         col_b1, col_b2 = st.columns(2)
@@ -186,7 +184,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 2.2 หน้าสมัครสมาชิกดีไซน์ Facebook (Facebook-Style Sign Up) ---
+    # --- 2.2 หน้าสมัครสมาชิกดีไซน์ Facebook ---
     elif st.session_state.auth_page_mode == "signup":
         st.markdown("<div class='content-card' style='max-width: 620px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h1 class='fb-header'>facebook</h1>", unsafe_allow_html=True)
@@ -229,7 +227,6 @@ if not st.session_state.is_authenticated:
             if not reg_name or not reg_surname or not reg_identity or not reg_password:
                 st.error("⚠️ กรุณากรอกรายละเอียดส่วนบุคคลที่สำคัญให้ครบถ้วนทุกช่องก่อนส่งข้อมูลครับ")
             else:
-                # บันทึกข้อมูลแบบระบุคีย์ 'role' ชัดเจน ป้องกันการเกิด KeyError ซ้ำซ้อน
                 st.session_state.user_database[reg_identity] = {
                     "password": reg_password,
                     "name": reg_name,
@@ -248,7 +245,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 2.3 หน้าลืมรหัสผ่าน (Forgot Password Page) ---
+    # --- 2.3 หน้าลืมรหัสผ่าน ---
     elif st.session_state.auth_page_mode == "forgot":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 80px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='color:#f59e0b !important;'>🔍 ค้นหาบัญชีของคุณ (Find Your Account)</h2>", unsafe_allow_html=True)
@@ -335,14 +332,14 @@ with col_h2:
 st.markdown("---")
 
 # =========================================================================================
-# 🛡️ 5. INTERACTION ROUTER (สลับหน้าจอตามสิทธิ์ USER VS ADMIN)
+# 🛡️ 5. INTERACTION ROUTER (แยกบล็อกการทำงานระหว่าง ADMIN และ USER เป็นเอกเทศ 100%)
 # =========================================================================================
 
-# -----------------------------------------------------------------------------------------
-# 🛠️ [กรณีที่ 1]: สิทธิ์ผู้ดูแลระบบ (ADMIN MODE PANEL) -> เด้งแยกมาจัดการข้อมูลหลังบ้านโดยเฉพาะ
-# -----------------------------------------------------------------------------------------
 if st.session_state.user_role == "admin":
-    st.markdown("<div style='background-color:#7f1d1d; padding:15px; border-radius:10px; margin-bottom:20px;'><h3 style='margin:0; color:#fca5a5 !important;'>🛠️ ยินดีต้อนรับเข้าสู่แผงควบคุมหลักสำหรับ Admin</h3></div>", unsafe_allow_html=True)
+    # -------------------------------------------------------------------------------------
+    # 🛠️ [BLOCK ADMIN เท่านั้น]: หน้าควบคุมสิทธิ์และจัดการหลังบ้าน (ไม่มีเมนูคํานวณของ User โผล่)
+    # -------------------------------------------------------------------------------------
+    st.markdown("<div style='background-color:#7f1d1d; padding:15px; border-radius:10px; margin-bottom:20px;'><h3 style='margin:0; color:#fca5a5 !important;'>🛠️ CONTROL PANEL: พื้นที่ควบคุมระบบของผู้ดูแลระบบหลังบ้าน</h3></div>", unsafe_allow_html=True)
     
     admin_tabs = st.tabs(["👥 จัดการข้อมูลผู้ใช้งาน (User Account Manager)", "⚙️ แก้ไขพารามิเตอร์ระบบ (SQL Cache Editor)"])
     
@@ -379,7 +376,7 @@ if st.session_state.user_role == "admin":
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🚀 บันทึกการอัปเดตสิทธิ์", use_container_width=True):
                 st.session_state.user_database[target_user_to_change]["role"] = new_role_assignment
-                st.success(f"เปลี่ยนสิทธิ์ของ {target_user_to_change} เป็น {new_role_assignment} เรียบร้อยแล้ว! (มีผลในการล็อกอินรอบถัดไป)")
+                st.success(f"เปลี่ยนสิทธิ์ของ {target_user_to_change} เป็น {new_role_assignment} เรียบร้อยแล้ว!")
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         
@@ -424,10 +421,10 @@ if st.session_state.user_role == "admin":
             st.dataframe(df_raw_ing, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------------------
-# 🐔 [กรณีที่ 2]: สิทธิ์ผู้ใช้งานทั่วไป (USER MODE PANEL) -> เข้าใช้งานระบบวิเคราะห์และคำนวณสูตร
-# -----------------------------------------------------------------------------------------
 else:
+    # -------------------------------------------------------------------------------------
+    # 🐔 [BLOCK USER ทั่วไป]: หน้าคำนวณและประมวลผลสูตรอาหาร AI (ทางฝั่ง Admin จะมองไม่เห็นส่วนนี้)
+    # -------------------------------------------------------------------------------------
     page_tabs = st.tabs(["🏠 ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (AI Feed Optimization)", "📊 แผนสถิติและใบสั่งซื้อวัตถุดิบ (Procurement & PO Sheet)"])
     
     # 🏠 [แท็บที่ 1]: ระบบผสมสูตรอาหารปัญญาประดิษฐ์
@@ -438,7 +435,6 @@ else:
         
         group_names = [g["group_name"] for g in groups_list]
         
-        # 📌 กล่องที่ 1: เลือกกลุ่มประเภทไก่ไข่หลัก (Selectbox ขอบทองขนาดใหญ่พิเศษ)
         selected_group = st.selectbox(
             "🗂️ 1. เลือกคัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode):", 
             group_names,
@@ -451,7 +447,6 @@ else:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # 📌 กล่องที่ 2: เลือกรายสายพันธุ์การค้า (กล่องยักษ์คู่ขนานกรองผลอัตโนมัติ Cascade Filter)
         if breed_options_map:
             selected_breed_name = st.selectbox(
                 "🐓 2. คัดกรองเจาะลึกรายสายพันธุ์การค้าอัตโนมัติ (Commercial Breeds Mode):", 
@@ -505,7 +500,7 @@ else:
                 prob.solve(pulp.PULP_CBC_CMD(msg=False))
                 
                 if pulp.LpStatus[prob.status] == "Optimal":
-                    st.success(f"✅ AI ประมวลผลสำเร็จ! ได้สูตรอาหารที่สมดุลและมีราคาประหยัดที่สุดตามความต้องการเรียบร้อย")
+                    st.success(f"✅ AI ประมวลผลสำเร็จ! ได้สูตรอาหารที่สมดุลและมีราคาประหยัดที่สุดเรียบร้อย")
                     st.session_state.optimized_weights = {name: ing_vars[name].varValue * 100.0 for name in ingredients_data.keys()}
                 else:
                     st.session_state.optimized_weights = {name: 0.0 for name in ingredients_data.keys()}
