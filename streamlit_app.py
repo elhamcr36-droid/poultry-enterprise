@@ -205,7 +205,7 @@ if not st.session_state.is_authenticated:
                 st.rerun()
                 
         st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
-        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", variant="secondary"):
+        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):  # แก้ไขจุดที่ 1 ตรงนี้
             st.session_state.auth_page_mode = "forgot"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -305,7 +305,7 @@ if not st.session_state.is_authenticated:
         else:
             if fg_email: st.error("❌ ไม่พบที่อยู่อีเมลนี้ในระบบ")
             
-        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
+        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True, type="secondary"):  # แก้ไขจุดที่ 2 ตรงนี้
             st.session_state.auth_page_mode = "login"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -677,7 +677,7 @@ else:
             comparison_table = [
                 {"โภชนาการ": "โปรตีนดิบ (Crude Protein %)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
                 {"โภชนาการ": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
-                {"โภชนาการ": "แคลเซียม (% Calcium)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
+                {"โภชนา2": "แคลเซียม (% Calcium)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
                 {"โภชนาการ": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
                 {"โภชนาการ": "ไลซีน (% Lysine)", "เป้าหมาย": f"{edit_ly:.2f} %", "ได้จริงในสูตร": f"{act_nut['lysine']:.2f} %"},
                 {"โภชนาการ": "เมทไธโอนีน (% Methionine)", "เป้าหมาย": f"{edit_me:.2f} %", "ได้จริงในสูตร": f"{act_nut['methionine']:.2f} %"},
