@@ -181,64 +181,59 @@ with col_h2:
 
 page_tabs = st.tabs(["🏠 ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (AI Feed Optimization)", "📊 แผนสถิติและใบสั่งซื้อวัตถุดิบ (Procurement & PO Sheet)", "📦 คลังข้อมูลระบบและตารางโครงสร้าง (SQL Editor Control)"])
 
-# =========================================================
-# 🏠 [แท็บที่ 1]: ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (AI Feed Optimization)
-# =========================================================
+# =========================================================================================
+# 🏠 [แท็บที่ 1]: ระบบผสมสูตรอาหารปัญญาประดิษฐ์ (ปรับปรุงระบบคัดกรองอัตโนมัติ Cascade Filter)
+# =========================================================================================
 with page_tabs[0]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     
-    # 📌 ส่วนแยกขนาดใหญ่พิเศษ (Large Radio Button) เลือกคัดกรองระหว่างกลุ่ม หรือ รายสายพันธุ์เดี่ยว
-    filter_mode = st.radio(
-        "🔘 เลือกรูปแบบการเจาะลึกความต้องการทางพันธุกรรม (Select Selection Mode):", 
-        [
-            "🧬 คัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode)", 
-            "🐓 คัดกรองเจาะลึกรายสายพันธุ์การค้า (Commercial Breeds Mode)"
-        ], 
-        horizontal=True
+    st.markdown("### 🧬 1. เลือกคัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode)")
+    group_names = [g["group_name"] for g in groups_list]
+    
+    # 📌 ปุ่มกดวิทยุขนาดใหญ่พิเศษสำหรับเลือกกลุ่มหลักหลัก (Large Radio Buttons)
+    selected_group = st.radio(
+        "🔘 คลิกเลือกกลุ่มประเภทไก่ไข่หลักของคุณ (Select Primary Breeding Group):", 
+        group_names,
+        index=0
     )
     
-    current_selected_profile = {}
-    st.markdown("<br>", unsafe_allow_html=True)
+    # ดึงค่าข้อมูล Meta ของกลุ่มที่เลือก
+    g_meta = next(g for g in groups_list if g["group_name"] == selected_group)
     
-    if filter_mode == "🧬 คัดกรองตามกลุ่มประเภทไก่ไข่หลัก (Breeding Groups Mode)":
-        group_names = [g["group_name"] for g in groups_list]
-        selected_g = st.selectbox("เลือกกลุ่มไก่ไข่เป้าหมายตลาด (Select Target Breeding Group):", group_names)
-        g_meta = next(g for g in groups_list if g["group_name"] == selected_g)
+    # 🔄 ตัวกรองอัตโนมัติ: ดึงเฉพาะรายชื่อสายพันธุ์ที่อยู่ภายใต้กลุ่มหลักที่เลือกข้างต้นเท่านั้น
+    filtered_breeds = [b for b in breeds_list if b["group_name"] == selected_group]
+    breed_options_map = {b["breed_name"]: b for b in filtered_breeds}
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 🐓 2. คัดกรองเจาะลึกรายสายพันธุ์การค้าอัตโนมัติ (Commercial Breeds Mode)")
+    
+    # ช่อง Selectbox จะเปลี่ยนรายชื่อสายพันธุ์ตามกลุ่มที่กดด้านบนทันทีโดยอัตโนมัติ
+    if breed_options_map:
+        selected_breed_name = st.selectbox(
+            f"👇 รายชื่อสายพันธุ์การค้าที่สอดคล้องกับ {selected_group} (Select Linked Commercial Breed):", 
+            list(breed_options_map.keys())
+        )
+        b_meta = breed_options_map[selected_breed_name]
         
-        associated_breeds = [b for b in breeds_list if b["group_name"] == selected_g]
-        calculated_feed = int(sum(b["default_feed"] for b in associated_breeds)/len(associated_breeds)) if associated_breeds else 112
-        
+        # 📊 แสดงผลข้อมูลกล่องสายพันธุ์แบบไดนามิก
         st.markdown(f"""
-        <div style='background-color: {g_meta["bg_color"]}; padding: 20px; border-radius: 12px;'>
-            <h4 style='margin:0; color:{g_meta["text_color"]} !important;'>📂 กลุ่มหลัก (Group Name): {selected_g}</h4>
-            <p style='margin:8px 0 0 0; color:{g_meta["text_color"]} !important; font-size:1.1rem;'>
-                <b>แนวโน้มทิศทางตลาด (Market Trend):</b> {g_meta["market_trend"]}<br>
-                <b>สถิติปริมาณอาหารที่กินเฉลี่ยของกลุ่ม (Average Feed Intake):</b> {calculated_feed} กรัม/วัน/ตัว (g/day/bird)
+        <div style='background-color: {g_meta["bg_color"]}; padding: 22px; border-radius: 14px; border: 2px solid rgba(255,255,255,0.2);'>
+            <h4 style='margin:0; color:{g_meta["text_color"]} !important;'>🐓 โปรไฟล์สายพันธุ์ปัจจุบัน: {b_meta["breed_name"]}</h4>
+            <p style='margin:10px 0 0 0; color:{g_meta["text_color"]} !important; font-size:1.15rem; line-height: 1.6;'>
+                <b>🧬 กลุ่มหลักสังกัด (Breeding Group):</b> {b_meta["group_name"]}<br>
+                <b>🥚 มาตรฐานสีเปลือกไข่ (Egg Shell Color):</b> {b_meta["egg_color"]}<br>
+                <b>🍽️ ปริมาณการกินอาหารมาตรฐาน (Default Daily Feed Intake):</b> <span style='color:#f59e0b; font-weight:bold;'>{b_meta["default_feed"]}</span> กรัม/วัน/ตัว (g/day/bird)<br>
+                <b>💡 คำแนะนำเชิงพฤติกรรมศาสตร์ (Technical Description):</b> {b_meta["description"]}
             </p>
         </div>
         """, unsafe_allow_html=True)
-        current_selected_profile = {"name": selected_g, "default_feed": calculated_feed}
-        
+        active_breed_profile = b_meta
     else:
-        breed_dict = {b["breed_name"]: b for b in breeds_list}
-        selected_b_name = st.selectbox("เลือกรายชื่อสายพันธุ์การค้าสากล (Select Commercial Breed):", list(breed_dict.keys()))
-        b_meta = breed_dict[selected_b_name]
-        g_meta = next((g for g in groups_list if g["group_name"] == b_meta["group_name"]), {"bg_color": "#1e293b", "text_color": "#ffffff"})
-        
-        st.markdown(f"""
-        <div style='background-color: {g_meta["bg_color"]}; padding: 20px; border-radius: 12px;'>
-            <h4 style='margin:0; color:{g_meta["text_color"]} !important;'>🐓 สายพันธุ์เดี่ยว (Breed Name): {b_meta["breed_name"]}</h4>
-            <p style='margin:8px 0 0 0; color:{g_meta["text_color"]} !important; font-size:1.1rem;'>
-                <b>กลุ่มต้นสังกัด (Breeding Group):</b> {b_meta["group_name"]}<br>
-                <b>มาตรฐานสีเปลือกไข่ (Egg Color):</b> {b_meta["egg_color"]} | <b>ปริมาณกินอาหารจริง (Feed Intake):</b> {b_meta["default_feed"]} กรัม/วัน/ตัว (g/day/bird)<br>
-                <b>คำแนะนำเชิงเทคนิค (Technical Description):</b> {b_meta["description"]}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        current_selected_profile = b_meta
+        st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ที่เชื่อมโยงกับกลุ่มนี้ในฐานข้อมูล")
+        active_breed_profile = {"breed_name": "Unknown", "default_feed": 110}
 
     st.markdown("---")
-    st.markdown("### 🧬 กำหนดระยะอายุและเป้าหมายสารอาหารที่เหมาะสม (Nutrition Target & Stage)")
+    st.markdown("### 🧬 3. กำหนดระยะอายุและเป้าหมายสารอาหารที่เหมาะสม (Nutrition Target & Stage)")
     stage_options = {s["stage_name"]: s["stage_key"] for s in targets_data.values()}
     selected_stage_label = st.selectbox("เลือกระยะอายุการให้ผลผลิตของฝูง (Select Production Stage):", list(stage_options.keys()))
     active_req = targets_data[stage_options[selected_stage_label]]
@@ -246,7 +241,7 @@ with page_tabs[0]:
     st.session_state.use_phytase = st.checkbox("🧪 เปิดใช้งานเอนไซม์ไฟเตสเสริม (Enable Phytase Enzyme Optimization) - AI จะลดเกณฑ์ Phosphorus ลง 0.10% และ Calcium ลง 0.05% อัตโนมัติ")
     
     if st.button("⚡ เริ่มเดินเครื่องคำนวณสูตรอาหารต้นทุนต่ำสุด (Run AI Low-Cost Linear Solver)", type="primary", use_container_width=True):
-        with st.spinner("กระบวนการคำนวณเชิงเส้นกำลงจับคู่ราคาวัตถุดิบและกรดอะมิโน..."):
+        with st.spinner("กระบวนการคำนวณเชิงเส้นกำลังจับคู่ราคาวัตถุดิบและกรดอะมิโน..."):
             prob = pulp.LpProblem("LayerLinearSolver", pulp.LpMinimize)
             ing_vars = {name: pulp.LpVariable(name, lowBound=float(d["min_limit"])/100.0, upBound=float(d["max_limit"])/100.0) for name, d in ingredients_data.items()}
             
@@ -318,7 +313,7 @@ with page_tabs[0]:
 # =========================================================
 with page_tabs[1]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
-    st.markdown("## 📊 ระบบประเมินน้ำหนักวัตถุดิบและส่งออกใบสั่งซื้อ (Purchase Order Document)")
+    st.markdown("## 📊 ระบบประเมินน้ำหนักวัตถิบและส่งออกใบสั่งซื้อ (Purchase Order Document)")
     
     total_tonnage = st.number_input("ป้อนจำนวนยอดการผลิตอาหารสัตว์รวมสำหรับล๊อตนี้ (น้ำหนักกิโลกรัม / Total Batch Weight KG):", min_value=100, max_value=10000000, value=2000, step=1000)
     
@@ -366,7 +361,6 @@ with page_tabs[2]:
     st.markdown("<div class='content-card'>", unsafe_allow_html=True)
     st.markdown("## 📦 ส่วนประสานงานข้อมูลระบบ SQL และเขียนทับคลาวด์ข้อมูล (SQL Sync & Database Management)")
     
-    # 📌 ส่วนแยกขนาดใหญ่พิเศษ (Large Radio Button) เลือกปรับแต่งระหว่างกลุ่มใหญ่หรือสายพันธุ์ย่อย
     database_action_mode = st.radio(
         "⚡ เลือกเป้าหมายโครงสร้างตารางที่คุณต้องการปรับแต่ง (Select Target SQL Table to Update):",
         [
