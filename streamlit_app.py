@@ -255,7 +255,7 @@ if not st.session_state.is_authenticated:
                         st.rerun()
                 
                 except Exception as error:
-                    st.error(f"ERROR: {error}")
+                    st.error(str(error))
                     with col_btn2:
                         if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
                             st.session_state.auth_page_mode = "signup"
