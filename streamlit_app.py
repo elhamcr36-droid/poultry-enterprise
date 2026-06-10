@@ -25,6 +25,7 @@ if "db_ingredients" not in st.session_state:
 def fetch_ingredients_from_supabase():
     result = supabase.table("ingredients").select("*").execute()
     return {row["name"]: row for row in result.data}
+    st.write(len(st.session_state.db_ingredients))
     
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
