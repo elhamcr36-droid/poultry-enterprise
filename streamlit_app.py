@@ -20,6 +20,9 @@ def init_supabase():
 # สร้างตัวแปร Supabase
 supabase = init_supabase()
 
+if "db_ingredients" not in st.session_state:
+    st.session_state.db_ingredients = {}
+    
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
