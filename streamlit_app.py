@@ -243,18 +243,21 @@ with col_btn1:
 
         except Exception as error:
             st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
-                    with col_btn2:
-            if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
-                st.session_state.auth_page_mode = "signup"
-                st.rerun()
-                
-        st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
-        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
-            st.session_state.auth_page_mode = "forgot"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.stop()
+
+with col_btn2:
+    if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
+        st.session_state.auth_page_mode = "signup"
+        st.rerun()
+
+st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
+
+if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
+    st.session_state.auth_page_mode = "forgot"
+    st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+st.stop()
 
     # --- 4.2 หน้า SIGN UP ---
     elif st.session_state.auth_page_mode == "signup":
