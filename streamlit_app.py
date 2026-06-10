@@ -20,9 +20,15 @@ def init_supabase():
 # สร้างตัวแปร Supabase
 supabase = init_supabase()
 
-if "db_ingredients" not in st.session_state:
-    st.session_state.db_ingredients = {}
-    
+def fetch_ingredients_from_supabase():
+    result = supabase.table("farm_ingredients").select("*").execute()
+
+    data = {}
+
+    for row in result.data:
+        data[row["name"]] = row
+
+    return data
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
