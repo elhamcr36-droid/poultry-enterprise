@@ -224,10 +224,10 @@ if not st.session_state.is_authenticated:
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = email_login
                         
-                        if "admin" in email_login.lower() or email_login == "222":
-                            st.session_state.user_role = "admin"
-                        else:
-                            st.session_state.user_role = "user"
+                       if email_login == "222@gmail.com":
+                         st.session_state.user_role = "admin"
+                       else:
+                         st.session_state.user_role = "user"
                             
                         st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
