@@ -253,20 +253,18 @@ if not st.session_state.is_authenticated:
 
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
                         st.rerun()
-
+                
                 except Exception as error:
-                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
-
-        with col_btn2:
-            if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
-                st.session_state.auth_page_mode = "signup"
-                st.rerun()
-
-        st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
-
-        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
-            st.session_state.auth_page_mode = "forgot"
-            st.rerun()
+                    st.error(f"ERROR: {error}")
+                    with col_btn2:
+                        if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
+                            st.session_state.auth_page_mode = "signup"
+                            st.rerun()
+                            st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
+                            if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
+                                st.session_state.auth_page_mode = "forgot"
+                                
+                                st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
