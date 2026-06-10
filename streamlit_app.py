@@ -224,7 +224,7 @@ if not st.session_state.is_authenticated:
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = email_login
                         
-                        if "admin" in email_login.lower() or email_login == "admin@farm.com":
+                        if "admin" in email_login.lower() or email_login == "222":
                             st.session_state.user_role = "admin"
                         else:
                             st.session_state.user_role = "user"
