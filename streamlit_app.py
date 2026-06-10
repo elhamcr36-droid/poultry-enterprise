@@ -216,43 +216,33 @@ if not st.session_state.is_authenticated:
         pass_login = st.text_input("🔑 รหัสผ่านเข้าใช้งาน:", type="password", key="login_pass")
         
         col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
-                try:
-                    auth_res = supabase.auth.sign_in_with_password({
-            "email": email_login,
-            "password": pass_login
-        })
-                    if auth_res.user:
-        if auth_res.user:
-                        st.session_state.is_authenticated = True
-            st.session_state.is_authenticated = True
-                        st.session_state.current_user_key = email_login
-            st.session_state.current_user_key = email_login
+with col_btn1:
+    if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
+        try:
+            auth_res = supabase.auth.sign_in_with_password({
+                "email": email_login,
+                "password": pass_login
+            })
 
+            if auth_res.user:
+                st.session_state.is_authenticated = True
+                st.session_state.current_user_key = email_login
 
-                        if email_login == "222@gmail.com":
-            if email_login == "222@gmail.com":
-                            st.session_state.user_role = "admin"
-                st.session_state.user_role = "admin"
-                        else:
-            else:
-                            st.session_state.user_role = "user"
-                st.session_state.user_role = "user"
+                if email_login == "222@gmail.com":
+                    st.session_state.user_role = "admin"
+                else:
+                    st.session_state.user_role = "user"
 
+                st.session_state.user_email = (
+                    f"{email_login.split('@')[0]} "
+                    f"[{st.session_state.user_role.upper()}]"
+                )
 
-                            st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
-            st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
-                            st.success("🎉 เข้าสู่ระบบสำเร็จ")
-            st.success("🎉 เข้าสู่ระบบสำเร็จ")
-                            st.rerun()
-            st.rerun()
+                st.success("🎉 เข้าสู่ระบบสำเร็จ")
+                st.rerun()
 
-
-                except Exception as error:
-    except Exception as error:
-                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
-        st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
+        except Exception as error:
+            st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
                     with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
                 st.session_state.auth_page_mode = "signup"
