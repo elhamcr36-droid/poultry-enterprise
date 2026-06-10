@@ -492,7 +492,10 @@ if st.session_state.user_role == "admin":
 
         if crud_mode == "✏️ แก้ไขข้อมูลวัตถุดิบเดิม":
             selected_ing_edit = st.selectbox("เลือกวัตถุดิบที่จะปรับปรุงข้อมูล:", list(st.session_state.db_ingredients.keys()))
-            target_ing = st.session_state.db_ingredients[selected_ing_edit]
+            target_ing = st.session_state.db_ingredients.get(selected_ing_edit)
+            if target_ing is None:
+                st.error("ไม่พบข้อมูลวัตถุดิบ")
+                st.stop()
             
             # จัดกรอกข้อมูลเป็นฟอร์มล้อมกรอบสวยงาม
             with st.form(key=f"form_edit_{selected_ing_edit}"):
