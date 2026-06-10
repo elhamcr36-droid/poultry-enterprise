@@ -31,63 +31,29 @@ st.set_page_config(
 
 st.markdown(
     """
-    </style>
-    """,
-    unsafe_allow_html=True
-)
     <style>
     [data-testid="collapsedControl"] { display: none; }
+
     .stApp {
-        background-image: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)), 
-                          url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
-        background-size: cover; background-position: center;
-        background-repeat: no-repeat; background-attachment: fixed;
+        background-image: linear-gradient(
+            rgba(0,0,0,0.85),
+            rgba(0,0,0,0.85)
+        ),
+        url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
     }
-    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, [data-testid="stHeader"] {
-        color: #ffffff !important;
-        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.95) !important;
-    }
-    
-    div[data-testid="stSelectbox"] > label {
-        font-size: 1.15rem !important;
-        font-weight: 800 !important;
-        color: #ffb703 !important;
-        margin-bottom: 6px !important;
-        display: block;
-    }
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] {
-        font-size: 1.1rem !important; 
-        font-weight: bold !important;
-        background-color: rgba(26, 26, 26, 0.9) !important;
-        border: 2px solid #ffb703 !important; 
-        border-radius: 10px !important;
+
+    h1, h2, h3, h4, h5, h6, p, label,
+    .stMarkdown, [data-testid="stHeader"] {
         color: white !important;
     }
-    
-    .divider-line {
-        border-top: 1px solid rgba(255, 255, 255, 0.18);
-        margin: 22px 0;
-    }
-    
-    .stTabs [data-baseweb="tab-list"] {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        padding: 8px; border-radius: 10px; backdrop-filter: blur(10px);
-    }
-    .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold !important; font-size:1.05rem !important; }
-    .content-card {
-        background-color: rgba(0, 0, 0, 0.90) !important; padding: 30px;
-        border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.18);
-        backdrop-filter: blur(10px); margin-bottom: 25px;
-    }
-    div[data-testid="stMetricValue"] {
-        font-size: 2.2rem !important; color: #ffb703 !important;
-    }
-    [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.95) !important; border-radius: 8px; padding: 5px; }
     </style>
     """,
     unsafe_allow_html=True
 )
-
 # ==========================================
 # 🔐 2. SECURITY & STATE INITIALIZATION
 # ==========================================
