@@ -10,33 +10,31 @@ from supabase import create_client, Client
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
-# ⚠️ เปลี่ยนค่า URL และ KEY ด้านล่างนี้ให้ตรงกับของคุณที่ได้จากหน้า Settings > API ของ Supabase
 SUPABASE_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
 SUPABASE_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 
 @st.cache_resource
-def init_supabase() -> Client:
+def init_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
-    
-    supabase = init_supabase()
-    
-        st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
-        # เพิ่มตรงนี้
-    if "db_ingredients" not in st.session_state:
-        st.session_state.db_ingredients = fetch_ingredients_from_supabase()
-        st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
+
+# สร้างตัวแปร Supabase
+supabase = init_supabase()
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
 st.set_page_config(
-    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)", 
+    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 st.markdown(
     """
+    </style>
+    """,
+    unsafe_allow_html=True
+)
     <style>
     [data-testid="collapsedControl"] { display: none; }
     .stApp {
