@@ -333,123 +333,59 @@ if not st.session_state.is_authenticated:
                 st.warning(pass_msg)
 
         col_su1, col_su2 = st.columns(2)
-        
-with col_su1:
-    if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
-        if su_email and su_pass and su_name and su_tel:
 
-            if su_pass != su_pass_conf:
-                st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
+        with col_su1:
+            if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
+                if su_email and su_pass and su_name and su_tel:
 
-            elif not is_strong:
-                st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
+                    if su_pass != su_pass_conf:
+                        st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
 
-            else:
-                try:
-                    supabase.auth.sign_up({
-                        "email": su_email,
-                        "password": su_pass,
-                        "options": {
-                            "data": {
-                                "first_name": su_name,
-                                "last_name": su_surname,
-                                "phone": su_tel
+                    elif not is_strong:
+                        st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
+
+                    else:
+                        try:
+                            supabase.auth.sign_up({
+                                "email": su_email,
+                                "password": su_pass,
+                                "options": {
+                                    "data": {
+                                        "first_name": su_name,
+                                        "last_name": su_surname,
+                                        "phone": su_tel
+                                    }
+                                }
+                            })
+
+                            st.session_state.user_database[su_email] = {
+                                "name": su_name,
+                                "surname": su_surname,
+                                "tel": su_tel,
+                                "role": "user",
+                                "reg_date": str(datetime.date.today())
                             }
-                        }
-                    })
-elif st.session_state.auth_page_mode == "signup":
 
-    st.markdown(
-        "<div class='content-card' style='max-width: 650px; margin: 40px auto;'>",
-        unsafe_allow_html=True
-    )
+                            st.success(
+                                "🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ"
+                            )
 
-    st.markdown(
-        "<h2 style='text-align:center;'>📝 สมัครสมาชิกใหม่</h2>",
-        unsafe_allow_html=True
-    )
+                            st.session_state.auth_page_mode = "login"
+                            st.rerun()
 
-    su_name = st.text_input("👤 ชื่อ")
-    su_surname = st.text_input("👥 นามสกุล")
-    su_tel = st.text_input("📱 เบอร์โทรศัพท์")
-    su_email = st.text_input("📧 อีเมล")
-
-    st.markdown(
-        "<div style='background-color:#1e293b; padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; color:#94a3b8;'>"
-        "🔒 <b>ข้อกำหนดรหัสผ่านความปลอดภัยสูง:</b><br>"
-        "- ความยาวไม่น้อยกว่า 8 ตัวอักษร<br>"
-        "- มีอักษรพิมพ์ใหญ่ (A-Z) และพิมพ์เล็ก (a-z)<br>"
-        "- มีตัวเลข (0-9) และอักขระพิเศษอย่างน้อย 1 ตัว (@, #, $, %, !, ., _)"
-        "</div>",
-        unsafe_allow_html=True
-    )
-
-    su_pass = st.text_input("🔑 ตั้งรหัสผ่านความปลอดภัยสูง:", type="password")
-    su_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านอีกครั้ง:", type="password")
-
-    is_strong, pass_msg = check_password_strength(su_pass) if su_pass else (False, "")
-
-    if su_pass:
-        if is_strong:
-            st.success(pass_msg)
-        else:
-            st.warning(pass_msg)
-
-    col_su1, col_su2 = st.columns(2)
-
-    with col_su1:
-        if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
-
-            if su_email and su_pass and su_name and su_tel:
-
-                if su_pass != su_pass_conf:
-                    st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
-
-                elif not is_strong:
-                    st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
+                        except Exception as error:
+                            st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
 
                 else:
-                    try:
-                        supabase.auth.sign_up({
-                            "email": su_email,
-                            "password": su_pass,
-                            "options": {
-                                "data": {
-                                    "first_name": su_name,
-                                    "last_name": su_surname,
-                                    "phone": su_tel
-                                }
-                            }
-                        })
+                    st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
 
-                        st.session_state.user_database[su_email] = {
-                            "name": su_name,
-                            "surname": su_surname,
-                            "tel": su_tel,
-                            "role": "user",
-                            "reg_date": str(datetime.date.today())
-                        }
+        with col_su2:
+            if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
+                st.session_state.auth_page_mode = "login"
+                st.rerun()
 
-                        st.success(
-                            "🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ"
-                        )
-
-                        st.session_state.auth_page_mode = "login"
-                        st.rerun()
-
-                    except Exception as error:
-                        st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
-
-            else:
-                st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
-
-    with col_su2:
-        if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
-            st.session_state.auth_page_mode = "login"
-            st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
 
 
 # --- 4.3 หน้า FORGOT PASSWORD ---
