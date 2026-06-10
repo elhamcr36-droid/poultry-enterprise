@@ -177,6 +177,15 @@ if "db_ingredients" not in st.session_state:
             "lysine": 2.80,
             "methionine": 0.65,
             "fiber": 6.0
+            # ฐานข้อมูลผู้ใช้ชั่วคราว
+            if "user_database" not in st.session_state:
+            st.session_state.user_database = {
+        "222@gmail.com": {
+            "name": "System",
+            "surname": "Admin",
+            "tel": "-",
+            "role": "admin",
+            "reg_date": str(datetime.date.today())
         }
     }
 
@@ -346,6 +355,14 @@ if not st.session_state.is_authenticated:
                                     }
                                 }
                             })
+                            # เก็บข้อมูลผู้ใช้ใน Session
+    st.session_state.user_database[su_email] = {
+        "name": su_name,
+        "surname": su_surname,
+        "tel": su_tel,
+        "role": "user",
+        "reg_date": str(datetime.date.today())
+    }
 
                             st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ")
                             st.session_state.auth_page_mode = "login"
@@ -664,7 +681,15 @@ if st.session_state.user_role == "admin":
         with uc1:
             st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
             with st.container(border=True):
-                selected_user_email = st.selectbox("เลือกบัญชีอีเมลที่ต้องการแก้ไข:", list(st.session_state.user_database.keys()))
+                user_keys = list(st.session_state.get("user_database", {}).keys())
+
+if not user_keys:
+    st.warning("ยังไม่มีข้อมูลสมาชิก")
+else:
+    selected_user_email = st.selectbox(
+        "เลือกบัญชีอีเมลที่ต้องการแก้ไข:",
+        user_keys
+    )
                 current_user_role = st.session_state.user_database[selected_user_email]["role"]
                 new_role = st.selectbox("ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:", ["user", "admin"], index=0 if current_user_role == "user" else 1)
                 if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
