@@ -141,7 +141,8 @@ if "db_targets" not in st.session_state:
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
 
-# โครงสร้างสารอาหารหลัก (แก้ไข Bug ประกาศซ้ำและยุบรวมไว้ที่ส่วนต้นของ State เพื่อเรียกใช้งานได้เป็นระบบ)
+import datetime
+
 # โครงสร้างสารอาหารหลัก
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
@@ -152,7 +153,7 @@ if "db_nutrient_keys" not in st.session_state:
         "phos": {"label": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "step": 0.01, "default": 0.0},
         "lysine": {"label": "อะมิโน ไลซีน (% Lys)", "step": 0.01, "default": 0.0},
         "methionine": {"label": "อะมิโน เมทไธโอนีน (% Met)", "step": 0.01, "default": 0.0},
-        "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0}
+        "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
 # ฐานข้อมูลวัตถุดิบ
@@ -166,7 +167,7 @@ if "db_ingredients" not in st.session_state:
             "phos": 0.28,
             "lysine": 0.26,
             "methionine": 0.18,
-            "fiber": 2.2
+            "fiber": 2.2,
         },
         "กากถั่วเหลือง": {
             "price": 20.0,
@@ -176,19 +177,21 @@ if "db_ingredients" not in st.session_state:
             "phos": 0.62,
             "lysine": 2.80,
             "methionine": 0.65,
-            "fiber": 6.0
-            # ฐานข้อมูลผู้ใช้ชั่วคราว
-            if "user_database" not in st.session_state:
-            st.session_state.user_database = {
+            "fiber": 6.0,
+        },
+    }
+
+# ฐานข้อมูลผู้ใช้ชั่วคราว
+if "user_database" not in st.session_state:
+    st.session_state.user_database = {
         "222@gmail.com": {
             "name": "System",
             "surname": "Admin",
             "tel": "-",
             "role": "admin",
-            "reg_date": str(datetime.date.today())
+            "reg_date": str(datetime.date.today()),
         }
     }
-
 # 🔄 ฟังก์ชันดึงข้อมูลวัตถุดิบแบบ Real-time จาก Supabase
 def fetch_ingredients_from_supabase():
     try:
