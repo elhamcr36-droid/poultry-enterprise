@@ -698,20 +698,29 @@ if st.session_state.user_role == "admin":
             st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
             with st.container(border=True):
                 user_keys = list(st.session_state.get("user_database", {}).keys())
-
-if not user_keys:
-    st.warning("ยังไม่มีข้อมูลสมาชิก")
-else:
-    selected_user_email = st.selectbox(
-        "เลือกบัญชีอีเมลที่ต้องการแก้ไข:",
-        user_keys
-    )
-                current_user_role = st.session_state.user_database[selected_user_email]["role"]
-                new_role = st.selectbox("ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:", ["user", "admin"], index=0 if current_user_role == "user" else 1)
-                if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
-                    st.session_state.user_database[selected_user_email]["role"] = new_role
-                    st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
-                    st.rerun()
+                if not user_keys:
+                    st.warning("ยังไม่มีข้อมูลสมาชิก")
+                else:
+                    selected_user_email = st.selectbox(
+                        "เลือกบัญชีอีเมลที่ต้องการแก้ไข:",
+                        user_keys
+                    )
+                    current_user_role = st.session_state.user_database[selected_user_email]["role"]
+                    new_role = st.selectbox(
+                        "ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:",
+                        ["user", "admin"],
+                        index=0 if current_user_role == "user" else 1
+                    )
+                    if st.button(
+                        "💾 บันทึกการเปลี่ยนสิทธิ์",
+                        use_container_width=True,
+                        type="primary"
+                    ):
+                        st.session_state.user_database[selected_user_email]["role"] = new_role
+                        st.success(
+                            f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ"
+                        )
+                        st.rerun()
                 
         with uc2:
             st.markdown("### ❌ ระงับและลบบัญชี")
