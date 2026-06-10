@@ -21,7 +21,7 @@ def init_supabase():
 supabase = init_supabase()
 
 def fetch_ingredients_from_supabase():
-    result = supabase.table("farm_ingredients").select("*").execute()
+    result = supabase.table("ingredients").select("*").execute()
 
     data = {}
 
