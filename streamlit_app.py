@@ -218,8 +218,8 @@ if not st.session_state.is_authenticated:
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
-            try:
-        auth_res = supabase.auth.sign_in_with_password({
+                try:
+                    auth_res = supabase.auth.sign_in_with_password({
             "email": email_login,
             "password": pass_login
         })
