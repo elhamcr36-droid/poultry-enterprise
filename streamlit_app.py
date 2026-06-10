@@ -17,11 +17,15 @@ SUPABASE_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 @st.cache_resource
 def init_supabase() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
-
-try:
-    supabase = init_supabase()
-except Exception as e:
-    st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
+    
+    try:
+        supabase = init_supabase()
+    except Exception as e:
+        st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
+        # เพิ่มตรงนี้
+    if "db_ingredients" not in st.session_state:
+        st.session_state.db_ingredients = fetch_ingredients_from_supabase()
+        st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
@@ -100,8 +104,8 @@ if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 if "saved_formulas" not in st.session_state:
     st.session_state.saved_formulas = []  
-if "daily_logs" not in st.session_state:
-    st.session_state.daily_logs = [] 
+if "user_database" not in st.session_state:
+    st.session_state.user_database = {}
 if "current_weights" not in st.session_state:
     st.session_state.current_weights = {}
 
@@ -231,10 +235,11 @@ if not st.session_state.is_authenticated:
                         "email": email_login,
                         "password": pass_login
                     })
-
                     if auth_res.user:
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = email_login
+                        # เพิ่มบรรทัดนี้
+                        st.session_state.user_id = auth_res.user.id
 
                         if email_login.lower() == "222@gmail.com":
                             st.session_state.user_role = "admin"
