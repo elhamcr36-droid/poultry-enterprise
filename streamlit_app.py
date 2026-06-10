@@ -32,11 +32,23 @@ def fetch_ingredients_from_supabase():
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
-st.set_page_config(
-    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+if "daily_logs" not in st.session_state:
+    st.session_state.daily_logs = []
+
+if "db_ingredients" not in st.session_state:
+    st.session_state.db_ingredients = {}
+
+if "user_database" not in st.session_state:
+    st.session_state.user_database = {}
+
+if "db_breeds" not in st.session_state:
+    st.session_state.db_breeds = []
+
+if "db_targets" not in st.session_state:
+    st.session_state.db_targets = {}
+
+if "db_groups" not in st.session_state:
+    st.session_state.db_groups = []
 
 st.markdown(
     """
