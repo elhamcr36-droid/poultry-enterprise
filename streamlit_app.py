@@ -156,55 +156,23 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-# ฐานข้อมูลวัตถุดิบ
-if "db_ingredients" not in st.session_state:
-    st.session_state.db_ingredients = {
-        "ข้าวโพด": {
-            "price": 12.5,
-            "protein": 8.5,
-            "me": 3350,
-            "calcium": 0.03,
-            "phos": 0.28,
-            "lysine": 0.26,
-            "methionine": 0.18,
-            "fiber": 2.2,
-        },
-        "กากถั่วเหลือง": {
-            "price": 20.0,
-            "protein": 44.0,
-            "me": 2450,
-            "calcium": 0.30,
-            "phos": 0.62,
-            "lysine": 2.80,
-            "methionine": 0.65,
-            "fiber": 6.0,
-        },
-    }
-
-# ฐานข้อมูลผู้ใช้ชั่วคราว
-if "user_database" not in st.session_state:
-    st.session_state.user_database = {
-        "222@gmail.com": {
-            "name": "System",
-            "surname": "Admin",
-            "tel": "-",
-            "role": "admin",
-            "reg_date": str(datetime.date.today()),
-        }
-    }
 # 🔄 ฟังก์ชันดึงข้อมูลวัตถุดิบแบบ Real-time จาก Supabase
 def fetch_ingredients_from_supabase():
     try:
-        response = supabase.table("db_ingredients").select("*").execute()
+        response = supabase.table("ingredients").select("*").execute()
+
         if response.data:
             ingredients_dict = {}
+
             for item in response.data:
                 ingredients_dict[item["name"]] = item
+
             return ingredients_dict
+
     except Exception as e:
         st.error(f"⚠️ ไม่สามารถโหลดข้อมูลวัตถุดิบจากคลาวด์ได้: {e}")
-    return {}
 
+    return {}
 # ==========================================
 # 🧮 3. CORE AI SOLVER ENGINE
 # ==========================================
