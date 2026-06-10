@@ -334,44 +334,51 @@ if not st.session_state.is_authenticated:
 
         col_su1, col_su2 = st.columns(2)
         
-        with col_su1:
-            if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
-                if su_email and su_pass and su_name and su_tel:
-                    if su_pass != su_pass_conf:
-                        st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
-                    elif not is_strong:
-                        st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
-                    else:
-                        try:
-                            supabase.auth.sign_up({
-                                "email": su_email,
-                                "password": su_pass,
-                                "options": {
-                                    "data": {
-                                        "first_name": su_name,
-                                        "last_name": su_surname,
-                                        "phone": su_tel
-                                    }
-                                }
-                            })
-                            # เก็บข้อมูลผู้ใช้ใน Session
-                        st.session_state.user_database[su_email] = {
-                            "name": su_name,
-                            "surname": su_surname,
-                            "tel": su_tel,
-                            "role": "user",
-                            "reg_date": str(datetime.date.today())
+with col_su1:
+    if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
+        if su_email and su_pass and su_name and su_tel:
+
+            if su_pass != su_pass_conf:
+                st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
+
+            elif not is_strong:
+                st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
+
+            else:
+                try:
+                    supabase.auth.sign_up({
+                        "email": su_email,
+                        "password": su_pass,
+                        "options": {
+                            "data": {
+                                "first_name": su_name,
+                                "last_name": su_surname,
+                                "phone": su_tel
+                            }
                         }
-                        
-                        st.success(
-                            "🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ"
-                        )
-                        st.session_state.auth_page_mode = "login"
-                        st.rerun()
-except Exception as error:
-st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
-else:
-st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
+                    })
+
+                    # เก็บข้อมูลผู้ใช้ใน Session
+                    st.session_state.user_database[su_email] = {
+                        "name": su_name,
+                        "surname": su_surname,
+                        "tel": su_tel,
+                        "role": "user",
+                        "reg_date": str(datetime.date.today())
+                    }
+
+                    st.success(
+                        "🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ"
+                    )
+
+                    st.session_state.auth_page_mode = "login"
+                    st.rerun()
+
+                except Exception as error:
+                    st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
+
+        else:
+            st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
 
 with col_su2:
     if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
