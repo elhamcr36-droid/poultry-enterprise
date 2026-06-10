@@ -18,9 +18,8 @@ SUPABASE_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 def init_supabase() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
     
-    try:
-        supabase = init_supabase()
-    except Exception as e:
+    supabase = init_supabase()
+    
         st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
         # เพิ่มตรงนี้
     if "db_ingredients" not in st.session_state:
