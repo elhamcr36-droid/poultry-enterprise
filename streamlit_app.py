@@ -19,13 +19,26 @@ def init_supabase():
 
 # สร้างตัวแปร Supabase
 supabase = init_supabase()
+
+# โหลดข้อมูลวัตถุดิบจาก Supabase
+def fetch_ingredients_from_supabase():
+    try:
+        result = supabase.table("ingredients").select("*").execute()
+
+        if result.data:
+            return {
+                row["name"]: row
+                for row in result.data
+            }
+
+    except Exception as e:
+        st.error(f"⚠️ โหลดข้อมูลวัตถุดิบไม่สำเร็จ: {e}")
+
+    return {}
+
+# โหลดเข้าระบบครั้งแรก
 if "db_ingredients" not in st.session_state:
     st.session_state.db_ingredients = fetch_ingredients_from_supabase()
-
-def fetch_ingredients_from_supabase():
-    result = supabase.table("ingredients").select("*").execute()
-    return {row["name"]: row for row in result.data}
-    st.write(len(st.session_state.db_ingredients))
     
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
