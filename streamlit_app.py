@@ -465,13 +465,13 @@ if st.session_state.user_role == "admin":
     with admin_tabs[1]:
         with st.expander("📊 เปิดดูคลังวัตถุดิบและราคาปัจจุบันในระบบ", expanded=False):
            if "db_ingredients" in st.session_state:
-    st.dataframe(
-        pd.DataFrame.from_dict(
-            st.session_state.db_ingredients,
-            orient="index"
-        ),
-        use_container_width=True
-    )
+               st.dataframe(
+                   pd.DataFrame.from_dict(
+                       st.session_state.db_ingredients,
+                       orient="index"
+                   ),
+                   use_container_width=True
+               )
         
         # UX Improvement: เปลี่ยนมาใช้ Segmented Control เป็นปุ่มกดเลือกสไตล์แท็บย่อยแทน Radio Button
         crud_mode = st.segmented_control(
