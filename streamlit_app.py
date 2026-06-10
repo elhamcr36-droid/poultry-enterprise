@@ -357,64 +357,138 @@ with col_su1:
                             }
                         }
                     })
+elif st.session_state.auth_page_mode == "signup":
 
-                    # เก็บข้อมูลผู้ใช้ใน Session
-                    st.session_state.user_database[su_email] = {
-                        "name": su_name,
-                        "surname": su_surname,
-                        "tel": su_tel,
-                        "role": "user",
-                        "reg_date": str(datetime.date.today())
-                    }
+    st.markdown(
+        "<div class='content-card' style='max-width: 650px; margin: 40px auto;'>",
+        unsafe_allow_html=True
+    )
 
-                    st.success(
-                        "🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ"
-                    )
+    st.markdown(
+        "<h2 style='text-align:center;'>📝 สมัครสมาชิกใหม่</h2>",
+        unsafe_allow_html=True
+    )
 
-                    st.session_state.auth_page_mode = "login"
-                    st.rerun()
+    su_name = st.text_input("👤 ชื่อ")
+    su_surname = st.text_input("👥 นามสกุล")
+    su_tel = st.text_input("📱 เบอร์โทรศัพท์")
+    su_email = st.text_input("📧 อีเมล")
 
-                except Exception as error:
-                    st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
+    st.markdown(
+        "<div style='background-color:#1e293b; padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; color:#94a3b8;'>"
+        "🔒 <b>ข้อกำหนดรหัสผ่านความปลอดภัยสูง:</b><br>"
+        "- ความยาวไม่น้อยกว่า 8 ตัวอักษร<br>"
+        "- มีอักษรพิมพ์ใหญ่ (A-Z) และพิมพ์เล็ก (a-z)<br>"
+        "- มีตัวเลข (0-9) และอักขระพิเศษอย่างน้อย 1 ตัว (@, #, $, %, !, ., _)"
+        "</div>",
+        unsafe_allow_html=True
+    )
 
+    su_pass = st.text_input("🔑 ตั้งรหัสผ่านความปลอดภัยสูง:", type="password")
+    su_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านอีกครั้ง:", type="password")
+
+    is_strong, pass_msg = check_password_strength(su_pass) if su_pass else (False, "")
+
+    if su_pass:
+        if is_strong:
+            st.success(pass_msg)
         else:
-            st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
+            st.warning(pass_msg)
 
-with col_su2:
-    if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
-        st.session_state.auth_page_mode = "login"
-        st.rerun()
+    col_su1, col_su2 = st.columns(2)
 
-st.markdown("</div>", unsafe_allow_html=True)
-st.stop()
+    with col_su1:
+        if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
 
-    # --- 4.3 หน้า FORGOT PASSWORD ---
-    elif st.session_state.auth_page_mode == "forgot":
+            if su_email and su_pass and su_name and su_tel:
 
-        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+                if su_pass != su_pass_conf:
+                    st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
 
-        fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
+                elif not is_strong:
+                    st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
 
-        st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
+                else:
+                    try:
+                        supabase.auth.sign_up({
+                            "email": su_email,
+                            "password": su_pass,
+                            "options": {
+                                "data": {
+                                    "first_name": su_name,
+                                    "last_name": su_surname,
+                                    "phone": su_tel
+                                }
+                            }
+                        })
 
-        if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
-            if fg_email:
-                try:
-                    supabase.auth.reset_password_for_email(fg_email)
-                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
-                except Exception as error:
-                    st.error(f"❌ เกิดข้อผิดพลาด: {error}")
+                        st.session_state.user_database[su_email] = {
+                            "name": su_name,
+                            "surname": su_surname,
+                            "tel": su_tel,
+                            "role": "user",
+                            "reg_date": str(datetime.date.today())
+                        }
+
+                        st.success(
+                            "🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ"
+                        )
+
+                        st.session_state.auth_page_mode = "login"
+                        st.rerun()
+
+                    except Exception as error:
+                        st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
+
             else:
-                st.warning("⚠️ กรุณากรอกอีเมล")
+                st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
 
-        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
+    with col_su2:
+        if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
             st.session_state.auth_page_mode = "login"
             st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.stop()
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
+
+
+# --- 4.3 หน้า FORGOT PASSWORD ---
+elif st.session_state.auth_page_mode == "forgot":
+
+    st.markdown(
+        "<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+
+    fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
+
+    st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
+
+    if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
+        if fg_email:
+            try:
+                supabase.auth.reset_password_for_email(fg_email)
+                st.success(
+                    "🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่"
+                )
+            except Exception as error:
+                st.error(f"❌ เกิดข้อผิดพลาด: {error}")
+        else:
+            st.warning("⚠️ กรุณากรอกอีเมล")
+
+    if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
+        st.session_state.auth_page_mode = "login"
+        st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
 
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
