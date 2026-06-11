@@ -59,8 +59,28 @@ if "user_database" not in st.session_state:
 if "db_breeds" not in st.session_state:
     st.session_state.db_breeds = []
 
-if "db_targets" not in st.session_state:
-    st.session_state.db_targets = {}
+# โหลดข้อมูล Targets จาก Supabase
+def fetch_targets_from_supabase():
+    try:
+        result = supabase.table("targets").select("*").execute()
+
+        if not result.data:
+            st.warning("ไม่พบข้อมูลในตาราง targets")
+            return {}
+
+        return {
+            row["stage_key"]: row
+            for row in result.data
+            if row.get("stage_key")
+        }
+
+    except Exception as e:
+        st.error(f"โหลด targets ไม่สำเร็จ: {e}")
+        return {}
+
+
+if "db_targets" not in st.session_state or not st.session_state.db_targets:
+    st.session_state.db_targets = fetch_targets_from_supabase()
 
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = []
