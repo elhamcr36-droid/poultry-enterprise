@@ -608,18 +608,32 @@ with admin_tabs[1]:
                     st.success(f"🎉 นำเข้า '{ing_name}' สู่ฐานข้อมูลเรียบร้อย!")
                     st.rerun()
 
-        elif crud_mode == "🗑️ ลบวัตถุดิบออก":
+elif crud_mode == "🗑️ ลบวัตถุดิบออก":
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
-            to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
-            if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
-                del st.session_state.db_ingredients[to_del]
-                st.success(f"🔥 ลบ '{to_del}' ออกจากระบบแล้ว")
-                st.rerun()
+            # 🛡️ ป้องกันกรณีคลังวัตถุดิบว่างเปล่า
+            if not st.session_state.get("db_ingredients"):
+                st.info("💡 ไม่มีข้อมูลวัตถุดิบในระบบให้ลบ")
+            else:
+                to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
+                if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
+                    if to_del in st.session_state.db_ingredients:
+                        del st.session_state.db_ingredients[to_del]
+                        st.success(f"🔥 ลบ '{to_del}' ออกจากระบบแล้ว")
+                        st.rerun()
 
     # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ ---
     with admin_tabs[2]:
+        # 🛡️ Initialize ป้องกัน AttributeError หากข้อมูลยังไม่ถูกดึงมาเมื่อแอปเริ่มทำงาน
+        if "db_breeds" not in st.session_state:
+            st.session_state.db_breeds = []
+        if "db_groups" not in st.session_state:
+            st.session_state.db_groups = []
+
         with st.expander("📊 เปิดดูทำเนียบสายพันธุ์ไก่ไข่ในระบบทั้งหมด", expanded=True):
-            st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True, hide_index=True)
+            if st.session_state.db_breeds:
+                st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True, hide_index=True)
+            else:
+                st.info("💡 ขณะนี้ไม่มีข้อมูลสายพันธุ์ในระบบ")
             
         st.markdown("---")
         bc1, bc2 = st.columns(2, gap="large")
@@ -627,60 +641,95 @@ with admin_tabs[1]:
         with bc1:
             st.markdown("### ➕ เพิ่มสายพันธุ์ใหม่")
             with st.container(border=True):
-                b_group = st.selectbox("กลุ่มสายพันธุ์หลัก:", [g["group_name"] for g in st.session_state.db_groups])
+                # ดึงกลุ่มสายพันธุ์หลักอย่างปลอดภัย
+                group_options = [g.get("group_name", "Unknown") for g in st.session_state.db_groups] if st.session_state.db_groups else ["ไม่มีกลุ่มสายพันธุ์"]
+                b_group = st.selectbox("กลุ่มสายพันธุ์หลัก:", group_options)
                 b_name = st.text_input("ชื่อทางการค้า (Breed Name):", placeholder="เช่น ไฮ-เซ็กซ์ บราวน์")
                 b_egg = st.text_input("ลักษณะเด่น/สีของเปลือกไข่:", placeholder="เช่น เปลือกไข่สีน้ำตาลเข้ม")
                 b_feed = st.number_input("อัตรากินอาหารตามคู่มือ (กรัม/ตัว/วัน):", value=115.0, step=1.0)
                 if st.button("➕ บันทึกสายพันธุ์ใหม่", use_container_width=True, type="primary"):
                     if b_name.strip():
-                        st.session_state.db_breeds.append({"group_name": b_group, "breed_name": b_name, "egg_color": b_egg, "default_feed": b_feed})
+                        st.session_state.db_breeds.append({
+                            "group_name": b_group, 
+                            "breed_name": b_name, 
+                            "egg_color": b_egg, 
+                            "default_feed": b_feed
+                        })
                         st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
                         st.rerun()
-                    else: st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
+                    else: 
+                        st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
+                        
         with bc2:
             st.markdown("### ❌ ลบข้อมูลสายพันธุ์")
             with st.container(border=True):
                 if st.session_state.db_breeds:
-                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b["breed_name"] for b in st.session_state.db_breeds])
+                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b.get("breed_name", "Unknown") for b in st.session_state.db_breeds])
                     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
                     if st.button("🗑️ ยืนยันลบออกจากทำเนียบ", type="primary", use_container_width=True):
-                        st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
+                        st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b.get("breed_name") != b_del]
                         st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
                         st.rerun()
-                else: st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
+                else: 
+                    st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
 
     # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการสัตว์แยกตามอายุ ---
     with admin_tabs[3]:
+        # 🛡️ Initialize ป้องกัน AttributeError
+        if "db_targets" not in st.session_state:
+            st.session_state.db_targets = {}
+        if "db_nutrient_keys" not in st.session_state:
+            st.session_state.db_nutrient_keys = {}
+
         with st.expander("📊 เปิดดูค่าเกณฑ์มาตรฐานโภชนาการสัตว์ ณ ปัจจุบัน", expanded=False):
-            st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
-        
+            if st.session_state.db_targets:
+                st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
+            else:
+                st.info("💡 ไม่มีข้อมูลเกณฑ์มาตรฐานโภชนาการในระบบ")
+            
         st.markdown("### ✏️ ปรับเปลี่ยนเกณฑ์ข้อกำหนดสารอาหารขั้นต่ำประจำช่วงอายุ")
-        select_stage_crud = st.selectbox("เลือกช่วงระยะผลิตของไก่ไข่ที่ต้องการแก้ไขเกณฑ์:", list(st.session_state.db_targets.keys()), format_func=lambda x: st.session_state.db_targets[x]["stage_name"])
         
-        with st.form(key=f"form_target_{select_stage_crud}"):
-            st.markdown(f"📝 ตั้งค่าเกณฑ์ขั้นต่ำสำหรับช่วงอายุ: **{st.session_state.db_targets[select_stage_crud]['stage_name']}**")
+        if not st.session_state.db_targets:
+            st.warning("⚠️ ไม่พบข้อมูลช่วงระยะผลิตของไก่ไข่ในระบบ")
+        else:
+            select_stage_crud = st.selectbox(
+                "เลือกช่วงระยะผลิตของไก่ไข่ที่ต้องการแก้ไขเกณฑ์:", 
+                list(st.session_state.db_targets.keys()), 
+                format_func=lambda x: st.session_state.db_targets[x].get("stage_name", x)
+            )
             
-            sc = st.columns(3)
-            updated_target_values = {}
-            target_nut_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
-            
-            for idx, nut_key in enumerate(target_nut_keys):
-                nut_info = st.session_state.db_nutrient_keys[nut_key]
-                with sc[idx % 3]:
-                    current_target_val = float(st.session_state.db_targets[select_stage_crud].get(nut_key, 0.0))
-                    updated_target_values[nut_key] = st.number_input(f"ขั้นต่ำของ {nut_info['label']}:", value=current_target_val, step=nut_info["step"])
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้", type="primary", use_container_width=True):
-                st.session_state.db_targets[select_stage_crud].update(updated_target_values)
-                st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
-                st.rerun()
+            with st.form(key=f"form_target_{select_stage_crud}"):
+                stage_display_name = st.session_state.db_targets[select_stage_crud].get('stage_name', select_stage_crud)
+                st.markdown(f"📝 ตั้งค่าเกณฑ์ขั้นต่ำสำหรับช่วงอายุ: **{stage_display_name}**")
+                
+                sc = st.columns(3)
+                updated_target_values = {}
+                target_nut_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
+                
+                for idx, nut_key in enumerate(target_nut_keys):
+                    nut_info = st.session_state.db_nutrient_keys[nut_key]
+                    with sc[idx % 3]:
+                        current_target_val = float(st.session_state.db_targets[select_stage_crud].get(nut_key, 0.0))
+                        updated_target_values[nut_key] = st.number_input(
+                            f"ขั้นต่ำของ {nut_info.get('label', nut_key)}:", 
+                            value=current_target_val, 
+                            step=nut_info.get("step", 0.1)
+                        )
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้", type="primary", use_container_width=True):
+                    st.session_state.db_targets[select_stage_crud].update(updated_target_values)
+                    st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
+                    st.rerun()
 
     # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
     with admin_tabs[4]:
         st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
         
-        # UX Improvement: ตกแต่งตารางผู้ใช้ให้อ่านง่าย แอดมินมองสิทธิ์ขาดได้ชัดเจน
+        if "user_database" not in st.session_state:
+            st.session_state.user_database = {}
+
+        # ตกแต่งตารางผู้ใช้ให้อ่านง่าย แอดมินมองสิทธิ์ขาดได้ชัดเจน
         users_list = []
         for email, info in st.session_state.user_database.items():
             role_badge = "🔑 ADMIN" if info.get("role") == "admin" else "👤 USER"
@@ -691,14 +740,19 @@ with admin_tabs[1]:
                 "ระดับสิทธิ์ (Role)": role_badge,
                 "วันที่ลงทะเบียน": info.get("reg_date", "2026-01-01")
             })
-        st.dataframe(pd.DataFrame(users_list), use_container_width=True, hide_index=True)
+            
+        if users_list:
+            st.dataframe(pd.DataFrame(users_list), use_container_width=True, hide_index=True)
+        else:
+            st.info("💡 ไม่มีข้อมูลบัญชีผู้ใช้งานในระบบ")
+            
         st.markdown("---")
         
         uc1, uc2 = st.columns(2, gap="large")
         with uc1:
             st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
             with st.container(border=True):
-                user_keys = list(st.session_state.get("user_database", {}).keys())
+                user_keys = list(st.session_state.user_database.keys())
                 if not user_keys:
                     st.warning("ยังไม่มีข้อมูลสมาชิก")
                 else:
@@ -706,23 +760,17 @@ with admin_tabs[1]:
                         "เลือกบัญชีอีเมลที่ต้องการแก้ไข:",
                         user_keys
                     )
-                    current_user_role = st.session_state.user_database[selected_user_email]["role"]
+                    current_user_role = st.session_state.user_database[selected_user_email].get("role", "user")
                     new_role = st.selectbox(
                         "ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:",
                         ["user", "admin"],
                         index=0 if current_user_role == "user" else 1
                     )
-                    if st.button(
-                        "💾 บันทึกการเปลี่ยนสิทธิ์",
-                        use_container_width=True,
-                        type="primary"
-                    ):
+                    if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
                         st.session_state.user_database[selected_user_email]["role"] = new_role
-                        st.success(
-                            f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ"
-                        )
+                        st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
                         st.rerun()
-                
+                    
         with uc2:
             st.markdown("### ❌ ระงับและลบบัญชี")
             with st.container(border=True):
@@ -735,10 +783,11 @@ with admin_tabs[1]:
                     elif user_to_delete == st.session_state.get("current_user_key"):
                         st.error("❌ คุณไม่สามารถสั่งลบบัญชีตัวเองที่กำลังใช้งานอยู่ได้")
                     else:
-                        del st.session_state.user_database[user_to_delete]
-                        st.success(f"🔥 ลบบัญชี {user_to_delete} เรียบร้อย")
-                        st.rerun()
-        
+                        if user_to_delete in st.session_state.user_database:
+                            del st.session_state.user_database[user_to_delete]
+                            st.success(f"🔥 ลบบัญชี {user_to_delete} เรียบร้อย")
+                            st.rerun()
+            
     st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("🔄 สลับบทบาทกลับไปโหมดผู้ใช้งานทั่วไป (User Dashboard)", use_container_width=True):
         st.session_state.user_role = "user"
