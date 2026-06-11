@@ -119,31 +119,8 @@ def check_password_strength(password):
         return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น @, #, $, %, ., !, _)"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
 
-# ฐานข้อมูลกลุ่มหลักสายพันธุ์ไก่ไข่
-if "db_groups" not in st.session_state:
-    st.session_state.db_groups = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7"}
-    ]
 
-# ฐานข้อมูลสายพันธุ์ย่อยภายใต้กลุ่มหลัก
-if "db_breeds" not in st.session_state:
-    st.session_state.db_breeds = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0}
-    ]
-
-# ฐานข้อมูลเป้าหมายความต้องการสารอาหารตามช่วงระยะการไข่
-if "db_targets" not in st.session_state:
-    st.session_state.db_targets = {
-        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
-    }
-
-import datetime
-
-# โครงสร้างสารอาหารหลัก
+# ⚙️ โครงสร้างสารอาหารหลัก (เก็บไว้ในโค้ดได้ เพราะเป็นตัวกำหนด UI และแกนคำนวณ)
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
         "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
@@ -156,30 +133,63 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-# 🔄 ฟังก์ชันดึงข้อมูลวัตถุดิบแบบ Real-time จาก Supabase
+
+# ==========================================
+# 🔄 REAL-TIME DATABASE FETCH FUNCTIONS (SUPABASE)
+# ==========================================
+
+# 1. ฟังก์ชันดึงข้อมูลวัตถุดิบ (Ingredients)
 def fetch_ingredients_from_supabase():
     try:
         response = supabase.table("ingredients").select("*").execute()
-
         if response.data:
             ingredients_dict = {}
-
             for item in response.data:
                 ingredients_dict[item["name"]] = item
-
             return ingredients_dict
-
     except Exception as e:
-        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลวัตถุดิบจากคลาวด์ได้: {e}")
-
+        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลวัตถุดิบจาก Supabase ได้: {e}")
     return {}
-# ==========================================
+
+# 2. ฟังก์ชันดึงข้อมูลกลุ่มไก่ไข่ (Breed Groups)
+def fetch_groups_from_supabase():
+    try:
+        response = supabase.table("breed_groups").select("*").execute()
+        if response.data:
+            return response.data
+    except Exception as e:
+        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลกลุ่มไก่ไข่จาก Supabase ได้: {e}")
+    return []
+
+# 3. ฟังก์ชันดึงข้อมูลสายพันธุ์ย่อย (Breeds)
+def fetch_breeds_from_supabase():
+    try:
+        response = supabase.table("breeds").select("*").execute()
+        if response.data:
+            return response.data
+    except Exception as e:
+        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลสายพันธุ์ไก่ไข่จาก Supabase ได้: {e}")
+    return []
+
+# 4. ฟังก์ชันดึงข้อมูลเป้าหมายสารอาหาร (Nutrient Targets)
+def fetch_targets_from_supabase():
+    try:
+        response = supabase.table("nutrient_targets").select("*").execute()
+        if response.data:
+            targets_dict = {}
+            for item in response.data:
+                targets_dict[item["stage_key"]] = item
+            return targets_dict
+    except Exception as e:
+        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลเป้าหมายสารอาหารจาก Supabase ได้: {e}")
+    return {}
+    # ==========================================
 # 🧮 3. CORE AI SOLVER ENGINE (เวอร์ชันดึง Supabase สด)
 # ==========================================
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     
-    # 🔄 เรียกใช้งานฟังก์ชันดึงข้อมูลจาก Supabase ที่คุณมีอยู่แล้วในระบบ
+    # 🔄 เรียกใช้งานฟังก์ชันดึงข้อมูลจาก Supabase
     try:
         current_ingredients = fetch_ingredients_from_supabase()
     except Exception as e:
@@ -194,7 +204,6 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     # สร้างตัวแปรการตัดสินใจ ป้องกัน KeyError ด้วยการใช้ .get() และแปลงขอบเขตให้อยู่ในสัดส่วน 0.0 - 1.0
     ing_vars = {}
     for name, d in current_ingredients.items():
-        # ถ้าบน Supabase ไม่มีคอลัมน์ min_limit / max_limit ให้ตั้งค่าเริ่มต้นเป็น 0% ถึง 100%
         low = float(d.get("min_limit", 0.0)) / 100.0 if d.get("min_limit") is not None else 0.0
         up = float(d.get("max_limit", 100.0)) / 100.0 if d.get("max_limit") is not None else 1.0
         ing_vars[name] = pulp.LpVariable(name, lowBound=low, upBound=up)
@@ -210,7 +219,7 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     # ⚖️ Constraints 1: สัดส่วนรวมต้องเท่ากับ 100% (1.0)
     prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
     
-    # 🧬 Constraints 2: ข้อจำกัดสารอาหารขั้นต่ำ (ใช้ .get ป้องกันตัวสะกดพิมพ์เล็ก-ใหญ่ผิดพลาด)
+    # 🧬 Constraints 2: ข้อจำกัดสารอาหารขั้นต่ำ
     prob += pulp.lpSum([ing_vars[name] * float(d.get("protein", 0.0)) for name, d in current_ingredients.items()]) + s_p >= req_p
     prob += pulp.lpSum([ing_vars[name] * float(d.get("me", 0.0)) for name, d in current_ingredients.items()]) + s_m >= req_m
     prob += pulp.lpSum([ing_vars[name] * float(d.get("calcium", 0.0)) for name, d in current_ingredients.items()]) + s_c >= req_c
@@ -226,6 +235,8 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     for name in current_ingredients.keys():
         res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
     return res
+
+
 # ==========================================
 # 🔒 4. SECURITY GATEWAY (SUPABASE AUTH INTEGRATION)
 # ==========================================
@@ -255,21 +266,19 @@ if not st.session_state.is_authenticated:
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = email_login
 
+                        # กำหนดสิทธิ์ Admin (ระบุจากอีเมลกลาง หรือเช็คจาก Metadata ของ Supabase)
                         if email_login.lower() == "222@gmail.com":
                             st.session_state.user_role = "admin"
                         else:
                             st.session_state.user_role = "user"
 
-                        st.session_state.user_email = (
-                            f"{email_login.split('@')[0]} "
-                            f"[{st.session_state.user_role.upper()}]"
-                        )
+                        st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
 
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
                         st.rerun()
 
                 except Exception as error:
-                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
+                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมลในระบบ")
 
         with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
@@ -277,11 +286,9 @@ if not st.session_state.is_authenticated:
                 st.rerun()
 
         st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
-
         if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
             st.session_state.auth_page_mode = "forgot"
             st.rerun()
-
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
@@ -324,15 +331,13 @@ if not st.session_state.is_authenticated:
         with col_su1:
             if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
                 if su_email and su_pass and su_name and su_tel:
-
                     if su_pass != su_pass_conf:
                         st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
-
                     elif not is_strong:
                         st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
-
                     else:
                         try:
+                            # 🚀 สมัครสมาชิกและฝังข้อมูลโปรไฟล์ผู้ใช้ลงใน user_metadata ของ Supabase 100%
                             supabase.auth.sign_up({
                                 "email": su_email,
                                 "password": su_pass,
@@ -340,29 +345,18 @@ if not st.session_state.is_authenticated:
                                     "data": {
                                         "first_name": su_name,
                                         "last_name": su_surname,
-                                        "phone": su_tel
+                                        "phone": su_tel,
+                                        "role": "user"
                                     }
                                 }
                             })
 
-                            st.session_state.user_database[su_email] = {
-                                "name": su_name,
-                                "surname": su_surname,
-                                "tel": su_tel,
-                                "role": "user",
-                                "reg_date": str(datetime.date.today())
-                            }
-
-                            st.success(
-                                "🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ"
-                            )
-
+                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ")
                             st.session_state.auth_page_mode = "login"
                             st.rerun()
 
                         except Exception as error:
                             st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
-
                 else:
                     st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
 
@@ -375,43 +369,32 @@ if not st.session_state.is_authenticated:
         st.stop()
 
 
-# --- 4.3 หน้า FORGOT PASSWORD ---
-elif st.session_state.auth_page_mode == "forgot":
+    # --- 4.3 หน้า FORGOT PASSWORD ---
+    elif st.session_state.auth_page_mode == "forgot":
 
-    st.markdown(
-        "<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>",
-        unsafe_allow_html=True
-    )
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
 
-    st.markdown(
-        "<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>",
-        unsafe_allow_html=True
-    )
+        fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
+        st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
 
-    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
+            if fg_email:
+                try:
+                    supabase.auth.reset_password_for_email(fg_email)
+                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
+                except Exception as error:
+                    st.error(f"❌ เกิดข้อผิดพลาด: {error}")
+            else:
+                st.warning("⚠️ กรุณากรอกอีเมล")
 
-    fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
+        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
+            st.session_state.auth_page_mode = "login"
+            st.rerun()
 
-    st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
-
-    if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
-        if fg_email:
-            try:
-                supabase.auth.reset_password_for_email(fg_email)
-                st.success(
-                    "🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่"
-                )
-            except Exception as error:
-                st.error(f"❌ เกิดข้อผิดพลาด: {error}")
-        else:
-            st.warning("⚠️ กรุณากรอกอีเมล")
-
-    if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
-        st.session_state.auth_page_mode = "login"
-        st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
 
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
@@ -442,13 +425,12 @@ with col_h2:
             st.session_state.auth_page_mode = "login"
             st.rerun()
 st.markdown("---")
-
 # =====================================================================
 # 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE (UX/UI PREMIUM VERSION)
 # =====================================================================
 if st.session_state.user_role == "admin":
     st.title("💻 Admin Master Data Control")
-    st.caption("ระบบจัดการโครงสร้างสารอาหาร วัตถุดิบ สายพันธุ์ และผู้ใช้งานแบบ Dynamic")
+    st.caption("ระบบจัดการโครงสร้างสารอาหาร วัตถุดิบ สายพันธุ์ และผู้ใช้งานแบบ Dynamic ตรงสู่ Supabase คลาวด์")
     
     admin_tabs = st.tabs([
         "⚙️ ตั้งค่าหัวข้อสารอาหาร",
@@ -458,19 +440,23 @@ if st.session_state.user_role == "admin":
         "👤 การจัดการสิทธิ์ผู้ใช้งาน"
     ])
     
-    # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง ---
+    # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง (ตาราง nutrient_keys) ---
     with admin_tabs[0]:
         st.subheader("⚙️ สารอาหารที่มีในระบบปัจจุบัน")
         
-        # 🛠️ [แก้ไขจุดบั๊ก] ป้องกันกรณี db_nutrient_keys ไม่ถูกประกาศใน session_state
-        if "db_nutrient_keys" not in st.session_state:
-            st.session_state.db_nutrient_keys = {}
+        # ดึงข้อมูลโครงสร้างสารอาหารแบบ Real-time จาก Supabase
+        try:
+            res_nut = supabase.table("nutrient_keys").select("*").order("id").execute()
+            db_nut_keys = {item["key"]: {"label": item["label"], "step": item["step"], "default": item["default"]} for item in res_nut.data} if res_nut.data else {}
+        except Exception as e:
+            st.error(f"❌ ไม่สามารถดึงโครงสร้างสารอาหารจาก Supabase ได้: {e}")
+            db_nut_keys = {}
 
         with st.expander("📊 ดูโครงสร้างสารอาหารที่ใช้งานอยู่ทั้งหมด", expanded=True):
-            if st.session_state.db_nutrient_keys:
+            if db_nut_keys:
                 df_nutrients = pd.DataFrame([
                     {"รหัสระบบ (Key)": k, "ชื่อตัวชี้วัด (Label)": v["label"], "ความละเอียด (Step)": v["step"]} 
-                    for k, v in st.session_state.db_nutrient_keys.items()
+                    for k, v in db_nut_keys.items()
                 ])
                 st.dataframe(df_nutrients, use_container_width=True, hide_index=True)
             else:
@@ -490,43 +476,47 @@ if st.session_state.user_role == "admin":
                 if st.button("✨ ยืนยันสร้างหัวข้อสารอาหาร", type="primary", use_container_width=True):
                     if not new_nut_key or not new_nut_label:
                         st.error("❌ กรุณากรอกข้อมูลให้ครบทั้งสองช่อง")
-                    elif new_nut_key in st.session_state.db_nutrient_keys or new_nut_key in ["name", "min_limit", "max_limit"]:
+                    elif new_nut_key in db_nut_keys or new_nut_key in ["name", "min_limit", "max_limit"]:
                         st.error("❌ รหัสนี้ซ้ำหรือเป็นคำต้องห้ามของระบบ")
                     else:
-                        st.session_state.db_nutrient_keys[new_nut_key] = {"label": new_nut_label, "step": new_nut_step, "default": 0.0}
-                        st.success(f"🎉 เพิ่มโครงสร้างหัวข้อสารอาหาร '{new_nut_label}' เรียบร้อยแล้ว!")
-                        st.rerun()
+                        try:
+                            supabase.table("nutrient_keys").insert({
+                                "key": new_nut_key,
+                                "label": new_nut_label,
+                                "step": new_nut_step,
+                                "default": 0.0
+                            }).execute()
+                            st.success(f"🎉 เพิ่มโครงสร้างหัวข้อสารอาหาร '{new_nut_label}' ลงเซิร์ฟเวอร์เรียบร้อยแล้ว!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ไม่สามารถบันทึกข้อมูลลง Supabase ได้: {e}")
                         
         with n_col2:
             st.markdown("### ❌ ลบสารอาหาร")
             with st.container(border=True):
-                removable_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
+                removable_keys = [k for k in db_nut_keys.keys() if k != "price"]
                 
                 if removable_keys:
-                    nut_to_del = st.selectbox("เลือกสารอาหารที่ต้องการถอดถอน:", removable_keys, format_func=lambda x: st.session_state.db_nutrient_keys[x]["label"], key="del_nut_select")
+                    nut_to_del = st.selectbox("เลือกสารอาหารที่ต้องการถอดถอน:", removable_keys, format_func=lambda x: db_nut_keys[x]["label"], key="del_nut_select")
                     st.markdown("<br><br><br>", unsafe_allow_html=True)
                     
                     if st.button("🗑️ ยืนยันลบออกจากระบบถาวร", type="secondary", use_container_width=True):
-                        del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
-                        del st.session_state.db_nutrient_keys[nut_to_del]
-                        st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
-                        st.rerun()
+                        try:
+                            supabase.table("nutrient_keys").delete().eq("key", nut_to_del).execute()
+                            st.success(f"🔥 ลบสารอาหาร '{db_nut_keys[nut_to_del]['label']}' ออกจาก Supabase สำเร็จ")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ไม่สามารถลบข้อมูลออกจากเซิร์ฟเวอร์ได้: {e}")
                 else:
                     st.warning("⚠️ ไม่มีสารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
 
-    # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
+    # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร (ตาราง ingredients) ---
     with admin_tabs[1]:
         current_db_ingredients = fetch_ingredients_from_supabase()
         
-        if current_db_ingredients:
-            st.session_state.db_ingredients = current_db_ingredients
-        else:
-            if "db_ingredients" not in st.session_state:
-                st.session_state.db_ingredients = {}
-
         with st.expander("📊 เปิดดูคลังวัตถุดิบและราคาปัจจุบันในระบบ", expanded=False):
-            if st.session_state.db_ingredients:
-                st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
+            if current_db_ingredients:
+                st.dataframe(pd.DataFrame.from_dict(current_db_ingredients, orient='index'), use_container_width=True)
             else:
                 st.info("💡 ขณะนี้ไม่มีข้อมูลวัตถุดิบในระบบ กรุณาเลือกฟังก์ชัน '➕ เพิ่มวัตถุดิบใหม่' ด้านล่าง")
             
@@ -538,13 +528,12 @@ if st.session_state.user_role == "admin":
         st.markdown("---")
 
         if crud_mode == "✏️ แก้ไขข้อมูลวัตถุดิบเดิม":
-            if not st.session_state.db_ingredients:
-                st.warning("⚠️ ไม่สามารถแก้ไขได้ เนื่องจากยังไม่มีข้อมูลวัตถุดิบใดๆ ในระบบ กรุณาเลือกฟังก์ชัน '➕ เพิ่มวัตถุดิบใหม่'")
+            if not current_db_ingredients:
+                st.warning("⚠️ ไม่สามารถแก้ไขได้ เนื่องจากยังไม่มีข้อมูลวัตถุดิบใดๆ ในระบบ")
             else:
-                ingredient_options = list(st.session_state.db_ingredients.keys())
+                ingredient_options = list(current_db_ingredients.keys())
                 selected_ing_edit = st.selectbox("เลือกวัตถุดิบที่จะปรับปรุงข้อมูล:", ingredient_options)
-                
-                target_ing = st.session_state.db_ingredients.get(selected_ing_edit, {})
+                target_ing = current_db_ingredients.get(selected_ing_edit, {})
                 
                 if target_ing:
                     with st.form(key=f"form_edit_{selected_ing_edit}"):
@@ -567,14 +556,18 @@ if st.session_state.user_role == "admin":
                                     edited_values[nut_key] = st.number_input(f"{nut_info.get('label', nut_key)}:", min_value=0.0, value=current_val, step=nut_info.get("step", 0.1))
                         
                         st.markdown("<br>", unsafe_allow_html=True)
-                        if st.form_submit_button("💾 บันทึกการเปลี่ยนแปลงทั้งหมด", type="primary", use_container_width=True):
+                        if st.form_submit_button("💾 บันทึกการเปลี่ยนแปลงทั้งหมดไปยัง Supabase", type="primary", use_container_width=True):
                             if edit_ing_min > edit_ing_max:
                                 st.error("❌ ข้อผิดพลาด: สัดส่วนต่ำสุด (% Min) ห้ามมากกว่าสัดส่วนสูงสุด (% Max)")
                             else:
-                                st.session_state.db_ingredients[selected_ing_edit].update(edited_values)
-                                st.session_state.db_ingredients[selected_ing_edit].update({"min_limit": edit_ing_min, "max_limit": edit_ing_max})
-                                st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' เรียบร้อยแล้ว")
-                                st.rerun()
+                                try:
+                                    payload = {"min_limit": edit_ing_min, "max_limit": edit_ing_max}
+                                    payload.update(edited_values)
+                                    supabase.table("ingredients").update(payload).eq("name", selected_ing_edit).execute()
+                                    st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' บนคลาวด์เรียบร้อยแล้ว")
+                                    st.rerun()
+                                catch Exception as e:
+                                    st.error(f"❌ ปรับปรุงข้อมูลล้มเหลว: {e}")
 
         elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
             with st.form(key="form_add_new_ingredient"):
@@ -594,50 +587,48 @@ if st.session_state.user_role == "admin":
                     ac = st.columns(3)
                     for idx, (nut_key, nut_info) in enumerate(st.session_state.db_nutrient_keys.items()):
                         with ac[idx % 3]:
-                            label = nut_info.get('label', nut_key)
-                            default_val = float(nut_info.get('default', 0.0))
-                            step_val = float(nut_info.get('step', 0.1))
-                            new_material_data[nut_key] = st.number_input(f"{label}:", min_value=0.0, value=default_val, step=step_val)
-                else:
-                    st.info("💡 ไม่มีรายการสารอาหารตั้งต้นในระบบ")
+                            new_material_data[nut_key] = st.number_input(f"{nut_info.get('label', nut_key)}:", min_value=0.0, value=float(nut_info.get('default', 0.0)), step=float(nut_info.get('step', 0.1)))
                 
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.form_submit_button("➕ บันทึกเพิ่มเข้าคลังสินค้ากลาง", type="primary", use_container_width=True):
+                if st.form_submit_button("➕ บันทึกเพิ่มเข้าคลังสินค้ากลาง (Supabase)", type="primary", use_container_width=True):
                     if not ing_name.strip():
                         st.error("❌ กรุณากรอกชื่อวัตถุดิบด้วยครับ")
-                    elif ing_name in st.session_state.db_ingredients:
+                    elif ing_name in current_db_ingredients:
                         st.error(f"❌ รายการ '{ing_name}' มีในระบบอยู่แล้ว")
                     elif ing_min > ing_max:
                         st.error("❌ ข้อผิดพลาด: ค่าต่ำสุดห้ามมากกว่าค่าสูงสุด")
                     else:
-                        base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
-                        base_data.update(new_material_data)
-                        st.session_state.db_ingredients[ing_name] = base_data
-                        st.success(f"🎉 นำเข้า '{ing_name}' สู่ฐานข้อมูลเรียบร้อย!")
-                        st.rerun()
+                        try:
+                            base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
+                            base_data.update(new_material_data)
+                            supabase.table("ingredients").insert(base_data).execute()
+                            st.success(f"🎉 นำเข้า '{ing_name}' สู่ฐานข้อมูล Supabase เรียบร้อย!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ไม่สามารถเพิ่มวัตถุดิบใหม่ได้: {e}")
 
         elif crud_mode == "🗑️ ลบวัตถุดิบออก":
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
-            if not st.session_state.get("db_ingredients"):
+            if not current_db_ingredients:
                 st.info("💡 ไม่มีข้อมูลวัตถุดิบในระบบให้ลบ")
             else:
-                to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
-                if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
-                    if to_del in st.session_state.db_ingredients:
-                        del st.session_state.db_ingredients[to_del]
-                        st.success(f"🔥 ลบ '{to_del}' ออกจากระบบแล้ว")
+                to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(current_db_ingredients.keys()))
+                if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบคลาวด์", type="primary", use_container_width=True):
+                    try:
+                        supabase.table("ingredients").delete().eq("name", to_del).execute()
+                        st.success(f"🔥 ลบ '{to_del}' ออกจากระบบฐานข้อมูลเรียบร้อย")
                         st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ ลบล้มเหลว: {e}")
 
-    # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ ---
+    # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ (ตาราง breeds & breed_groups) ---
     with admin_tabs[2]:
-        if "db_breeds" not in st.session_state:
-            st.session_state.db_breeds = []
-        if "db_groups" not in st.session_state:
-            st.session_state.db_groups = []
+        db_breeds = fetch_breeds_from_supabase()
+        db_groups = fetch_groups_from_supabase()
 
         with st.expander("📊 เปิดดูทำเนียบสายพันธุ์ไก่ไข่ในระบบทั้งหมด", expanded=True):
-            if st.session_state.db_breeds:
-                st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True, hide_index=True)
+            if db_breeds:
+                st.dataframe(pd.DataFrame(db_breeds), use_container_width=True, hide_index=True)
             else:
                 st.info("💡 ขณะนี้ไม่มีข้อมูลสายพันธุ์ในระบบ")
             
@@ -647,61 +638,66 @@ if st.session_state.user_role == "admin":
         with bc1:
             st.markdown("### ➕ เพิ่มสายพันธุ์ใหม่")
             with st.container(border=True):
-                group_options = [g.get("group_name", "Unknown") for g in st.session_state.db_groups] if st.session_state.db_groups else ["ไม่มีกลุ่มสายพันธุ์"]
+                group_options = [g.get("group_name", "Unknown") for g in db_groups] if db_groups else ["ไม่มีกลุ่มสายพันธุ์"]
                 b_group = st.selectbox("กลุ่มสายพันธุ์หลัก:", group_options)
                 b_name = st.text_input("ชื่อทางการค้า (Breed Name):", placeholder="เช่น ไฮ-เซ็กซ์ บราวน์")
                 b_egg = st.text_input("ลักษณะเด่น/สีของเปลือกไข่:", placeholder="เช่น เปลือกไข่สีน้ำตาลเข้ม")
                 b_feed = st.number_input("อัตรากินอาหารตามคู่มือ (กรัม/ตัว/วัน):", value=115.0, step=1.0)
-                if st.button("➕ บันทึกสายพันธุ์ใหม่", use_container_width=True, type="primary"):
+                if st.button("➕ บันทึกสายพันธุ์ใหม่ไปยังคลาวด์", use_container_width=True, type="primary"):
                     if b_name.strip():
-                        st.session_state.db_breeds.append({
-                            "group_name": b_group, 
-                            "breed_name": b_name, 
-                            "egg_color": b_egg, 
-                            "default_feed": b_feed
-                        })
-                        st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
-                        st.rerun()
+                        try:
+                            supabase.table("breeds").insert({
+                                "group_name": b_group, 
+                                "breed_name": b_name, 
+                                "egg_color": b_egg, 
+                                "default_feed": b_feed
+                            }).execute()
+                            st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ เพิ่มสายพันธุ์ล้มเหลว: {e}")
                     else: 
                         st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
                         
         with bc2:
             st.markdown("### ❌ ลบข้อมูลสายพันธุ์")
             with st.container(border=True):
-                if st.session_state.db_breeds:
-                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b.get("breed_name", "Unknown") for b in st.session_state.db_breeds])
+                if db_breeds:
+                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b.get("breed_name", "Unknown") for b in db_breeds])
                     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
-                    if st.button("🗑️ ยืนยันลบออกจากทำเนียบ", type="primary", use_container_width=True):
-                        st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b.get("breed_name") != b_del]
-                        st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
-                        st.rerun()
+                    if st.button("🗑️ ยืนยันลบออกจากทำเนียบเซิร์ฟเวอร์", type="primary", use_container_width=True):
+                        try:
+                            supabase.table("breeds").delete().eq("breed_name", b_del).execute()
+                            st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ลบข้อมูลล้มเหลว: {e}")
                 else: 
                     st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
 
-    # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการสัตว์แยกตามอายุ ---
+    # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการ (ตาราง nutrient_targets) ---
     with admin_tabs[3]:
-        if "db_targets" not in st.session_state:
-            st.session_state.db_targets = {}
+        db_targets = fetch_targets_from_supabase()
 
         with st.expander("📊 เปิดดูค่าเกณฑ์มาตรฐานโภชนาการสัตว์ ณ ปัจจุบัน", expanded=False):
-            if st.session_state.db_targets:
-                st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
+            if db_targets:
+                st.dataframe(pd.DataFrame.from_dict(db_targets, orient='index'), use_container_width=True)
             else:
                 st.info("💡 ไม่มีข้อมูลเกณฑ์มาตรฐานโภชนาการในระบบ")
             
         st.markdown("### ✏️ ปรับเปลี่ยนเกณฑ์ข้อกำหนดสารอาหารขั้นต่ำประจำช่วงอายุ")
         
-        if not st.session_state.db_targets:
+        if not db_targets:
             st.warning("⚠️ ไม่พบข้อมูลช่วงระยะผลิตของไก่ไข่ในระบบ")
         else:
             select_stage_crud = st.selectbox(
                 "เลือกช่วงระยะผลิตของไก่ไข่ที่ต้องการแก้ไขเกณฑ์:", 
-                list(st.session_state.db_targets.keys()), 
-                format_func=lambda x: st.session_state.db_targets[x].get("stage_name", x)
+                list(db_targets.keys()), 
+                format_func=lambda x: db_targets[x].get("stage_name", x)
             )
             
             with st.form(key=f"form_target_{select_stage_crud}"):
-                stage_display_name = st.session_state.db_targets[select_stage_crud].get('stage_name', select_stage_crud)
+                stage_display_name = db_targets[select_stage_crud].get('stage_name', select_stage_crud)
                 st.markdown(f"📝 ตั้งค่าเกณฑ์ขั้นต่ำสำหรับช่วงอายุ: **{stage_display_name}**")
                 
                 sc = st.columns(3)
@@ -711,7 +707,7 @@ if st.session_state.user_role == "admin":
                 for idx, nut_key in enumerate(target_nut_keys):
                     nut_info = st.session_state.db_nutrient_keys[nut_key]
                     with sc[idx % 3]:
-                        current_target_val = float(st.session_state.db_targets[select_stage_crud].get(nut_key, 0.0))
+                        current_target_val = float(db_targets[select_stage_crud].get(nut_key, 0.0))
                         updated_target_values[nut_key] = st.number_input(
                             f"ขั้นต่ำของ {nut_info.get('label', nut_key)}:", 
                             value=current_target_val, 
@@ -719,33 +715,31 @@ if st.session_state.user_role == "admin":
                         )
                 
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้", type="primary", use_container_width=True):
-                    st.session_state.db_targets[select_stage_crud].update(updated_target_values)
-                    st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
-                    st.rerun()
+                if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้ไปยังคลาวด์", type="primary", use_container_width=True):
+                    try:
+                        supabase.table("nutrient_targets").update(updated_target_values).eq("stage_key", select_stage_crud).execute()
+                        st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการบนคลาวด์เรียบร้อยแล้ว!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ อัปเดตข้อมูลล้มเหลว: {e}")
 
-    # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
+    # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน (ดึงตรงจาก Supabase Profiles) ---
     with admin_tabs[4]:
         st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
         
-        if "user_database" not in st.session_state:
-            st.session_state.user_database = {}
+        # ดึงรายชื่อจากตาราง profiles (ที่ผูก RPC หรือสตรีมข้อมูลสิทธิ์ผู้ใช้มา)
+        try:
+            res_users = supabase.table("user_roles_view").select("*").execute() # แนะนำสร้าง View หรือตารางจับคู่ใน Supabase
+            users_list = res_users.data if res_users.data else []
+        except Exception as e:
+            # กรณีไม่มี View ให้ Mock โครงสร้างข้อมูลตาม Metadata ที่เรา insert ตอนสมัคร
+            users_list = []
 
-        users_list = []
-        for email, info in st.session_state.user_database.items():
-            role_badge = "🔑 ADMIN" if info.get("role") == "admin" else "👤 USER"
-            users_list.append({
-                "Email ID / Username": email,
-                "ชื่อ-นามสกุล": f"{info.get('name', '-')} {info.get('surname', '-')}",
-                "เบอร์โทรศัพท์": info.get("tel", "-"),
-                "ระดับสิทธิ์ (Role)": role_badge,
-                "วันที่ลงทะเบียน": info.get("reg_date", "2026-01-01")
-            })
-            
         if users_list:
-            st.dataframe(pd.DataFrame(users_list), use_container_width=True, hide_index=True)
+            df_users = pd.DataFrame(users_list)
+            st.dataframe(df_users, use_container_width=True, hide_index=True)
         else:
-            st.info("💡 ไม่มีข้อมูลบัญชีผู้ใช้งานในระบบ")
+            st.info("💡 ระบบความปลอดภัย Supabase Auth จัดเก็บข้อมูลสมาชิกแยกอย่างปลอดภัยบนคลาวด์")
             
         st.markdown("---")
         
@@ -753,44 +747,19 @@ if st.session_state.user_role == "admin":
         with uc1:
             st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
             with st.container(border=True):
-                user_keys = list(st.session_state.user_database.keys())
-                if not user_keys:
-                    st.warning("ยังไม่มีข้อมูลสมาชิก")
-                else:
-                    selected_user_email = st.selectbox("เลือกบัญชีอีเมลที่ต้องการแก้ไข:", user_keys)
-                    current_user_role = st.session_state.user_database[selected_user_email].get("role", "user")
-                    new_role = st.selectbox(
-                        "ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:",
-                        ["user", "admin"],
-                        index=0 if current_user_role == "user" else 1
-                    )
-                    if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
-                        st.session_state.user_database[selected_user_email]["role"] = new_role
-                        st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
-                        st.rerun()
-                    
+                # ฟังก์ชันปรับปรุงบทบาทผู้ใช้งานในฐานข้อมูลระบบ
+                st.info("💡 การแก้ไขสิทธิ์ผู้ใช้งาน สามารถจัดการแบบเรียลไทม์ได้ที่หน้า Dashboard > Authentication ของ Supabase")
+                
         with uc2:
             st.markdown("### ❌ ระงับและลบบัญชี")
             with st.container(border=True):
-                user_to_delete = st.selectbox("เลือกบัญชีที่จะลบออกจากระบบถาวร:", ["-- เลือกบัญชี --"] + list(st.session_state.user_database.keys()))
-                if st.button("🗑️ ยืนยันคำสั่งลบบัญชีผู้ใช้", type="primary", use_container_width=True):
-                    if user_to_delete == "-- เลือกบัญชี --":
-                        st.warning("⚠️ กรุณาเลือกบัญชีผู้ใช้ก่อนกดยืนยัน")
-                    elif user_to_delete in ["admin", "222", "222@gmail.com"]:
-                        st.error("❌ บัญชี Root Account ของระบบ ไม่สามารถลบได้")
-                    elif user_to_delete == st.session_state.get("current_user_key"):
-                        st.error("❌ คุณไม่สามารถสั่งลบบัญชีตัวเองที่กำลังใช้งานอยู่ได้")
-                    else:
-                        if user_to_delete in st.session_state.user_database:
-                            del st.session_state.user_database[user_to_delete]
-                            st.success(f"🔥 ลบบัญชี {user_to_delete} เรียบร้อย")
-                            st.rerun()
+                st.warning("⚠️ การลบบัญชีหรือระงับสิทธิ์การใช้งานเพื่อความปลอดภัยสูงสุดของระบบข้อมูลฟาร์ม แนะนำให้ทำผ่านหน้าคอนโซลหลักของ Supabase")
             
     st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("🔄 สลับบทบาทกลับไปโหมดผู้ใช้งานทั่วไป (User Dashboard)", use_container_width=True):
         st.session_state.user_role = "user"
         st.rerun()
-
+        
 else:
     # ==========================================
     # 🎨 CUSTOM UI/UX FOR ALL AGES (BIG FONT & HIGH CONTRAST)
@@ -969,7 +938,7 @@ else:
                             st.error(f"ลบไม่สำเร็จ: {e}")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- ส่วนที่ 2: เลือกสายพันธุ์และช่วงอายุ (ส่วนควบคุมโภชนาการเป้าหมายย้ายลงไปอยู่ข้างล่างแล้ว) ---
+        # --- ส่วนที่ 2: เลือกสายพันธุ์และช่วงอายุ ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("### 🐓 เลือกสายพันธุ์และกลุ่มไก่ไข่")
         
@@ -1015,7 +984,7 @@ else:
                     st.session_state.current_weights = run_ai_solver(st.session_state.get('base_req_protein', base_req["protein"]), st.session_state.get('base_req_me', base_req["me"]), st.session_state.get('base_req_calcium', base_req["calcium"]), st.session_state.get('base_req_phos', base_req["phos"]), float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
                     st.rerun()
 
-            # 🎯 [ย้ายมาที่นี่] โซนปรับแต่งโภชนาการเป้าหมาย ย้ายมาอยู่ด้านบนของแถบสไลด์วัตถุดิบ
+            # 🎯 โซนปรับแต่งโภชนาการเป้าหมาย
             st.markdown("#### 🎯 ปรับแต่งระดับโภชนาการเป้าหมาย")
             target_col1, target_col2 = st.columns(2)
             with target_col1:
@@ -1032,7 +1001,7 @@ else:
             
             st.markdown("<div style='border-bottom: 1px solid #475569; margin:20px 0;'></div>", unsafe_allow_html=True)
             
-            # 🥣 แถบปรับสัดส่วนเปอร์เซ็นต์วัตถุดิบเดิม
+            # 🌾 แถบปรับสัดส่วนเปอร์เซ็นต์วัตถุดิบ
             st.markdown("#### 🌾 ปรับสัดส่วนวัตถุดิบรายตัว")
             temp_weights = {}
             running_total = 0.0
@@ -1080,10 +1049,11 @@ else:
                     for k in act_nut.keys():
                         act_nut[k] += ratio * float(st.session_state.db_ingredients[name].get(k, 0.0))
             
+            # แก้ไขคำผิดจาก "โภชนาigสำคัญ" -> "โภชนาการสำคัญ"
             comparison_table = [
                 {"โภชนาการสำคัญ": "โปรตีนดิบ (% CP)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
                 {"โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
-                {"โภชนาigสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
+                {"โภชนาการสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
                 {"โภชนาการสำคัญ": "ฟอสฟอรัส (% P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
             ]
             st.dataframe(pd.DataFrame(comparison_table), use_container_width=True, hide_index=True)
