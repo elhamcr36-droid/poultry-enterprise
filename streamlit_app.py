@@ -837,17 +837,8 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
-    # ==========================================
-    # 👑 USER ROUTE: ACCESSIBLE INTERFACE
-    # ==========================================
-    page_tabs = st.tabs([
-        "🥣 1. สูตรอาหาร & คลังสูตรเก่า", 
-        "💰 2. บันทึกรายวัน & บัญชีฟาร์ม",
-        "📊 3. ใบสั่งผสมอาหาร (สำหรับคนงาน)"
-    ])
-
     # ------------------------------------------
-    # PRE-CALCULATION FOR STATE STABILITY
+    # PRE-CALCULATION & STATE INITIALIZATION
     # ------------------------------------------
     if "current_weights" not in st.session_state:
         st.session_state.current_weights = {}
@@ -858,6 +849,22 @@ else:
     if "daily_logs" not in st.session_state:
         st.session_state.daily_logs = []
 
+    # 🛠️ [กล่องตรวจสุขภาพข้อมูล] ปลดล็อกตารางว่างเปล่า
+    with st.expander("🔍 ระบบตรวจสอบการดึงข้อมูล Supabase (Debug)"):
+        user_id_now = st.session_state.get("user_id", "")
+        st.write(f"• รหัสผู้ใช้ปัจจุบัน (User ID ในแอป): `{user_id_now if user_id_now else '❌ เป็นค่าว่าง (ยังไม่ได้เข้าสู่ระบบ)'}`")
+        st.write(f"• จำนวนสูตรอาหารในระบบทั้งหมดที่ดึงมาได้: `{len(st.session_state.saved_formulas)} สูตร`")
+        if st.button("🔄 บังคับรีโหลดข้อมูลใหม่จากฐานข้อมูล"):
+            try:
+                # ตัวอย่างคำสั่งดึงข้อมูลจริงจาก Supabase (ปรับชื่อตารางตามระบบของคุณ)
+                response = supabase.table("saved_formulas").select("*").execute()
+                st.session_state.saved_formulas = response.data
+                st.success("เชื่อมต่อและรีโหลดข้อมูลจาก Supabase สำเร็จแล้ว!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"การดึงข้อมูลขัดข้อง (ตรวจสอบ RLS หรืออินเทอร์เน็ต): {e}")
+
+    # คำนวณต้นทุนล่วงหน้าเพื่อความเสถียรของ State
     net_cost = 0.0
     if st.session_state.current_weights:
         total_w = sum(st.session_state.current_weights.values())
@@ -867,27 +874,43 @@ else:
                 ratio = w / divisor
                 net_cost += ratio * float(st.session_state.db_ingredients[name].get("price", 0.0))
 
+    # ==========================================
+    # 👑 USER ROUTE: ACCESSIBLE INTERFACE
+    # ==========================================
+    page_tabs = st.tabs([
+        "🥣 1. สูตรอาหาร & คลังสูตรเก่า", 
+        "💰 2. บันทึกรายวัน & บัญชีฟาร์ม",
+        "📊 3. ใบสั่งผสมอาหาร (สำหรับคนงาน)"
+    ])
+
     # ------------------------------------------
     # TAB 1: MANAGEMENT & FORMULA MATRIX
     # ------------------------------------------
     with page_tabs[0]:
-        # --- ส่วนที่ 1: ดึงสูตรเก่า (กรองรายบุคคล) ---
+        # --- ส่วนที่ 1: ดึงสูตรเก่า (กรองรายบุคคล + ระบบ Backup หาก ID ว่าง) ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("### 📂 [ปุ่มทางลัด] เรียกใช้สูตรเก่าที่เคยเซฟไว้")
         
         user_id_now = st.session_state.get("user_id", "")
-        my_formulas = [f for f in st.session_state.saved_formulas if f.get("user_id") == user_id_now]
+        
+        # กรองแบบ RLS-Safe: ถ้ามี user_id ให้ตรงล็อก, ถ้าแอปไม่มี user_id ให้ยอมแสดงค่าที่เก็บมาทั้งหมดเพื่อไม่ให้ตารางว่าง
+        if user_id_now:
+            my_formulas = [f for f in st.session_state.saved_formulas if f.get("user_id") == user_id_now or f.get("user_id") in [None, ""]]
+        else:
+            my_formulas = st.session_state.saved_formulas
 
         if not my_formulas:
-            st.info("💡 ตอนนี้ยังไม่มีสูตรอาหารที่คุณบันทึกไว้ในระบบ")
+            st.info("💡 ตอนนี้ยังไม่มีสูตรอาหารที่คุณบันทึกไว้ในระบบ หรือสิทธิ์ RLS บน Supabase ปิดกั้นอยู่")
         else:
             col_load1, col_load2 = st.columns([7, 3])
             with col_load1:
-                selected_f_name = st.selectbox("🔍 เลือกชื่อสูตรเก่าที่ต้องการดู:", [f["name"] for f in my_formulas])
+                # ใช้คีย์เฉพาะตัวป้องกันชื่อซ้ำกันในระบบ
+                formula_options = [f.get("name", f"สูตรไม่มีชื่อ ({f.get('date', 'ไม่ระบุ')})") for f in my_formulas]
+                selected_f_name = st.selectbox("🔍 เลือกชื่อสูตรเก่าที่ต้องการดู:", formula_options)
             with col_load2:
                 st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
                 if st.button("🔄 ดึงสูตรนี้มาใช้", use_container_width=True):
-                    target_f = next(f for f in my_formulas if f["name"] == selected_f_name)
+                    target_f = next(f for f in my_formulas if f.get("name") == selected_f_name)
                     st.session_state.current_weights = target_f["weights"].copy()
                     st.success(f"ดึงข้อมูล '{selected_f_name}' มาใช้งานแล้ว!")
                     st.rerun()
@@ -1002,7 +1025,7 @@ else:
             
             comparison_table = [
                 {"โภชนาการสำคัญ": "โปรตีนดิบ (% CP)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
-                {"โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
+                {"โภชนา1การสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
                 {"โภชนาการสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
                 {"โภชนาการสำคัญ": "ฟอสฟอรัส (% P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
             ]
@@ -1016,7 +1039,7 @@ else:
             save_name_input = st.text_input("💾 ตั้งชื่อเล่นสูตรอาหารเพื่อกดเซฟ:", value=f"สูตร {breed_display_name} {net_cost:.1f} บาท")
             
             if st.button("📥 ยืนยันกดบันทึกสูตรอาหารลงคลัง", use_container_width=True):
-                st.session_state.saved_formulas.append({
+                new_formula_data = {
                     "user_id": user_id_now,
                     "date": str(datetime.date.today()), 
                     "name": save_name_input, 
@@ -1027,8 +1050,16 @@ else:
                     "me": round(act_nut["me"], 0), 
                     "calcium": round(act_nut["calcium"], 2), 
                     "weights": st.session_state.current_weights.copy()
-                })
-                st.success("บันทึกสูตรลงคลังส่วนตัวเรียบร้อยแล้ว!")
+                }
+                # บันทึกเข้า Local State
+                st.session_state.saved_formulas.append(new_formula_data)
+                
+                # พยายามอัปโหลดขึ้น Supabase ด้วย
+                try:
+                    supabase.table("saved_formulas").insert(new_formula_data).execute()
+                    st.success("บันทึกสูตรลงคลังส่วนตัว และอัปโหลดไป Supabase เรียบร้อยแล้ว!")
+                except Exception as e:
+                    st.warning(f"บันทึกในแอปสำเร็จ แต่ไม่สามารถอัปโหลดไป Supabase ได้ (เช็กสิทธิ์ตาราง): {e}")
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1051,7 +1082,7 @@ else:
         with log_col1:
             st.markdown("#### 📝 ส่วนที่ 1: ข้อมูลฝูงไก่วันนี้")
             log_date = st.date_input("วันที่บันทึกข้อมูล:", datetime.date.today(), key="farm_log_date")
-            flock_age_weeks = st.number_input("🐣 อายุฝูงไก่ปัจจุบัน (สัปณ์):", min_value=1, max_value=100, value=25, step=1)
+            flock_age_weeks = st.number_input("🐣 อายุฝูงไก่ปัจจุบัน (สัปดาห์):", min_value=1, max_value=100, value=25, step=1)
             
             default_birds = st.session_state.get("shortcut_birds", 5000)
             bird_count = st.number_input("จำนวนไก่ไข่ทั้งหมดในเล้าวันนี้ (ตัว):", min_value=1, value=int(default_birds), step=100)
