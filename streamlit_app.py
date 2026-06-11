@@ -174,41 +174,43 @@ def fetch_ingredients_from_supabase():
 
     return {}
 # ==========================================
-# 🧮 3. CORE AI SOLVER ENGINE
+# 🧮 3. CORE AI SOLVER ENGINE (เวอร์ชันดึง Supabase สด)
 # ==========================================
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     
-    # 🔄 เปลี่ยนมาดึงข้อมูลโดยตรงจาก Session State คลังสินค้ากลางของระบบแทนการยิงดึง Supabase สดๆ ทุกรอบ
-    current_ingredients = st.session_state.get("db_ingredients", {})
+    # 🔄 เรียกใช้งานฟังก์ชันดึงข้อมูลจาก Supabase ที่คุณมีอยู่แล้วในระบบ
+    try:
+        current_ingredients = fetch_ingredients_from_supabase()
+    except Exception as e:
+        st.error(f"❌ เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: {e}")
+        return {}
     
-    # 🛡️ ระบบ Safe-guard ตรวจสอบหากคลังวัตถุดิบว่างเปล่า
+    # 🛡️ ตรวจสอบกรณีดึงข้อมูลมาแล้วเป็นค่าว่าง
     if not current_ingredients:
-        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้ (กรุณาเพิ่มวัตถุดิบในระบบแอดมินอย่างน้อย 1 รายการ)")
+        st.error("❌ ดึงข้อมูลจาก Supabase สำเร็จ แต่ตารางว่างเปล่า หรือดึงมาไม่สำเร็จ")
         return {}
 
-    # สร้างตัวแปรการตัดสินใจ และแปลงขอบเขตขั้นต่ำ-สูงสุด (% Min / % Max) ให้อยู่ในสัดส่วน 0.0 - 1.0 
-    ing_vars = {
-        name: pulp.LpVariable(
-            name, 
-            lowBound=float(d.get("min_limit", 0.0)) / 100.0, 
-            upBound=float(d.get("max_limit", 100.0)) / 100.0
-        ) 
-        for name, d in current_ingredients.items()
-    }
+    # สร้างตัวแปรการตัดสินใจ ป้องกัน KeyError ด้วยการใช้ .get() และแปลงขอบเขตให้อยู่ในสัดส่วน 0.0 - 1.0
+    ing_vars = {}
+    for name, d in current_ingredients.items():
+        # ถ้าบน Supabase ไม่มีคอลัมน์ min_limit / max_limit ให้ตั้งค่าเริ่มต้นเป็น 0% ถึง 100%
+        low = float(d.get("min_limit", 0.0)) / 100.0 if d.get("min_limit") is not None else 0.0
+        up = float(d.get("max_limit", 100.0)) / 100.0 if d.get("max_limit") is not None else 1.0
+        ing_vars[name] = pulp.LpVariable(name, lowBound=low, upBound=up)
     
-    # ตัวแปรเสริมชดเชย (Slack Variables) เพื่อป้องกันสมการคำนวณไม่ลงตัว (Infeasible) ในกลุ่มสารอาหารหลัก
+    # ตัวแปรเสริมชดเชย (Slack Variables)
     s_p = pulp.LpVariable("s_p", lowBound=0)
     s_m = pulp.LpVariable("s_m", lowBound=0)
     s_c = pulp.LpVariable("s_c", lowBound=0)
     
-    # 🎯 Objective Function: คำนวณต้นทุนวัตถุดิบที่ต่ำที่สุด (+ ค่าปรับกรณีสารอาหารหลักไม่พอเพื่อบีบให้ AI พยายามเติมสารอาหารให้เต็ม)
+    # 🎯 Objective Function: คำนวณต้นทุนวัตถุดิบต่ำสุด
     prob += pulp.lpSum([ing_vars[name] * float(d.get("price", 0.0)) for name, d in current_ingredients.items()]) + 1000.0 * (s_p + s_m/100.0 + s_c), "Cost"
     
-    # ⚖️ Constraints 1: สัดส่วนวัตถุดิบรวมกันทั้งหมดต้องเท่ากับ 100%พอดี (หรือ 1.0)
+    # ⚖️ Constraints 1: สัดส่วนรวมต้องเท่ากับ 100% (1.0)
     prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
     
-    # 🧬 Constraints 2: ข้อจำกัดทางโภชนาการและสารอาหารขั้นต่ำตามเงื่อนไข (ใช้ .get ป้องกัน KeyError)
+    # 🧬 Constraints 2: ข้อจำกัดสารอาหารขั้นต่ำ (ใช้ .get ป้องกันตัวสะกดพิมพ์เล็ก-ใหญ่ผิดพลาด)
     prob += pulp.lpSum([ing_vars[name] * float(d.get("protein", 0.0)) for name, d in current_ingredients.items()]) + s_p >= req_p
     prob += pulp.lpSum([ing_vars[name] * float(d.get("me", 0.0)) for name, d in current_ingredients.items()]) + s_m >= req_m
     prob += pulp.lpSum([ing_vars[name] * float(d.get("calcium", 0.0)) for name, d in current_ingredients.items()]) + s_c >= req_c
@@ -216,10 +218,10 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob += pulp.lpSum([ing_vars[name] * float(d.get("lysine", 0.0)) for name, d in current_ingredients.items()]) >= req_ly
     prob += pulp.lpSum([ing_vars[name] * float(d.get("methionine", 0.0)) for name, d in current_ingredients.items()]) >= req_me
     
-    # สั่งให้บอร์ดประมวลผลคำนวณหาคำตอบที่ดีที่สุด
+    # สั่งประมวลผลคำนวณ
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
-    # 📊 จัดเตรียมผลลัพธ์ที่คำนวณได้แปลงกลับเป็นเปอร์เซ็นต์ (0.0 - 100.0)
+    # จัดเตรียมผลลัพธ์ส่งกลับ
     res = {}
     for name in current_ingredients.keys():
         res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
