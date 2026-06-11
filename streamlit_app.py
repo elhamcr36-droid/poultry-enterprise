@@ -121,8 +121,7 @@ def check_password_strength(password):
         return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น @, #, $, %, ., !, _)"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
 
-
-# ⚙️ โครงสร้างสารอาหารหลัก (เก็บไว้ในโค้ดได้ เพราะเป็นตัวกำหนด UI และแกนคำนวณ)
+# ⚙️ โครงสร้างสารอาหารหลัก (ใช้เป็น Default เพื่อให้แอปทำงานได้แม้ดึง Database ไม่ได้)
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
         "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
@@ -135,57 +134,56 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-
 # ==========================================
 # 🔄 REAL-TIME DATABASE FETCH FUNCTIONS (SUPABASE)
 # ==========================================
 
-# 1. ฟังก์ชันดึงข้อมูลวัตถุดิบ (ปรับเป็นตารางภาษาไทยใหม่ คลังวัตถุดิบไก่ไข่_layer_ingredients)
+# 1. ฟังก์ชันดึงข้อมูลวัตถุดิบ (ชี้ไปที่: คลังวัตถุดิบไก่ไข่_layer_in)
 def fetch_ingredients_from_supabase():
     try:
-        response = supabase.table("คลังวัตถุดิบไก่ไข่_layer_ingredients").select("*").execute()
+        response = supabase.table("คลังวัตถุดิบไก่ไข่_layer_in").select("*").execute()
         if response.data:
             ingredients_dict = {}
             for item in response.data:
-                # ทำการแมปข้อมูลโครงสร้างให้เข้ากับของเดิมในโค้ด Python
+                # แก้ไขชื่อ Key ให้ตรงกับฐานข้อมูลจริงของคุณ
                 ingredients_dict[item["ชื่อวัตถุดิบ_name"]] = {
                     "name": item["ชื่อวัตถุดิบ_name"],
-                    "category": item["หมวดหมู่_category"],
                     "price": float(item["ราคา_price"] or 0.0),
-                    "me": float(item["พลังงานใช้ประโยชน์ได้_me_kcal"] or 0.0),
-                    "protein": float(item["โปรตีนดิบ_protein"] or 0.0),
+                    "protein": float(item["โปรตีน_protein"] or 0.0),
+                    "me": float(item["พลังงาน_me"] or 0.0),
                     "calcium": float(item["แคลเซียม_calcium"] or 0.0),
-                    "phos": float(item["ฟอสฟอรัสที่ใช้ได้_phosphorus"] or 0.0),
+                    "phos": float(item["ฟอสฟอรัส_phos"] or 0.0),
                     "lysine": float(item["ไลซีน_lysine"] or 0.0),
-                    "methionine": float(item["เมทิโอนีน_methionine"] or 0.0),
-                    "fiber": float(item["เยื่อใยดิบ_fiber"] or 0.0),
-                    "fat": float(item["ไขมันดิบ_fat"] or 0.0),
-                    "sodium": float(item["โซเดียม_sodium"] or 0.0)
+                    "methionine": float(item["เมทไธโอนีน_methionine"] or 0.0)
                 }
             return ingredients_dict
     except Exception as e:
-        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลวัตถุดิบจาก Supabase ได้: {e}")
+        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลวัตถุดิบ: {e}")
     return {}
 
-# 2. ฟังก์ชันดึงข้อมูลกลุ่มไก่ไข่ (ปรับเป็นตาราง กลุ่มไก่_chicken_categories)
+# 2. ฟังก์ชันดึงข้อมูลกลุ่มไก่ไข่ (ชี้ไปที่: กลุ่มไก่_chicken_categories)
 def fetch_groups_from_supabase():
     try:
         response = supabase.table("กลุ่มไก่_chicken_categories").select("*").execute()
-        if response.data:
-            return response.data
+        return response.data if response.data else []
     except Exception as e:
-        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลกลุ่มไก่ไข่จาก Supabase ได้: {e}")
-    return []
+        return []
 
-# 3. ฟังก์ชันดึงข้อมูลสายพันธุ์ย่อย (ปรับเป็นตาราง สายพันธุ์ไก่ไข่_layer_breeds)
+# 3. ฟังก์ชันดึงข้อมูลสายพันธุ์ (ชี้ไปที่: สายพันธุ์ไก่ไข่_layer_breeds)
 def fetch_breeds_from_supabase():
     try:
         response = supabase.table("สายพันธุ์ไก่ไข่_layer_breeds").select("*").execute()
-        if response.data:
-            return response.data
+        return response.data if response.data else []
     except Exception as e:
-        st.error(f"⚠️ ไม่สามารถโหลดข้อมูลสายพันธุ์ไก่ไข่จาก Supabase ได้: {e}")
-    return []
+        return []
+
+# 4. ฟังก์ชันดึงข้อมูลมาตรฐานโภชนาการ (ชี้ไปที่: มาตรฐานโภชนาการการไก่ไข่)
+def fetch_targets_from_supabase():
+    try:
+        response = supabase.table("มาตรฐานโภชนาการการไก่ไข่").select("*").execute()
+        return response.data if response.data else {}
+    except Exception as e:
+        return {}
 
 # 4. ฟังก์ชันดึงข้อมูลเป้าหมายสารอาหาร (ปรับเป็นตาราง มาตรฐานโภชนาการไก่ไข่_layer_standards)
 def fetch_targets_from_supabase():
