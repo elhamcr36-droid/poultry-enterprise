@@ -566,7 +566,7 @@ if st.session_state.user_role == "admin":
                                     supabase.table("ingredients").update(payload).eq("name", selected_ing_edit).execute()
                                     st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' บนคลาวด์เรียบร้อยแล้ว")
                                     st.rerun()
-                                catch Exception as e:
+                                except Exception as e:
                                     st.error(f"❌ ปรับปรุงข้อมูลล้มเหลว: {e}")
 
         elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
@@ -591,18 +591,19 @@ if st.session_state.user_role == "admin":
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.form_submit_button("➕ บันทึกเพิ่มเข้าคลังสินค้ากลาง (Supabase)", type="primary", use_container_width=True):
-                    if not ing_name.strip():
+                    ing_name_clean = ing_name.strip()
+                    if not ing_name_clean:
                         st.error("❌ กรุณากรอกชื่อวัตถุดิบด้วยครับ")
-                    elif ing_name in current_db_ingredients:
-                        st.error(f"❌ รายการ '{ing_name}' มีในระบบอยู่แล้ว")
+                    elif ing_name_clean in current_db_ingredients:
+                        st.error(f"❌ รายการ '{ing_name_clean}' มีในระบบอยู่แล้ว")
                     elif ing_min > ing_max:
                         st.error("❌ ข้อผิดพลาด: ค่าต่ำสุดห้ามมากกว่าค่าสูงสุด")
                     else:
                         try:
-                            base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
+                            base_data = {"name": ing_name_clean, "min_limit": ing_min, "max_limit": ing_max}
                             base_data.update(new_material_data)
                             supabase.table("ingredients").insert(base_data).execute()
-                            st.success(f"🎉 นำเข้า '{ing_name}' สู่ฐานข้อมูล Supabase เรียบร้อย!")
+                            st.success(f"🎉 นำเข้า '{ing_name_clean}' สู่ฐานข้อมูล Supabase เรียบร้อย!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ ไม่สามารถเพิ่มวัตถุดิบใหม่ได้: {e}")
@@ -620,7 +621,7 @@ if st.session_state.user_role == "admin":
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ ลบล้มเหลว: {e}")
-
+                        
     # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ (ตาราง breeds & breed_groups) ---
     with admin_tabs[2]:
         db_breeds = fetch_breeds_from_supabase()
