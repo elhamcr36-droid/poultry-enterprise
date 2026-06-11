@@ -849,7 +849,7 @@ else:
     if "daily_logs" not in st.session_state:
         st.session_state.daily_logs = []
 
-    # 🛠️ SYSTEM SECURITY & SYNCHRONIZATION (ตรวจจับและดักบั๊กตารางว่าง)
+    # 🛠️ SYSTEM SECURITY & SYNCHRONIZATION
     user_id_now = st.session_state.get("user_id", "")
     my_formulas = []
     raw_formulas = st.session_state.get("saved_formulas", [])
@@ -857,14 +857,12 @@ else:
     if not isinstance(raw_formulas, list):
         raw_formulas = []
 
-    # คัดกรองคลังสูตร: ดึงเฉพาะสูตรที่ตรงกับบัญชีผู้ใช้ปัจจุบัน หรือสูตรกลางที่เป็นค่าว่าง (NULL)
     for f in raw_formulas:
         if isinstance(f, dict):
             f_uid = str(f.get("user_id", ""))
             if not user_id_now or f_uid == str(user_id_now) or f_uid in ["", "None", "null"]:
                 my_formulas.append(f)
 
-    # ระบบสำรองข้อมูล (Safety Switch): ป้องกันหน้าจอขาวโพลนในกรณีที่ Supabase ดึงข้อมูลมาเป็น 0 แถว
     if not my_formulas:
         mock_weights = {k: (100.0 / len(st.session_state.db_ingredients) if st.session_state.db_ingredients else 0.0) for k in st.session_state.db_ingredients.keys()}
         if not mock_weights:
@@ -880,7 +878,6 @@ else:
             "cost": 12.50
         }]
 
-    # 🔍 ตัวตรวจสอบระบบหลังบ้าน (พับเก็บได้)
     with st.expander("🔍 ระบบจัดการฐานข้อมูลความปลอดภัย (สิทธิ์การเข้าถึงข้อมูล)"):
         st.write(f"• ไอดีผู้ใช้งานปัจจุบัน (User ID): `{user_id_now if user_id_now else 'ว่างเปล่า'}`")
         st.write(f"• สูตรทั้งหมดที่ผ่านการคัดกรอง: `{len(my_formulas)} สูตร`")
@@ -964,28 +961,22 @@ else:
                     else:
                         try:
                             formula_id = target_formula.get("id")
-                            # ลบออกจาก Supabase (เช็กความปลอดภัยคัดกรองไอดีผู้ลบซ้ำอีกชั้นในระดับ Query)
                             supabase.table("saved_formulas").delete().eq("id", formula_id).eq("user_id", user_id_now).execute()
-                            
-                            # ลบออกจากตัวแปรแอปพลิเคชันหน้าจอ
                             st.session_state.saved_formulas = [f for f in st.session_state.saved_formulas if f.get("id") != formula_id]
                             st.success("🗑️ ลบสูตรสำเร็จ!")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"ลบไม่สำเร็จ (คุณอาจไม่มีสิทธิ์ในแถวข้อมูลนี้): {e}")
+                            st.error(f"ลบไม่สำเร็จ: {e}")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- ส่วนที่ 2: ตั้งค่าข้อมูลโภชนาการเป้าหมาย ---
+        # --- ส่วนที่ 2: เลือกสายพันธุ์และช่วงอายุ (ส่วนควบคุมโภชนาการเป้าหมายย้ายลงไปอยู่ข้างล่างแล้ว) ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-        st.markdown("### 🐓 เลือกสายพันธุ์และโภชนาการเป้าหมาย")
+        st.markdown("### 🐓 เลือกสายพันธุ์และกลุ่มไก่ไข่")
         
         col_br1, col_br2, col_br3 = st.columns(3)
         with col_br1:
             list_groups = [g["group_name"] for g in st.session_state.get("db_groups", [{"group_name": "กลุ่มมาตรฐาน"}])]
             selected_g = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", list_groups)
-            
-            edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state.get('base_req_protein', 16.5)), step=0.1)
-            edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state.get('base_req_me', 2750.0)), step=25.0)
             
         with col_br2:
             filtered_breeds = [b for b in st.session_state.get("db_breeds", []) if b.get("group_name") == selected_g]
@@ -994,9 +985,6 @@ else:
             
             current_breed_data = next((b for b in filtered_breeds if b.get("breed_name") == selected_b_name), {"default_feed": 115.0, "egg_color": "ไม่ระบุ"})
             st.session_state['current_breed_default_feed'] = current_breed_data.get("default_feed", 115.0)
-            
-            edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state.get('base_req_calcium', 3.8)), step=0.05)
-            edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state.get('base_req_phos', 0.45)), step=0.02)
             
         with col_br3:
             if "db_targets" in st.session_state and st.session_state.db_targets:
@@ -1012,30 +1000,40 @@ else:
                 st.session_state['base_req_me'] = base_req["me"]
                 st.session_state['base_req_calcium'] = base_req["calcium"]
                 st.session_state['base_req_phos'] = base_req["phos"]
-
-            st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
-            if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
-                with st.spinner("AI กำลังจัดสูตร..."):
-                    st.session_state.current_weights = run_ai_solver(edit_p, edit_m, edit_c, edit_ph, float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
-                    st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        if not st.session_state.current_weights:
-            st.session_state.current_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req.get("lysine", 0.75), base_req.get("methionine", 0.38))
-
-        # --- ส่วนที่ 3: แถบปรับสัดส่วนและการเซฟบันทึกข้อมูล ---
+        # --- ส่วนที่ 3: แถบปรับสัดส่วนและการเซฟบันทึกข้อมูล (แบ่งซ้าย-ขวา) ---
         col_left, col_right = st.columns([1.1, 0.9])
         
         with col_left:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
             cl_title, cl_reset = st.columns([6, 4])
             with cl_title:
-                st.markdown("### 🥣 แถบปรับสัดส่วนวัตถุดิบ (%)")
+                st.markdown("### 🥣 ปรับค่าเป้าหมาย & สัดส่วนวัตถุดิบ (%)")
             with cl_reset:
-                if st.button("🔄 รีเซ็ตค่าใหม่ทั้งหมด", use_container_width=True):
-                    st.session_state.current_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req.get("lysine", 0.75), base_req.get("methionine", 0.38))
+                if st.button("🔄 รีเซ็ตสัดส่วนอาหาร", use_container_width=True):
+                    st.session_state.current_weights = run_ai_solver(st.session_state.get('base_req_protein', base_req["protein"]), st.session_state.get('base_req_me', base_req["me"]), st.session_state.get('base_req_calcium', base_req["calcium"]), st.session_state.get('base_req_phos', base_req["phos"]), float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
+                    st.rerun()
+
+            # 🎯 [ย้ายมาที่นี่] โซนปรับแต่งโภชนาการเป้าหมาย ย้ายมาอยู่ด้านบนของแถบสไลด์วัตถุดิบ
+            st.markdown("#### 🎯 ปรับแต่งระดับโภชนาการเป้าหมาย")
+            target_col1, target_col2 = st.columns(2)
+            with target_col1:
+                edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state.get('base_req_protein', 16.5)), step=0.1)
+                edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state.get('base_req_me', 2750.0)), step=25.0)
+            with target_col2:
+                edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state.get('base_req_calcium', 3.8)), step=0.05)
+                edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state.get('base_req_phos', 0.45)), step=0.02)
+            
+            if st.button("⚡ สั่ง AI คำนวณสูตรด่วนตามเป้าหมายด้านบน", type="primary", use_container_width=True):
+                with st.spinner("AI กำลังจัดสูตร..."):
+                    st.session_state.current_weights = run_ai_solver(edit_p, edit_m, edit_c, edit_ph, float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
                     st.rerun()
             
+            st.markdown("<div style='border-bottom: 1px solid #475569; margin:20px 0;'></div>", unsafe_allow_html=True)
+            
+            # 🥣 แถบปรับสัดส่วนเปอร์เซ็นต์วัตถุดิบเดิม
+            st.markdown("#### 🌾 ปรับสัดส่วนวัตถุดิบรายตัว")
             temp_weights = {}
             running_total = 0.0
             inclusion_limits = {"กากเบียร์แห้ง": 10.0, "กากน้ำตาล": 5.0, "น้ำมันปาล์ม": 4.0, "น้ำมันถั่วเหลือง": 4.0, "ข้าวนก": 15.0, "กากดีดีจีเอส": 15.0, "DDGS": 15.0}
@@ -1085,7 +1083,7 @@ else:
             comparison_table = [
                 {"โภชนาการสำคัญ": "โปรตีนดิบ (% CP)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
                 {"โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
-                {"โภชนาการสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
+                {"โภชนาigสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
                 {"โภชนาการสำคัญ": "ฟอสฟอรัส (% P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
             ]
             st.dataframe(pd.DataFrame(comparison_table), use_container_width=True, hide_index=True)
@@ -1160,7 +1158,6 @@ else:
             dead_birds = st.number_input("จำนวนไก่ตาย/คัดทิ้งวันนี้ (ตัว):", min_value=0, value=2)
             avg_egg_weight_g = st.number_input("⚖️ น้ำหนักไข่เฉลี่ยวันนี้ (กรัม/ฟอง):", min_value=30.0, max_value=80.0, value=62.0, step=0.5)
 
-        # สัญญาณแจ้งเตือนปฏิทินงานตามอายุไก่
         st.markdown("<div style='background-color:#1e1b4b; padding:20px; border-radius:12px; border:2px solid #6366f1; margin: 20px 0;'>", unsafe_allow_html=True)
         st.markdown(f"### 📋 ปฏิทินเตือนงานสำคัญสำหรับไก่อายุ {flock_age_weeks} สัปดาห์:")
         if flock_age_weeks <= 3:
