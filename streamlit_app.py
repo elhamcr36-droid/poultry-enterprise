@@ -505,12 +505,19 @@ if st.session_state.user_role == "admin":
                         st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
                         st.rerun()
                 else:
-                    st.warning("⚠️ 沒有สารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
+                    st.warning("⚠️ ไม่มีสารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
 
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
     with admin_tabs[1]:
-        if "db_ingredients" not in st.session_state:
-            st.session_state.db_ingredients = {}
+        # 🔄 ดึงข้อมูลสดใหม่จาก Supabase ทุกครั้งที่เปิดแท็บ เพื่อให้ค่าซิงก์กัน และป้องกันปัญหาแถบสไลเดอร์หาย
+        current_db_ingredients = fetch_ingredients_from_supabase()
+        
+        if current_db_ingredients:
+            st.session_state.db_ingredients = current_db_ingredients
+        else:
+            if "db_ingredients" not in st.session_state:
+                st.session_state.db_ingredients = {}
+
         if "db_nutrient_keys" not in st.session_state:
             st.session_state.db_nutrient_keys = {} 
 
