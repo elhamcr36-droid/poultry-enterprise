@@ -127,7 +127,7 @@ def check_password_strength(password):
         return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น @, #, $, %, !, ., _)"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
 
-# โครงสร้างสารอาหารหลัก (Hardcoded หลีกเลี่ยงตารางที่ถูกลบ)
+# โครงสร้างสารอาหารหลัก
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
         "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
@@ -222,7 +222,7 @@ def run_ai_solver(req_p, req_m, req_c, req_ph):
     return res
 
 # ==========================================
-# 🔒 4. SECURITY GATEWAY (SUPABASE AUTH BLOCK)
+# 🔒 4. SECURITY GATEWAY (SUPABASE AUTH)
 # ==========================================
 if not st.session_state.is_authenticated:
 
