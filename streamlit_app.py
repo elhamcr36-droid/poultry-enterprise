@@ -62,7 +62,7 @@ if "db_breeds" not in st.session_state:
 # โหลดข้อมูล Targets จาก Supabase
 def fetch_targets_from_supabase():
     try:
-        result = supabase.table("targets").select("*").execute()
+        result = supabase.table("nutrition_targets").select("*").execute()
 
         if not result.data:
             st.warning("ไม่พบข้อมูลในตาราง targets")
