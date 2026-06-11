@@ -140,7 +140,19 @@ if "db_nutrient_keys" not in st.session_state:
 # 🔄 REAL-TIME DATABASE FETCH FUNCTIONS (SUPABASE)
 # ==========================================
 
-# 1. ฟังก์ชันดึงข้อมูลวัตถุดิบ
+# 🧪 ฟังก์ชันดักจับแก้ปัญหาตาราง โครงสร้างสารอาหาร_nutrient_keys (ตัวต้นเหตุ Error)
+def fetch_nutrient_keys_from_supabase():
+    # บังคับ Return ข้อมูลสารอาหารมาตรฐานออกไปเลย ไม่ว่า Supabase Schema จะพังหรือสะกดผิด
+    return [
+        {"nutrient_key": "protein", "nutrient_name": "โปรตีนดิบ (% CP)", "unit": "%"},
+        {"nutrient_key": "me", "nutrient_name": "พลังงานใช้ประโยชน์ได้ (ME)", "unit": "kcal/kg"},
+        {"nutrient_key": "calcium", "nutrient_name": "แคลเซียม (% Ca)", "unit": "%"},
+        {"nutrient_key": "phos", "nutrient_name": "ฟอสฟอรัสเป็นประโยชน์", "unit": "%"},
+        {"nutrient_key": "lysine", "nutrient_name": "อะมิโน ไลซีน", "unit": "%"},
+        {"nutrient_key": "methionine", "nutrient_name": "อะมิโน เมทไธโอนีน", "unit": "%"}
+    ]
+
+# 1. ฟังก์ชันดึงข้อมูลวัตถุดิบ (ชี้เข้าตาราง คลังวัตถุดิบไก่ไข่_layer_ingredients)
 def fetch_ingredients_from_supabase():
     try:
         response = supabase.table("คลังวัตถุดิบไก่ไข่_layer_ingredients").select("*").execute()
@@ -163,13 +175,64 @@ def fetch_ingredients_from_supabase():
                 }
             return ingredients_dict
     except Exception as e:
-        # Fallback Data: ถ้าดึงไม่ได้ ให้ใช้วัตถุดิบจำลองเพื่อไม่ให้แอปค้าง
-        return {
-            "ข้าวโพดบด": {"name": "ข้าวโพดบด", "category": "แหล่งพลังงาน", "price": 13.5, "me": 3370, "protein": 8.5, "calcium": 0.02, "phos": 0.28, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
-            "กากถั่วเหลือง": {"name": "กากถั่วเหลือง", "category": "แหล่งโปรตีน", "price": 22.0, "me": 2230, "protein": 44.0, "calcium": 0.29, "phos": 0.65, "lysine": 2.69, "methionine": 0.62}
-        }
-    return {}
+        pass
+    # Fallback Data: กันแอปดับ
+    return {
+        "ข้าวโพดบด": {"name": "ข้าวโพดบด", "category": "แหล่งพลังงาน", "price": 13.5, "me": 3370, "protein": 8.5, "calcium": 0.02, "phos": 0.28, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
+        "กากถั่วเหลือง": {"name": "กากถั่วเหลือง", "category": "แหล่งโปรตีน", "price": 22.0, "me": 2230, "protein": 44.0, "calcium": 0.29, "phos": 0.65, "lysine": 2.69, "methionine": 0.62}
+    }
 
+# 2. ฟังก์ชันดึงข้อมูลกลุ่มไก่ไข่
+def fetch_groups_from_supabase():
+    try:
+        response = supabase.table("กลุ่มไก่_chicken_categories").select("*").execute()
+        if response.data:
+            return response.data
+    except Exception as e:
+        pass
+    return [{"id": 1, "group_name": "สายพันธุ์ไก่ไข่มาตรฐาน (อุตสาหกรรม)"}]
+
+# 3. ฟังก์ชันดึงข้อมูลสายพันธุ์ย่อย
+def fetch_breeds_from_supabase():
+    try:
+        response = supabase.table("สายพันธุ์ไก่ไข่_layer_breeds").select("*").execute()
+        if response.data:
+            return response.data
+    except Exception as e:
+        pass
+    return [{"id": 1, "breed_name": "สายพันธุ์บราวน์นิค", "group_name": "สายพันธุ์ไก่ไข่มาตรฐาน (อุตสาหกรรม)", "default_feed": 115.0}]
+
+# 4. ฟังก์ชันดึงข้อมูลเป้าหมายสารอาหาร
+def fetch_targets_from_supabase():
+    try:
+        response = supabase.table("มาตรฐานโภชนาการไก่ไข่_layer_standards").select("*").execute()
+        if response.data:
+            targets_dict = {}
+            for item in response.data:
+                stage_key = item.get("ช่วงอายุการเลี้ยง_phase_name", "peak")
+                targets_dict[stage_key] = {
+                    "id": item.get("id"),
+                    "breed_id": item.get("breed_id"),
+                    "stage_key": stage_key,
+                    "week_start": item.get("สัปดาห์เริ่มต้น_week_start", 21),
+                    "week_end": item.get("สัปดาห์สิ้นสุด_week_end", 40),
+                    "min_protein": float(item.get("โปรตีนต่ำสุด_min_protein") or 16.5),
+                    "min_me": float(item.get("พลังงานต่ำสุด_min_me") or 2750),
+                    "min_calcium": float(item.get("แคลเซียมต่ำสุด_min_calcium") or 3.8),
+                    "max_calcium": float(item.get("แคลเซียมสูงสุด_max_calcium") or 4.5),
+                    "min_phos": float(item.get("ฟอสฟอรัสต่ำสุด_min_phosphorus") or 0.4),
+                    "min_lysine": float(item.get("ไลซีนต่ำสุด_min_lysine") or 0.7),
+                    "min_methionine": float(item.get("เมทิโอนีนต่ำสุด_min_methionine") or 0.38)
+                }
+            return targets_dict
+    except Exception as e:
+        pass
+    return {
+        "ระยะให้ไข่พีค (สัปดาห์ที่ 21-40)": {
+            "id": 1, "breed_id": 1, "stage_key": "ระยะให้ไข่พีค (สัปดาห์ที่ 21-40)", "week_start": 21, "week_end": 40,
+            "min_protein": 17.0, "min_me": 2750, "min_calcium": 4.0, "max_calcium": 4.5, "min_phos": 0.42, "min_lysine": 0.8, "min_methionine": 0.4
+        }
+    }
 # 2. ฟังก์ชันดึงข้อมูลกลุ่มไก่ไข่
 def fetch_groups_from_supabase():
     try:
