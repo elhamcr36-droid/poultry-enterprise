@@ -901,7 +901,12 @@ if st.session_state.user_role == "admin":
     if st.button("🔄 สลับบทบาทกลับไปโหมดผู้ใช้งานทั่วไป (User Dashboard)", use_container_width=True):
         st.session_state.user_role = "user"
         st.rerun()
-        
+        import streamlit as pd
+import pandas as pd
+import io
+import datetime
+
+# วางโค้ดนี้แทนที่บล็อก else: เดิมของคุณได้ทันที
 else:
     # ==========================================
     # 🎨 CUSTOM UI/UX FOR ALL AGES (BIG FONT & HIGH CONTRAST)
@@ -959,6 +964,16 @@ else:
         st.session_state.db_ingredients = {}
     if "daily_logs" not in st.session_state:
         st.session_state.daily_logs = []
+        
+    # ระบบป้องกัน NameError: กำหนดค่าเริ่มต้นของเป้าหมายโภชนาการใน Session State
+    if "edit_p" not in st.session_state:
+        st.session_state.edit_p = 16.5
+    if "edit_m" not in st.session_state:
+        st.session_state.edit_m = 2750.0
+    if "edit_c" not in st.session_state:
+        st.session_state.edit_c = 3.8
+    if "edit_ph" not in st.session_state:
+        st.session_state.edit_ph = 0.45
 
     # 🛠️ SYSTEM SECURITY & SYNCHRONIZATION
     user_id_now = st.session_state.get("user_id", "")
@@ -995,7 +1010,13 @@ else:
         
         if st.button("⚡ รีเฟรชและบังคับดึงข้อมูลตรงจาก Supabase", use_container_width=True):
             try:
-                res = supabase.table("saved_formulas").select("*").execute()
+                # แก้ไขการดึงข้อมูล: กรองดึงเฉพาะข้อมูลของ user ตัวเองเพื่อความปลอดภัย
+                query = supabase.table("saved_formulas").select("*")
+                if user_id_now:
+                    res = query.eq("user_id", user_id_now).execute()
+                else:
+                    res = query.execute()
+
                 if hasattr(res, 'data') and isinstance(res.data, list):
                     st.session_state.saved_formulas = res.data
                     st.success(f"เชื่อมต่อสำเร็จ! ดึงข้อมูลสูตรมาได้ {len(res.data)} รายการ")
@@ -1106,11 +1127,11 @@ else:
                 selected_stage_label = st.selectbox("📋 เลือกช่วงระยะการให้ไข่:", ["ระยะให้ไข่พีค (พีค)"])
                 base_req = {"protein": 16.5, "me": 2750.0, "calcium": 3.8, "phos": 0.45, "lysine": 0.75, "methionine": 0.38}
             
-            if 'base_req_protein' not in st.session_state:
-                st.session_state['base_req_protein'] = base_req["protein"]
-                st.session_state['base_req_me'] = base_req["me"]
-                st.session_state['base_req_calcium'] = base_req["calcium"]
-                st.session_state['base_req_phos'] = base_req["phos"]
+            # ซิงค์ค่าฐานข้อมูลหลักไปยัง Session State ทุกครั้งที่เปลี่ยนระยะให้ไข่
+            st.session_state.edit_p = base_req["protein"]
+            st.session_state.edit_m = base_req["me"]
+            st.session_state.edit_c = base_req["calcium"]
+            st.session_state.edit_ph = base_req["phos"]
         st.markdown("</div>", unsafe_allow_html=True)
 
         # --- ส่วนที่ 3: แถบปรับสัดส่วนและการเซฟบันทึกข้อมูล (แบ่งซ้าย-ขวา) ---
@@ -1123,22 +1144,22 @@ else:
                 st.markdown("### 🥣 ปรับค่าเป้าหมาย & สัดส่วนวัตถุดิบ (%)")
             with cl_reset:
                 if st.button("🔄 รีเซ็ตสัดส่วนอาหาร", use_container_width=True):
-                    st.session_state.current_weights = run_ai_solver(st.session_state.get('base_req_protein', base_req["protein"]), st.session_state.get('base_req_me', base_req["me"]), st.session_state.get('base_req_calcium', base_req["calcium"]), st.session_state.get('base_req_phos', base_req["phos"]), float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
+                    st.session_state.current_weights = run_ai_solver(st.session_state.edit_p, st.session_state.edit_m, st.session_state.edit_c, st.session_state.edit_ph, float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
                     st.rerun()
 
             # 🎯 โซนปรับแต่งโภชนาการเป้าหมาย
             st.markdown("#### 🎯 ปรับแต่งระดับโภชนาการเป้าหมาย")
             target_col1, target_col2 = st.columns(2)
             with target_col1:
-                edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state.get('base_req_protein', 16.5)), step=0.1)
-                edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state.get('base_req_me', 2750.0)), step=25.0)
+                st.session_state.edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state.edit_p), step=0.1)
+                st.session_state.edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state.edit_m), step=25.0)
             with target_col2:
-                edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state.get('base_req_calcium', 3.8)), step=0.05)
-                edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state.get('base_req_phos', 0.45)), step=0.02)
+                st.session_state.edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state.edit_c), step=0.05)
+                st.session_state.edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state.edit_ph), step=0.02)
             
             if st.button("⚡ สั่ง AI คำนวณสูตรด่วนตามเป้าหมายด้านบน", type="primary", use_container_width=True):
                 with st.spinner("AI กำลังจัดสูตร..."):
-                    st.session_state.current_weights = run_ai_solver(edit_p, edit_m, edit_c, edit_ph, float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
+                    st.session_state.current_weights = run_ai_solver(st.session_state.edit_p, st.session_state.edit_m, st.session_state.edit_c, st.session_state.edit_ph, float(base_req.get("lysine", 0.75)), float(base_req.get("methionine", 0.38)))
                     st.rerun()
             
             st.markdown("<div style='border-bottom: 1px solid #475569; margin:20px 0;'></div>", unsafe_allow_html=True)
@@ -1191,12 +1212,11 @@ else:
                     for k in act_nut.keys():
                         act_nut[k] += ratio * float(st.session_state.db_ingredients[name].get(k, 0.0))
             
-            # แก้ไขคำผิดจาก "โภชนาigสำคัญ" -> "โภชนาการสำคัญ"
             comparison_table = [
-                {"โภชนาการสำคัญ": "โปรตีนดิบ (% CP)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
-                {"โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
-                {"โภชนาการสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
-                {"โภชนาการสำคัญ": "ฟอสฟอรัส (% P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
+                {"โภชนาการสำคัญ": "โปรตีนดิบ (% CP)", "เป้าหมาย": f"{st.session_state.edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
+                {"โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{st.session_state.edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
+                {"โภชนาการสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{st.session_state.edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
+                {"โภชนาการสำคัญ": "ฟอสฟอรัส (% P)", "เป้าหมาย": f"{st.session_state.edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
             ]
             st.dataframe(pd.DataFrame(comparison_table), use_container_width=True, hide_index=True)
             
@@ -1221,12 +1241,12 @@ else:
                     "weights": st.session_state.current_weights.copy()
                 }
                 
-                st.session_state.saved_formulas.append(new_formula_data)
-                
                 try:
                     supabase.table("saved_formulas").insert(new_formula_data).execute()
+                    st.session_state.saved_formulas.append(new_formula_data)
                     st.success("บันทึกสูตรและเข้ารหัสความปลอดภัยแยกบัญชีเรียบร้อย!")
                 except Exception as e:
+                    st.session_state.saved_formulas.append(new_formula_data)
                     st.warning(f"เซฟลงเครื่องเสร็จสิ้น แต่คลาวด์ไม่เปิดสิทธิ์: {e}")
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
