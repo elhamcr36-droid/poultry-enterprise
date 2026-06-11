@@ -7,6 +7,15 @@ import datetime
 import re
 from supabase import create_client, Client
 
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+import pulp
+import io
+import datetime
+import re
+from supabase import create_client, Client
+
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
@@ -124,10 +133,10 @@ def check_password_strength(password):
     if not re.search("[0-9]", password):
         return False, "❌ รหัสผ่านต้องมีตัวเลข (0-9) อย่างน้อย 1 ตัว"
     if not re.search("[_@$!%*#?&.]", password):
-        return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น @, #, $, %, ., !, _)"
+        return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น @, #, $, %, !, ., _)"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
 
-# โครงสร้างสารอาหารหลัก
+# โครงสร้างสารอาหารหลัก (Hardcoded หลีกเลี่ยงตารางที่ถูกลบ)
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
         "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
@@ -141,7 +150,7 @@ if "db_nutrient_keys" not in st.session_state:
 # 🔄 REAL-TIME DATABASE FETCH (NEW TARGET TABLES)
 # ==========================================
 
-# 1. ฟังก์ชันดึงข้อมูลวัตถุดิบ (ชี้เข้าตารางใหม่: db_ingredients)
+# 1. ฟังก์ชันดึงข้อมูลวัตถุดิบ (ตาราง: db_ingredients)
 def fetch_ingredients_from_supabase():
     try:
         response = supabase.table("db_ingredients").select("*").execute()
@@ -159,7 +168,7 @@ def fetch_ingredients_from_supabase():
                         "phos": float(item.get("phos") or 0.0)
                     }
             return ingredients_dict
-    except Exception as e:
+    except Exception:
         pass
     return {
         "ข้าวโพดบด": {"name": "ข้าวโพดบด", "price": 12.5, "protein": 8.5, "me": 3370.0, "calcium": 0.02, "phos": 0.28},
@@ -168,23 +177,23 @@ def fetch_ingredients_from_supabase():
         "เปลือกหอยบด": {"name": "เปลือกหอยบด", "price": 5.0, "protein": 0.0, "me": 0.0, "calcium": 38.0, "phos": 0.04}
     }
 
-# 2. ฟังก์ชันดึงข้อมูลกลุ่มไก่ไข่ (ชี้เข้าตารางใหม่: db_groups)
+# 2. ฟังก์ชันดึงข้อมูลกลุ่มไก่ไข่ (ตาราง: db_groups)
 def fetch_groups_from_supabase():
     try:
         response = supabase.table("db_groups").select("*").execute()
         if response.data:
             return response.data
-    except Exception as e:
+    except Exception:
         pass
     return [{"id": 1, "group_name": "สายพันธุ์ไก่ไข่คอมเมอร์เชียล (อุตสาหกรรม)"}]
 
-# 3. ฟังก์ชันดึงข้อมูลสายพันธุ์ย่อย (ชี้เข้าตารางใหม่: db_breeds)
+# 3. ฟังก์ชันดึงข้อมูลสายพันธุ์ย่อย (ตาราง: db_breeds)
 def fetch_breeds_from_supabase():
     try:
         response = supabase.table("db_breeds").select("*").execute()
         if response.data:
             return response.data
-    except Exception as e:
+    except Exception:
         pass
     return [{"id": 1, "breed_name": "Hy-Line Brown", "group_name": "สายพันธุ์ไก่ไข่คอมเมอร์เชียล (อุตสาหกรรม)", "default_feed": 115.0}]
 
@@ -222,7 +231,7 @@ def run_ai_solver(req_p, req_m, req_c, req_ph):
     return res
 
 # ==========================================
-# 🔒 4. SECURITY GATEWAY (SUPABASE AUTH)
+# 🔒 4. SECURITY GATEWAY (SUPABASE AUTH BLOCK)
 # ==========================================
 if not st.session_state.is_authenticated:
 
@@ -307,7 +316,7 @@ if not st.session_state.is_authenticated:
                                 "email": su_email, "password": su_pass,
                                 "options": {"data": {"first_name": su_name, "last_name": su_surname, "phone": su_tel, "role": "user"}}
                             })
-                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบอีเมลของคุณ")
+                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบอีเมลของคุณเพื่อยืนยัน")
                             st.session_state.auth_page_mode = "login"
                             st.rerun()
                         except Exception as error:
@@ -347,6 +356,144 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
+# ==========================================
+# 👑 5. MAIN APPLICATION INTERFACE (POST-AUTH)
+# ==========================================
+else:
+    # เรียกโหลดข้อมูลรอบเดียวและเก็บลง Session State จากโครงสร้างตารางใหม่ภาษาอังกฤษ
+    if "db_groups_data" not in st.session_state:
+        st.session_state.db_groups_data = fetch_groups_from_supabase()
+        st.session_state.db_breeds_data = fetch_breeds_from_supabase()
+        st.session_state.db_ingredients_data = fetch_ingredients_from_supabase()
+        try:
+            st.session_state.saved_formulas = supabase.table("saved_formulas").select("*").execute().data or []
+            st.session_state.daily_logs = supabase.table("daily_logs").select("*").execute().data or []
+        except Exception:
+            pass
+
+    # หัวระบบระบุผู้ใช้งานปัจจุบัน
+    st.markdown(f"<div style='text-align: right; padding-right: 15px; color: #cbd5e1;'>👤 ผู้ใช้งาน: <b>{st.session_state.user_email}</b></div>", unsafe_allow_html=True)
+
+    page_tabs = st.tabs(["🥣 1. สูตรอาหาร & คลังสูตร", "💰 2. บันทึกรายวันฟาร์ม", "📊 3. ใบสั่งผสมอาหาร"])
+
+    # --- TAB 1: บันทึกสูตรและการคำนวณสูตรอาหาร ---
+    with page_tabs[0]:
+        st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+        st.markdown("### 🐔 เลือกกลุ่มและสายพันธุ์ไก่ไข่")
+        col_br1, col_br2, col_br3 = st.columns(3)
+        with col_br1:
+            g_options = [g["group_name"] for g in st.session_state.db_groups_data]
+            selected_g = st.selectbox("📁 กลุ่มสายพันธุ์หลัก:", g_options if g_options else ["ทั่วไป"])
+        with col_br2:
+            b_options = [b["breed_name"] for b in st.session_state.db_breeds_data if b.get("group_name") == selected_g]
+            selected_b_name = st.selectbox("🐔 สายพันธุ์ไก่ไข่:", b_options if b_options else ["ทั่วไป"])
+        with col_br3:
+            selected_stage = st.selectbox("📋 ช่วงระยะการให้ไข่:", ["ระยะเริ่มไข่ (18-20 สัปดาห์)", "ระยะให้ไข่พีค (21-40 สัปดาห์)", "ระยะไข่ท้ายชุด"])
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        col_left, col_right = st.columns([1.1, 0.9])
+        with col_left:
+            st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+            st.markdown("### 🥣 กำหนดเป้าหมายสารอาหารเพื่อคำนวณ")
+            p_target = st.number_input("โปรตีนเป้าหมาย (%):", value=16.5, step=0.1)
+            m_target = st.number_input("พลังงานเป้าหมาย (kcal/kg):", value=2750.0, step=50.0)
+            c_target = st.number_input("แคลเซียมเป้าหมาย (%):", value=3.8, step=0.1)
+            ph_target = st.number_input("ฟอสฟอรัสเป้าหมาย (%):", value=0.45, step=0.05)
+
+            if st.button("⚡ สั่ง AI คำนวณสูตรอาหารอัตโนมัติ (Linear Programming)", type="primary", use_container_width=True):
+                res_weights = run_ai_solver(p_target, m_target, c_target, ph_target)
+                if res_weights: 
+                    st.session_state.current_weights = res_weights
+                    st.success("🤖 คำนวณสูตรที่ต้นทุนต่ำที่สุดให้สำเร็จแล้ว!")
+                    st.rerun()
+            
+            st.markdown("#### 🌾 สัดส่วนวัตถุดิบในสูตรสัตว์ (%)")
+            for name, nutr in st.session_state.db_ingredients_data.items():
+                curr_w = st.session_state.current_weights.get(name, 0.0)
+                st.session_state.current_weights[name] = st.slider(f"🌽 {name} (ราคา {nutr['price']} บาท/กก.)", 0.0, 100.0, float(curr_w), step=0.1)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col_right:
+            st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+            st.markdown("### 🧪 ผลวิเคราะห์โภชนาการจริงในเล้า")
+            
+            # คำนวณสัดส่วนสารอาหารและต้นทุนตามข้อมูลจริงใน Slider
+            total_w = sum(st.session_state.current_weights.values()) or 1.0
+            act_p, act_m, act_c, act_ph, net_cost = 0.0, 0.0, 0.0, 0.0, 0.0
+            for name, w in st.session_state.current_weights.items():
+                if name in st.session_state.db_ingredients_data:
+                    ratio = w / total_w
+                    ing = st.session_state.db_ingredients_data[name]
+                    act_p += ratio * ing["protein"]
+                    act_m += ratio * ing["me"]
+                    act_c += ratio * ing["calcium"]
+                    act_ph += ratio * ing["phos"]
+                    net_cost += ratio * ing["price"]
+
+            res_df = pd.DataFrame([
+                {"สารอาหาร": "โปรตีนดิบ (% CP)", "เป้าหมาย": f"{p_target}%", "ค่าจริงในสูตร": f"{act_p:.2f}%"},
+                {"สารอาหาร": "พลังงาน (ME kcal/kg)", "เป้าหมาย": f"{m_target}", "ค่าจริงในสูตร": f"{act_m:.0f}"},
+                {"สารอาหาร": "แคลเซียม (% Ca)", "เป้าหมาย": f"{c_target}%", "ค่าจริงในสูตร": f"{act_c:.2f}%"},
+                {"สารอาหาร": "ฟอสฟอรัสเป็นประโยชน์ (% P)", "เป้าหมาย": f"{ph_target}%", "ค่าจริงในสูตร": f"{act_ph:.2f}%"}
+            ])
+            st.dataframe(res_df, use_container_width=True, hide_index=True)
+            st.markdown(f"### 💰 ต้นทุนสุทธิ: {net_cost:.2f} บาท / กิโลกรัม")
+            
+            f_name = st.text_input("💾 ตั้งชื่อสูตรนี้เพื่อบันทึก:", f"สูตรผสมไก่ไข่-{selected_b_name}")
+            if st.button("📥 บันทึกสูตรนี้เข้าคลังฐานข้อมูล"):
+                try:
+                    supabase.table("saved_formulas").insert({
+                        "name": f_name, "breed": selected_b_name, "stage": selected_stage,
+                        "cost": round(net_cost, 2), "weights": st.session_state.current_weights, "date": str(datetime.date.today())
+                    }).execute()
+                    st.success("บันทึกข้อมูลเข้าสู่ตาราง saved_formulas เรียบร้อย!")
+                except Exception as e:
+                    st.error(f"ไม่สามารถบันทึกข้อมูลได้: {e}")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # --- TAB 2: บันทึกข้อมูลรายวันฟาร์ม ---
+    with page_tabs[1]:
+        st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+        st.markdown("### 📝 บันทึกข้อมูลประสิทธิภาพฟาร์มประจำวัน (`daily_logs`)")
+        col_l1, col_l2 = st.columns(2)
+        with col_l1:
+            log_date = st.date_input("เลือกวันที่บันทึก:", datetime.date.today())
+            f_age = st.number_input("🐣 อายุฝูงไก่ (สัปดาห์):", min_value=1, value=22)
+            b_count = st.number_input("จำนวนแม่ไก่ทั้งหมดในเล้า (ตัว):", min_value=1, value=1000)
+        with col_l2:
+            eggs = st.number_input("จำนวนไข่ที่เก็บได้จริง (ฟอง):", min_value=0, value=880)
+            f_given = st.number_input("ปริมาณอาหารที่ให้ทั้งหมด (กก.):", min_value=1.0, value=115.0)
+
+        if st.button("💾 บันทึกข้อมูลรายวันด่วนลงฐานข้อมูล"):
+            try:
+                supabase.table("daily_logs").insert({
+                    "date": str(log_date), "flock_age_weeks": int(f_age), "bird_count": int(b_count),
+                    "collected_eggs": int(eggs), "actual_feed_given_kg": float(f_given)
+                }).execute()
+                st.success("บันทึกข้อมูลเข้าตาราง daily_logs เรียบร้อยแล้ว!")
+            except Exception as e:
+                st.error(f"ไม่สามารถบันทึกได้: {e}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # --- TAB 3: ใบสั่งผสมอาหาร ---
+    with page_tabs[2]:
+        st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+        st.markdown("### 📊 ใบสั่งงานตักผสมอาหารสัตว์สำหรับหน้างาน")
+        total_kg = st.number_input("📦 น้ำหนักรวมที่ต้องการผสมรอบนี้ (กิโลกรัม):", min_value=100, value=1000, step=100)
+        
+        mix_data = []
+        total_w = sum(st.session_state.current_weights.values()) or 1.0
+        for name, w_pct in st.session_state.current_weights.items():
+            pct = (w_pct / total_w) * 100.0
+            if pct > 0:
+                calc_kg = (pct / 100.0) * total_kg
+                mix_data.append({"วัตถุดิบ": name, "สัดส่วน (%)": f"{pct:.1f}%", "น้ำหนักที่ต้องใช้ (KG)": round(calc_kg, 1)})
+        
+        if mix_data: 
+            st.dataframe(pd.DataFrame(mix_data), use_container_width=True, hide_index=True)
+        else:
+            st.info("💡 ยังไม่มีข้อมูลวัตถุดิบในสูตรอาหาร กรุณาคำนวณหรือปรับสัดส่วนในแท็บที่ 1 ก่อนครับ")
+        st.markdown("</div>", unsafe_allow_html=True)
 # ==========================================
 # 👑 5. MAIN APPLICATION INTERFACE (หลังผ่าน Login)
 # ==========================================
