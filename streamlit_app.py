@@ -488,7 +488,6 @@ else:
 # ==========================================
 # 👑 5. MAIN APPLICATION INTERFACE (หลังผ่าน Login)
 # ==========================================
-else:
     # เคลียร์และโหลด Data จากตารางใหม่ล่าสุดเข้า Session State
     if "db_groups" not in st.session_state or st.button("🔄 อัปเดตข้อมูลจากฐานข้อมูล"):
         try:
