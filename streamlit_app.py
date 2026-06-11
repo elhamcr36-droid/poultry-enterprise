@@ -10,106 +10,83 @@ from supabase import create_client, Client
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
+# ⚠️ เปลี่ยนค่า URL และ KEY ด้านล่างนี้ให้ตรงกับของคุณที่ได้จากหน้า Settings > API ของ Supabase
 SUPABASE_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
 SUPABASE_KEY = "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr"
 
 @st.cache_resource
-def init_supabase():
+def init_supabase() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# สร้างตัวแปร Supabase
-supabase = init_supabase()
+try:
+    supabase = init_supabase()
+except Exception as e:
+    st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
 
-# โหลดข้อมูลวัตถุดิบจาก Supabase
-def fetch_ingredients_from_supabase():
-    try:
-        result = supabase.table("ingredients").select("*").execute()
-
-        if result.data:
-            return {
-                row["name"]: row
-                for row in result.data
-            }
-
-    except Exception as e:
-        st.error(f"⚠️ โหลดข้อมูลวัตถุดิบไม่สำเร็จ: {e}")
-
-    return {}
-
-# โหลดเข้าระบบครั้งแรก
-def fetch_ingredients_from_supabase():
-    result = supabase.table("ingredients").select("*").execute()
-    return {row["name"]: row for row in result.data}
-
-if "db_ingredients" not in st.session_state:
-    st.session_state.db_ingredients = fetch_ingredients_from_supabase()
-    
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
-if "daily_logs" not in st.session_state:
-    st.session_state.daily_logs = []
-
-if "db_ingredients" not in st.session_state:
-    st.session_state.db_ingredients = {}
-
-if "user_database" not in st.session_state:
-    st.session_state.user_database = {}
-
-if "db_breeds" not in st.session_state:
-    st.session_state.db_breeds = []
-
-# โหลดข้อมูล Targets จาก Supabase
-def fetch_targets_from_supabase():
-    try:
-        result = supabase.table("nutrition_targets").select("*").execute()
-
-        if not result.data:
-            st.warning("ไม่พบข้อมูลในตาราง targets")
-            return {}
-
-        return {
-            row["stage_key"]: row
-            for row in result.data
-            if row.get("stage_key")
-        }
-
-    except Exception as e:
-        st.error(f"โหลด targets ไม่สำเร็จ: {e}")
-        return {}
-
-
-if "db_targets" not in st.session_state or not st.session_state.db_targets:
-    st.session_state.db_targets = fetch_targets_from_supabase()
-
-if "db_groups" not in st.session_state:
-    st.session_state.db_groups = []
+st.set_page_config(
+    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 st.markdown(
     """
     <style>
     [data-testid="collapsedControl"] { display: none; }
-
     .stApp {
-        background-image: linear-gradient(
-            rgba(0,0,0,0.85),
-            rgba(0,0,0,0.85)
-        ),
-        url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
+        background-image: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)), 
+                          url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
+        background-size: cover; background-position: center;
+        background-repeat: no-repeat; background-attachment: fixed;
     }
-
-    h1, h2, h3, h4, h5, h6, p, label,
-    .stMarkdown, [data-testid="stHeader"] {
+    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, [data-testid="stHeader"] {
+        color: #ffffff !important;
+        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.95) !important;
+    }
+    
+    div[data-testid="stSelectbox"] > label {
+        font-size: 1.15rem !important;
+        font-weight: 800 !important;
+        color: #ffb703 !important;
+        margin-bottom: 6px !important;
+        display: block;
+    }
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+        font-size: 1.1rem !important; 
+        font-weight: bold !important;
+        background-color: rgba(26, 26, 26, 0.9) !important;
+        border: 2px solid #ffb703 !important; 
+        border-radius: 10px !important;
         color: white !important;
     }
+    
+    .divider-line {
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+        margin: 22px 0;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        padding: 8px; border-radius: 10px; backdrop-filter: blur(10px);
+    }
+    .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold !important; font-size:1.05rem !important; }
+    .content-card {
+        background-color: rgba(0, 0, 0, 0.90) !important; padding: 30px;
+        border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(10px); margin-bottom: 25px;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 2.2rem !important; color: #ffb703 !important;
+    }
+    [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.95) !important; border-radius: 8px; padding: 5px; }
     </style>
     """,
     unsafe_allow_html=True
 )
+
 # ==========================================
 # 🔐 2. SECURITY & STATE INITIALIZATION
 # ==========================================
@@ -123,8 +100,8 @@ if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 if "saved_formulas" not in st.session_state:
     st.session_state.saved_formulas = []  
-if "user_database" not in st.session_state:
-    st.session_state.user_database = {}
+if "daily_logs" not in st.session_state:
+    st.session_state.daily_logs = [] 
 if "current_weights" not in st.session_state:
     st.session_state.current_weights = {}
 
@@ -254,11 +231,10 @@ if not st.session_state.is_authenticated:
                         "email": email_login,
                         "password": pass_login
                     })
+
                     if auth_res.user:
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = email_login
-                        # เพิ่มบรรทัดนี้
-                        st.session_state.user_id = auth_res.user.id
 
                         if email_login.lower() == "222@gmail.com":
                             st.session_state.user_role = "admin"
@@ -272,18 +248,20 @@ if not st.session_state.is_authenticated:
 
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
                         st.rerun()
-                
+
                 except Exception as error:
-                    st.error(str(error))
-                    with col_btn2:
-                        if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
-                            st.session_state.auth_page_mode = "signup"
-                            st.rerun()
-                            st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
-                            if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
-                                st.session_state.auth_page_mode = "forgot"
-                                
-                                st.rerun()
+                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
+
+        with col_btn2:
+            if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
+                st.session_state.auth_page_mode = "signup"
+                st.rerun()
+
+        st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
+
+        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
+            st.session_state.auth_page_mode = "forgot"
+            st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -520,14 +498,7 @@ if st.session_state.user_role == "admin":
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
     with admin_tabs[1]:
         with st.expander("📊 เปิดดูคลังวัตถุดิบและราคาปัจจุบันในระบบ", expanded=False):
-           if "db_ingredients" in st.session_state:
-               st.dataframe(
-                   pd.DataFrame.from_dict(
-                       st.session_state.db_ingredients,
-                       orient="index"
-                   ),
-                   use_container_width=True
-               )
+            st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
         
         # UX Improvement: เปลี่ยนมาใช้ Segmented Control เป็นปุ่มกดเลือกสไตล์แท็บย่อยแทน Radio Button
         crud_mode = st.segmented_control(
@@ -539,10 +510,7 @@ if st.session_state.user_role == "admin":
 
         if crud_mode == "✏️ แก้ไขข้อมูลวัตถุดิบเดิม":
             selected_ing_edit = st.selectbox("เลือกวัตถุดิบที่จะปรับปรุงข้อมูล:", list(st.session_state.db_ingredients.keys()))
-            target_ing = st.session_state.db_ingredients.get(selected_ing_edit)
-            if target_ing is None:
-                st.error("ไม่พบข้อมูลวัตถุดิบ")
-                st.stop()
+            target_ing = st.session_state.db_ingredients[selected_ing_edit]
             
             # จัดกรอกข้อมูลเป็นฟอร์มล้อมกรอบสวยงาม
             with st.form(key=f"form_edit_{selected_ing_edit}"):
@@ -850,65 +818,25 @@ else:
             edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state.get('base_req_calcium', 3.8)), step=0.05)
             edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state.get('base_req_phos', 0.45)), step=0.02)
             
-with col_br3:
+        with col_br3:
+            stage_options = {s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()}
+            selected_stage_label = st.selectbox("📋 เลือกช่วงระยะการให้ไข่:", list(stage_options.keys()))
+            base_req = st.session_state.db_targets[stage_options[selected_stage_label]]
+            
+            # โหลดค่าเริ่มต้นจากสายพันธุ์ที่เลือกเข้า session
+            if 'base_req_protein' not in st.session_state:
+                st.session_state['base_req_protein'] = base_req["protein"]
+                st.session_state['base_req_me'] = base_req["me"]
+                st.session_state['base_req_calcium'] = base_req["calcium"]
+                st.session_state['base_req_phos'] = base_req["phos"]
 
-    if not st.session_state.get("db_targets"):
-        st.error("ไม่พบข้อมูล db_targets")
-        st.stop()
+            st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+            if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
+                with st.spinner("AI กำลังจัดสูตร..."):
+                    st.session_state.current_weights = run_ai_solver(edit_p, edit_m, edit_c, edit_ph, float(base_req["lysine"]), float(base_req["methionine"]))
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    # สร้าง mapping จาก key จริงของ dict
-    stage_options = {
-        data["stage_name"]: key
-        for key, data in st.session_state.db_targets.items()
-        if isinstance(data, dict) and "stage_name" in data
-    }
-
-    if not stage_options:
-        st.error("ไม่พบข้อมูล stage_name ใน db_targets")
-        st.write(st.session_state.db_targets)
-        st.stop()
-
-    selected_stage_label = st.selectbox(
-        "📋 เลือกช่วงระยะการให้ไข่:",
-        list(stage_options.keys())
-    )
-
-    stage_key = stage_options[selected_stage_label]
-
-    if stage_key not in st.session_state.db_targets:
-        st.error(f"ไม่พบ stage_key: {stage_key}")
-        st.write("db_targets =", st.session_state.db_targets)
-        st.stop()
-
-    base_req = st.session_state.db_targets[stage_key]
-
-    # โหลดค่าเริ่มต้น
-    if "base_req_protein" not in st.session_state:
-        st.session_state["base_req_protein"] = float(base_req.get("protein", 16.5))
-        st.session_state["base_req_me"] = float(base_req.get("me", 2750))
-        st.session_state["base_req_calcium"] = float(base_req.get("calcium", 3.8))
-        st.session_state["base_req_phos"] = float(base_req.get("phos", 0.45))
-
-    st.markdown(
-        "<div style='margin-top:28px;'></div>",
-        unsafe_allow_html=True
-    )
-
-    if st.button(
-        "⚡ สั่ง AI คำนวณสูตรด่วน",
-        type="primary",
-        use_container_width=True
-    ):
-        with st.spinner("AI กำลังจัดสูตร..."):
-            st.session_state.current_weights = run_ai_solver(
-                edit_p,
-                edit_m,
-                edit_c,
-                edit_ph,
-                float(base_req.get("lysine", 0)),
-                float(base_req.get("methionine", 0))
-            )
-            st.rerun()
         # --- ส่วนที่ 3: ปุ่มลัดตามสถานการณ์ราคาตลาด ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("### ⚡ [กดด่วน] ปุ่มลัดสลับสูตรอาหารตามสถานการณ์ราคาตลาด")
