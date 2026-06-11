@@ -831,39 +831,62 @@ else:
             edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state.get('base_req_phos', 0.45)), step=0.02)
             
 with col_br3:
+
+    if not st.session_state.get("db_targets"):
+        st.error("ไม่พบข้อมูล db_targets")
+        st.stop()
+
+    # สร้าง mapping จาก key จริงของ dict
     stage_options = {
-        s["stage_name"]: s["stage_key"]
-        for s in st.session_state.db_targets.values()
+        data["stage_name"]: key
+        for key, data in st.session_state.db_targets.items()
+        if isinstance(data, dict) and "stage_name" in data
     }
+
+    if not stage_options:
+        st.error("ไม่พบข้อมูล stage_name ใน db_targets")
+        st.write(st.session_state.db_targets)
+        st.stop()
 
     selected_stage_label = st.selectbox(
         "📋 เลือกช่วงระยะการให้ไข่:",
         list(stage_options.keys())
     )
 
-    stage_key = stage_options.get(selected_stage_label)
+    stage_key = stage_options[selected_stage_label]
 
     if stage_key not in st.session_state.db_targets:
         st.error(f"ไม่พบ stage_key: {stage_key}")
-        st.write("db_targets =", list(st.session_state.db_targets.keys()))
+        st.write("db_targets =", st.session_state.db_targets)
         st.stop()
 
     base_req = st.session_state.db_targets[stage_key]
 
-    if 'base_req_protein' not in st.session_state:
-        st.session_state['base_req_protein'] = base_req["protein"]
-        st.session_state['base_req_me'] = base_req["me"]
-        st.session_state['base_req_calcium'] = base_req["calcium"]
-        st.session_state['base_req_phos'] = base_req["phos"]
+    # โหลดค่าเริ่มต้น
+    if "base_req_protein" not in st.session_state:
+        st.session_state["base_req_protein"] = float(base_req.get("protein", 16.5))
+        st.session_state["base_req_me"] = float(base_req.get("me", 2750))
+        st.session_state["base_req_calcium"] = float(base_req.get("calcium", 3.8))
+        st.session_state["base_req_phos"] = float(base_req.get("phos", 0.45))
 
-    st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div style='margin-top:28px;'></div>",
+        unsafe_allow_html=True
+    )
 
-    if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
+    if st.button(
+        "⚡ สั่ง AI คำนวณสูตรด่วน",
+        type="primary",
+        use_container_width=True
+    ):
         with st.spinner("AI กำลังจัดสูตร..."):
             st.session_state.current_weights = run_ai_solver(
-                edit_p, edit_m, edit_c, edit_ph,
-                float(base_req["lysine"]),
-                float(base_req["methionine"])
+                edit_p,
+                edit_m,
+                edit_c,
+                edit_ph,
+                float(base_req.get("lysine", 0)),
+                float(base_req.get("methionine", 0))
             )
             st.rerun()
         # --- ส่วนที่ 3: ปุ่มลัดตามสถานการณ์ราคาตลาด ---
