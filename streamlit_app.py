@@ -830,25 +830,42 @@ else:
             edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state.get('base_req_calcium', 3.8)), step=0.05)
             edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state.get('base_req_phos', 0.45)), step=0.02)
             
-        with col_br3:
-            stage_options = {s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()}
-            selected_stage_label = st.selectbox("📋 เลือกช่วงระยะการให้ไข่:", list(stage_options.keys()))
-            base_req = st.session_state.db_targets[stage_options[selected_stage_label]]
-            
-            # โหลดค่าเริ่มต้นจากสายพันธุ์ที่เลือกเข้า session
-            if 'base_req_protein' not in st.session_state:
-                st.session_state['base_req_protein'] = base_req["protein"]
-                st.session_state['base_req_me'] = base_req["me"]
-                st.session_state['base_req_calcium'] = base_req["calcium"]
-                st.session_state['base_req_phos'] = base_req["phos"]
+with col_br3:
+    stage_options = {
+        s["stage_name"]: s["stage_key"]
+        for s in st.session_state.db_targets.values()
+    }
 
-            st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
-            if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
-                with st.spinner("AI กำลังจัดสูตร..."):
-                    st.session_state.current_weights = run_ai_solver(edit_p, edit_m, edit_c, edit_ph, float(base_req["lysine"]), float(base_req["methionine"]))
-                    st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+    selected_stage_label = st.selectbox(
+        "📋 เลือกช่วงระยะการให้ไข่:",
+        list(stage_options.keys())
+    )
 
+    stage_key = stage_options.get(selected_stage_label)
+
+    if stage_key not in st.session_state.db_targets:
+        st.error(f"ไม่พบ stage_key: {stage_key}")
+        st.write("db_targets =", list(st.session_state.db_targets.keys()))
+        st.stop()
+
+    base_req = st.session_state.db_targets[stage_key]
+
+    if 'base_req_protein' not in st.session_state:
+        st.session_state['base_req_protein'] = base_req["protein"]
+        st.session_state['base_req_me'] = base_req["me"]
+        st.session_state['base_req_calcium'] = base_req["calcium"]
+        st.session_state['base_req_phos'] = base_req["phos"]
+
+    st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+
+    if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
+        with st.spinner("AI กำลังจัดสูตร..."):
+            st.session_state.current_weights = run_ai_solver(
+                edit_p, edit_m, edit_c, edit_ph,
+                float(base_req["lysine"]),
+                float(base_req["methionine"])
+            )
+            st.rerun()
         # --- ส่วนที่ 3: ปุ่มลัดตามสถานการณ์ราคาตลาด ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("### ⚡ [กดด่วน] ปุ่มลัดสลับสูตรอาหารตามสถานการณ์ราคาตลาด")
