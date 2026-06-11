@@ -849,22 +849,26 @@ else:
     if "daily_logs" not in st.session_state:
         st.session_state.daily_logs = []
 
-    # 🛠️ [กล่องตรวจสุขภาพข้อมูล] ปลดล็อกตารางว่างเปล่า
+    # 🛠️ [กล่องตรวจสุขภาพข้อมูล] ป้องกันตารางว่างเปล่าจาก Supabase
     with st.expander("🔍 ระบบตรวจสอบการดึงข้อมูล Supabase (Debug)"):
         user_id_now = st.session_state.get("user_id", "")
-        st.write(f"• รหัสผู้ใช้ปัจจุบัน (User ID ในแอป): `{user_id_now if user_id_now else '❌ เป็นค่าว่าง (ยังไม่ได้เข้าสู่ระบบ)'}`")
-        st.write(f"• จำนวนสูตรอาหารในระบบทั้งหมดที่ดึงมาได้: `{len(st.session_state.saved_formulas)} สูตร`")
-        if st.button("🔄 บังคับรีโหลดข้อมูลใหม่จากฐานข้อมูล"):
+        st.write(f"• รหัสผู้ใช้ปัจจุบัน (User ID): `{user_id_now if user_id_now else '❌ ยังไม่ระบุตัวตน (Anonymous)'}`")
+        st.write(f"• จำนวนสูตรที่โหลดเข้าแอปสำเร็จ: `{len(st.session_state.saved_formulas)} สูตร`")
+        
+        if st.button("🔄 บังคับดึงข้อมูลใหม่จาก Supabase", use_container_width=True):
             try:
-                # ตัวอย่างคำสั่งดึงข้อมูลจริงจาก Supabase (ปรับชื่อตารางตามระบบของคุณ)
-                response = supabase.table("saved_formulas").select("*").execute()
-                st.session_state.saved_formulas = response.data
-                st.success("เชื่อมต่อและรีโหลดข้อมูลจาก Supabase สำเร็จแล้ว!")
+                # แก้ไขการรับค่าให้ดึงเจาะลึกไปที่ .data เสมอ
+                res = supabase.table("saved_formulas").select("*").execute()
+                if hasattr(res, "data") and res.data is not None:
+                    st.session_state.saved_formulas = res.data
+                    st.success(f"ดึงข้อมูลสำเร็จ! พบสูตรทั้งหมด {len(res.data)} แถวบนคลาวด์")
+                else:
+                    st.warning("ดึงสำเร็จแต่ Supabase ส่งค่ากลับมาไม่ใช่ Array ข้อมูลดิบ")
                 st.rerun()
             except Exception as e:
-                st.error(f"การดึงข้อมูลขัดข้อง (ตรวจสอบ RLS หรืออินเทอร์เน็ต): {e}")
+                st.error(f"การเชื่อมต่อขัดข้อง (กรุณาเช็ก RLS หรือชื่อตาราง): {e}")
 
-    # คำนวณต้นทุนล่วงหน้าเพื่อความเสถียรของ State
+    # คำนวณต้นทุนล่วงหน้าเพื่อความเสถียรของแอปพลิเคชัน
     net_cost = 0.0
     if st.session_state.current_weights:
         total_w = sum(st.session_state.current_weights.values())
@@ -887,33 +891,45 @@ else:
     # TAB 1: MANAGEMENT & FORMULA MATRIX
     # ------------------------------------------
     with page_tabs[0]:
-        # --- ส่วนที่ 1: ดึงสูตรเก่า (กรองรายบุคคล + ระบบ Backup หาก ID ว่าง) ---
+        # --- ส่วนที่ 1: ดึงสูตรเก่า (ระบบคัดกรองแบบยืดหยุ่น ป้องกันตารางโล่ง) ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("### 📂 [ปุ่มทางลัด] เรียกใช้สูตรเก่าที่เคยเซฟไว้")
         
         user_id_now = st.session_state.get("user_id", "")
         
-        # กรองแบบ RLS-Safe: ถ้ามี user_id ให้ตรงล็อก, ถ้าแอปไม่มี user_id ให้ยอมแสดงค่าที่เก็บมาทั้งหมดเพื่อไม่ให้ตารางว่าง
+        # ป้องกันตารางว่าง: ถ้ามี user_id ให้ดึงตรงตัว + สูตรทั่วไป, ถ้าไม่มีเลยให้แสดงทั้งหมดเพื่อป้องกันหน้าจอขาว
         if user_id_now:
-            my_formulas = [f for f in st.session_state.saved_formulas if f.get("user_id") == user_id_now or f.get("user_id") in [None, ""]]
+            my_formulas = [f for f in st.session_state.saved_formulas if str(f.get("user_id")) == str(user_id_now) or f.get("user_id") in [None, "", "null"]]
         else:
             my_formulas = st.session_state.saved_formulas
 
         if not my_formulas:
-            st.info("💡 ตอนนี้ยังไม่มีสูตรอาหารที่คุณบันทึกไว้ในระบบ หรือสิทธิ์ RLS บน Supabase ปิดกั้นอยู่")
+            st.info("💡 ตอนนี้ยังไม่มีสูตรอาหารที่แมตช์กับไอดีของคุณในคลังข้อมูล")
         else:
             col_load1, col_load2 = st.columns([7, 3])
             with col_load1:
-                # ใช้คีย์เฉพาะตัวป้องกันชื่อซ้ำกันในระบบ
-                formula_options = [f.get("name", f"สูตรไม่มีชื่อ ({f.get('date', 'ไม่ระบุ')})") for f in my_formulas]
-                selected_f_name = st.selectbox("🔍 เลือกชื่อสูตรเก่าที่ต้องการดู:", formula_options)
+                # สร้างตัวเลือกที่เข้าใจง่าย ป้องกันบั๊กชื่อซ้ำ
+                formula_labels = []
+                for idx, f in enumerate(my_formulas):
+                    f_name = f.get("name", "สูตรไม่ได้ตั้งชื่อ")
+                    f_date = f.get("date", "ไม่ระบุวัน")
+                    formula_labels.append(f"{idx+1}. {f_name} ({f_date})")
+                    
+                selected_label = st.selectbox("🔍 เลือกชื่อสูตรเก่าที่ต้องการดู:", formula_labels)
+                selected_index = formula_labels.index(selected_label)
+                target_formula = my_formulas[selected_index]
+                
             with col_load2:
                 st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
                 if st.button("🔄 ดึงสูตรนี้มาใช้", use_container_width=True):
-                    target_f = next(f for f in my_formulas if f.get("name") == selected_f_name)
-                    st.session_state.current_weights = target_f["weights"].copy()
-                    st.success(f"ดึงข้อมูล '{selected_f_name}' มาใช้งานแล้ว!")
-                    st.rerun()
+                    # ดึงค่าสัดส่วนมาใช้งานอย่างปลอดภัย
+                    raw_weights = target_formula.get("weights", {})
+                    if isinstance(raw_weights, dict) and raw_weights:
+                        st.session_state.current_weights = raw_weights.copy()
+                        st.success(f"ดึงข้อมูลสูตรเรียบร้อยแล้ว!")
+                        st.rerun()
+                    else:
+                        st.error("สูตรนี้ไม่มีข้อมูลสัดส่วนวัตถุดิบ (โครงสร้างข้อมูลผิดพลาด)")
         st.markdown("</div>", unsafe_allow_html=True)
 
         # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมาย ---
@@ -1025,7 +1041,7 @@ else:
             
             comparison_table = [
                 {"โภชนาการสำคัญ": "โปรตีนดิบ (% CP)", "เป้าหมาย": f"{edit_p:.2f} %", "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %"},
-                {"โภชนา1การสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
+                {"โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)", "เป้าหมาย": f"{edit_m:.0f}", "ได้จริงในสูตร": f"{act_nut['me']:.0f}"},
                 {"โภชนาการสำคัญ": "แคลเซียม (% Ca)", "เป้าหมาย": f"{edit_c:.2f} %", "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %"},
                 {"โภชนาการสำคัญ": "ฟอสฟอรัส (% P)", "เป้าหมาย": f"{edit_ph:.2f} %", "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %"},
             ]
@@ -1040,7 +1056,7 @@ else:
             
             if st.button("📥 ยืนยันกดบันทึกสูตรอาหารลงคลัง", use_container_width=True):
                 new_formula_data = {
-                    "user_id": user_id_now,
+                    "user_id": user_id_now if user_id_now else None,
                     "date": str(datetime.date.today()), 
                     "name": save_name_input, 
                     "cost": round(net_cost, 2), 
@@ -1051,15 +1067,16 @@ else:
                     "calcium": round(act_nut["calcium"], 2), 
                     "weights": st.session_state.current_weights.copy()
                 }
-                # บันทึกเข้า Local State
+                
+                # บันทึกลงตัวแปร Local ทันทีเพื่อให้แสดงผลไว
                 st.session_state.saved_formulas.append(new_formula_data)
                 
-                # พยายามอัปโหลดขึ้น Supabase ด้วย
+                # พยายามเชื่อมไปอัปเดตบนคลาวด์ Supabase
                 try:
                     supabase.table("saved_formulas").insert(new_formula_data).execute()
-                    st.success("บันทึกสูตรลงคลังส่วนตัว และอัปโหลดไป Supabase เรียบร้อยแล้ว!")
+                    st.success("บันทึกสูตรลงเครื่อง และสำรองข้อมูลไป Supabase เรียบร้อย!")
                 except Exception as e:
-                    st.warning(f"บันทึกในแอปสำเร็จ แต่ไม่สามารถอัปโหลดไป Supabase ได้ (เช็กสิทธิ์ตาราง): {e}")
+                    st.warning(f"เซฟลงเครื่องสำเร็จ แต่ส่งไปคลาวด์ไม่ผ่าน (เช็กโครงสร้างข้อมูลหรือ RLS): {e}")
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
