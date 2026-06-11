@@ -37,6 +37,10 @@ def fetch_ingredients_from_supabase():
     return {}
 
 # โหลดเข้าระบบครั้งแรก
+def fetch_ingredients_from_supabase():
+    result = supabase.table("ingredients").select("*").execute()
+    return {row["name"]: row for row in result.data}
+
 if "db_ingredients" not in st.session_state:
     st.session_state.db_ingredients = fetch_ingredients_from_supabase()
     
