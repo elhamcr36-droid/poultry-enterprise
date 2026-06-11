@@ -928,37 +928,11 @@ else:
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- ส่วนที่ 3: ปุ่มลัดตามสถานการณ์ราคาตลาด ---
-        st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-        st.markdown("### ⚡ [กดด่วน] ปุ่มลัดสลับสูตรอาหารตามสถานการณ์ราคาตลาด")
-        sc_col1, sc_col2, sc_col3 = st.columns(3)
-        
+        # ตั้งค่าค่าตั้งต้นของสูตรอาหารหากยังไม่มีการคำนวณ
         if not st.session_state.current_weights:
             st.session_state.current_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"])
 
-        with sc_col1:
-            if st.button("🟢 โหมดปกติ / เน้นถูกสุด", use_container_width=True):
-                st.session_state.current_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"])
-                st.rerun()
-        with sc_col2:
-            if st.button("🌾 โหมดข้าวโพด / รำข้าวแพง", use_container_width=True):
-                raw_weights = run_ai_solver(base_req["protein"], base_req["me"], base_req["calcium"], base_req["phos"], base_req["lysine"], base_req["methionine"])
-                if "ข้าวโพด" in raw_weights: raw_weights["ข้าวโพด"] = max(0.0, raw_weights["ข้าวโพด"] - 20.0)
-                if "รำข้าวละเอียด" in raw_weights: raw_weights["รำข้าวละเอียด"] = max(0.0, raw_weights["รำข้าวละเอียด"] - 10.0)
-                if "ปลายข้าว" in raw_weights: raw_weights["ปลายข้าว"] += 15.0
-                if "มันเส้น" in raw_weights: raw_weights["มันเส้น"] += 15.0
-                st.session_state.current_weights = raw_weights
-                st.rerun()
-        with sc_col3:
-            if st.button("🥚 โหมดเร่งไข่ใหญ่ / เปลือกหนา", use_container_width=True):
-                raw_weights = run_ai_solver(base_req["protein"] + 0.5, base_req["me"], base_req["calcium"] + 0.3, base_req["phos"], base_req["lysine"], base_req["methionine"])
-                if "น้ำมันปาล์ม" in raw_weights: raw_weights["น้ำมันปาล์ม"] = max(2.0, raw_weights["น้ำมันปาล์ม"])
-                if "เปลือกหอยบด" in raw_weights: raw_weights["เปลือกหอยบด"] = max(8.0, raw_weights["เปลือกหอยบด"])
-                st.session_state.current_weights = raw_weights
-                st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # --- ส่วนที่ 4: แถบปรับสัดส่วนอาหารแบบ 2 คอลัมน์ย่อย และตารางผลลัพธ์ ---
+        # --- ส่วนที่ 3: แถบปรับสัดส่วนอาหารแบบ 2 คอลัมน์ย่อย และตารางผลลัพธ์ ---
         col_left, col_right = st.columns([1.1, 0.9])
         
         with col_left:
@@ -1027,7 +1001,6 @@ else:
             
             st.markdown(f"<div style='background-color:#1e293b; padding:15px; border-radius:10px; border:2px solid #38bdf8; text-align:center; font-size:24px; font-weight:bold; margin: 15px 0;'>💰 ต้นทุนค่าอาหารสูตรนี้: {net_cost:.2f} บาท/กก.</div>", unsafe_allow_html=True)
             
-            # ป้องกันความผิดพลาด split ตกขอบหากชื่อไม่มีเว้นวรรค
             name_parts = selected_b_name.split()
             breed_display_name = name_parts[-2] if len(name_parts) > 1 else selected_b_name
             
