@@ -901,12 +901,6 @@ if st.session_state.user_role == "admin":
     if st.button("🔄 สลับบทบาทกลับไปโหมดผู้ใช้งานทั่วไป (User Dashboard)", use_container_width=True):
         st.session_state.user_role = "user"
         st.rerun()
-        import streamlit as pd
-import pandas as pd
-import io
-import datetime
-
-# วางโค้ดนี้แทนที่บล็อก else: เดิมของคุณได้ทันที
 else:
     # ==========================================
     # 🎨 CUSTOM UI/UX FOR ALL AGES (BIG FONT & HIGH CONTRAST)
