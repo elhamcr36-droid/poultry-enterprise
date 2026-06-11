@@ -495,7 +495,7 @@ if st.session_state.user_role == "admin":
                 else:
                     st.warning("⚠️ ไม่มีสารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
 
-   # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
+# --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
 with admin_tabs[1]:
     # 🛡️ ป้องกัน AttributeError: ตรวจสอบและ Initialize โครงสร้างพื้นฐานหากไม่มีใน Session State
     if "db_ingredients" not in st.session_state:
@@ -518,7 +518,7 @@ with admin_tabs[1]:
     st.markdown("---")
 
     if crud_mode == "✏️ แก้ไขข้อมูลวัตถุดิบเดิม":
-        # 🛡️ ป้องกันแอปพัง: ตรวจสอบว่ามีวัตถุดิบในระบบให้เลือกแก้ไขหรือไม่
+        # 🛡️ เปลี่ยนมาใช้ Guard Clause เพื่อแยกบล็อกอิสระ ไม่ให้พังกับเงื่อนไข elif ถัดไป
         if not st.session_state.db_ingredients:
             st.warning("⚠️ ไม่สามารถแก้ไขได้ เนื่องจากยังไม่มีข้อมูลวัตถุดิบใดๆ ในระบบ กรุณาเลือกฟังก์ชัน '➕ เพิ่มวัตถุดิบใหม่'")
         else:
@@ -561,47 +561,52 @@ with admin_tabs[1]:
                             st.session_state.db_ingredients[selected_ing_edit].update(edited_values)
                             st.session_state.db_ingredients[selected_ing_edit].update({"min_limit": edit_ing_min, "max_limit": edit_ing_max})
                             
-                            # 💡 คำแนะนำเพิ่มเติม: ถ้าคุณใช้ Supabase อย่าลืมเขียนคำสั่งอัปเดตกลับไปยัง Database ตรงนี้ด้วยนะครับ เช่น:
-                            # try:
-                            #     supabase.table("ingredients").update(st.session_state.db_ingredients[selected_ing_edit]).eq("name", selected_ing_edit).execute()
-                            # except Exception as e:
-                            #     st.error(f"ไม่สามารถอัปเดตลงฐานข้อมูลได้: {e}")
-                            
                             st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' เรียบร้อยแล้ว")
                             st.rerun()
 
-        elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
-            with st.form(key="form_add_new_ingredient"):
-                st.markdown("#### ➕ ลงทะเบียนวัตถุดิบตัวใหม่เข้าคลังกลาง")
-                ing_name = st.text_input("📝 ระบุชื่อวัตถุดิบใหม่:", placeholder="เช่น รำข้าวหอมมะลิบดละเอียด")
-                
-                c_limits = st.columns(2)
-                with c_limits[0]:
-                    ing_min = st.number_input("สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, value=0.0)
-                with c_limits[1]:
-                    ing_max = st.number_input("สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, value=100.0)
-                
-                st.markdown("**📊 ระบุสารอาหารตั้งต้น**")
-                new_material_data = {}
+    elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
+        with st.form(key="form_add_new_ingredient"):
+            st.markdown("#### ➕ ลงทะเบียนวัตถุดิบตัวใหม่เข้าคลังกลาง")
+            ing_name = st.text_input("📝 ระบุชื่อวัตถุดิบใหม่:", placeholder="เช่น รำข้าวหอมมะลิบดละเอียด")
+            
+            c_limits = st.columns(2)
+            with c_limits[0]:
+                ing_min = st.number_input("สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, value=0.0)
+            with c_limits[1]:
+                ing_max = st.number_input("สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, value=100.0)
+            
+            st.markdown("**📊 ระบุสารอาหารตั้งต้น**")
+            new_material_data = {}
+            
+            # 🛡️ ป้องกันแอปพัง: ตรวจสอบเผื่อกรณี db_nutrient_keys ว่างเปล่า
+            if st.session_state.db_nutrient_keys:
                 ac = st.columns(3)
                 for idx, (nut_key, nut_info) in enumerate(st.session_state.db_nutrient_keys.items()):
                     with ac[idx % 3]:
-                        new_material_data[nut_key] = st.number_input(f"{nut_info['label']}:", min_value=0.0, value=nut_info["default"], step=nut_info["step"])
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.form_submit_button("➕ บันทึกเพิ่มเข้าคลังสินค้ากลาง", type="primary", use_container_width=True):
-                    if not ing_name.strip():
-                        st.error("❌ กรุณากรอกชื่อวัตถุดิบด้วยครับ")
-                    elif ing_name in st.session_state.db_ingredients:
-                        st.error(f"❌ รายการ '{ing_name}' มีในระบบอยู่แล้ว")
-                    elif ing_min > ing_max:
-                        st.error("❌ ข้อผิดพลาด: ค่าต่ำสุดห้ามมากกว่าค่าสูงสุด")
-                    else:
-                        base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
-                        base_data.update(new_material_data)
-                        st.session_state.db_ingredients[ing_name] = base_data
-                        st.success(f"🎉 นำเข้า '{ing_name}' สู่ฐานข้อมูลเรียบร้อย!")
-                        st.rerun()
+                        label = nut_info.get('label', nut_key)
+                        default_val = float(nut_info.get('default', 0.0))
+                        step_val = float(nut_info.get('step', 0.1))
+                        
+                        new_material_data[nut_key] = st.number_input(f"{label}:", min_value=0.0, value=default_val, step=step_val)
+            else:
+                st.info("💡 ไม่มีรายการสารอาหารตั้งต้นในระบบ")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("➕ บันทึกเพิ่มเข้าคลังสินค้ากลาง", type="primary", use_container_width=True):
+                if not ing_name.strip():
+                    st.error("❌ กรุณากรอกชื่อวัตถุดิบด้วยครับ")
+                elif ing_name in st.session_state.db_ingredients:
+                    st.error(f"❌ รายการ '{ing_name}' มีในระบบอยู่แล้ว")
+                elif ing_min > ing_max:
+                    st.error("❌ ข้อผิดพลาด: ค่าต่ำสุดห้ามมากกว่าค่าสูงสุด")
+                else:
+                    base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
+                    base_data.update(new_material_data)
+                    
+                    st.session_state.db_ingredients[ing_name] = base_data
+                    
+                    st.success(f"🎉 นำเข้า '{ing_name}' สู่ฐานข้อมูลเรียบร้อย!")
+                    st.rerun()
 
         elif crud_mode == "🗑️ ลบวัตถุดิบออก":
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
