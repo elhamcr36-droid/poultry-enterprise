@@ -28,6 +28,26 @@ def init_supabase():
         return None
 
 supabase = init_supabase()
+@st.cache_resource(show_spinner=False)
+def init_supabase():
+    try:
+        st.write("Connecting to:", SUPABASE_URL)
+
+        client = create_client(
+            SUPABASE_URL.strip(),
+            SUPABASE_KEY.strip()
+        )
+
+        # ทดสอบ Query จริง
+        client.table("ingredients").select("*").limit(1).execute()
+
+        st.session_state.cloud_connected = True
+        return client
+
+    except Exception as e:
+        st.session_state.cloud_connected = False
+        st.exception(e)
+        return None
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
