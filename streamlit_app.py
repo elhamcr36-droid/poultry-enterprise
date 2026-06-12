@@ -129,7 +129,8 @@ FALLBACK_BREEDS = [
 
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
-        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0 "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
+        # แก้ไขจุด Syntax Error เติมคอมม่าคั่นเรียบร้อยแล้ว
+        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
 
@@ -187,7 +188,6 @@ def fetch_breeds_and_groups_from_supabase():
         else:
             st.session_state.db_breeds = FALLBACK_BREEDS
     except Exception:
-        # หากตารางไม่มีอยู่ในระบบ ให้สลับใช้ค่า Fallback เสมอเพื่อความปลอดภัย
         st.session_state.db_groups = FALLBACK_GROUPS
         st.session_state.db_breeds = FALLBACK_BREEDS
 
@@ -266,7 +266,6 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.2 หน้า SIGN UP & 4.3 FORGOT --- (ตัดส่วนยาวออกเพื่อให้เข้าใจง่ายคงโครงสร้างเดิม)
     elif st.session_state.auth_page_mode == "signup":
         st.write("หน้าสมัครสมาชิก...")
         if st.button("กลับหน้าล็อกอิน"): 
@@ -278,7 +277,6 @@ if not st.session_state.is_authenticated:
 # ==========================================
 # 🐓 5. MAIN APPLICATION RENDERER
 # ==========================================
-# เรียกดึงข้อมูลทุกอย่างมาใช้งานพร้อมกัน
 ingredients = fetch_ingredients_from_supabase()
 fetch_breeds_and_groups_from_supabase()
 
@@ -291,30 +289,28 @@ st.write(f"ผู้ใช้งานปัจจุบัน: **{st.session_st
 st.markdown("<div class='content-card'>", unsafe_allow_html=True)
 st.subheader("🐓 การเลือกกลุ่มและจัดการสายพันธุ์ไก่ไข่")
 
-# ดึงรายชื่อกลุ่มมาทำเป็นรายการ Dropdown
-group_options = [g["group_name"] for g in st.session_state.db_groups]
-selected_group = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", group_options)
+if st.session_state.db_groups:
+    group_options = [g["group_name"] for g in st.session_state.db_groups]
+    selected_group = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", group_options)
 
-# กรองสายพันธุ์ในตารางให้ตรงกับกลุ่มสายพันธุ์หลักที่เลือกไว้ด้านบน
-filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_group]
-breed_options = [b["breed_name"] for b in filtered_breeds]
+    filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_group]
+    breed_options = [b["breed_name"] for b in filtered_breeds]
 
-if breed_options:
-    selected_breed_name = st.selectbox("🐓 เลือกสายพันธุ์ไก่ไข่เจาะจง:", breed_options)
-    
-    # ค้นหาข้อมูลสายพันธุ์ที่เลือกเพื่อนำค่าสารอาหาร/ปริมาณอาหารไปใช้คำนวณต่อ
-    breed_info = next(b for b in filtered_breeds if b["breed_name"] == selected_breed_name)
-    
-    # แสดงค่าข้อมูลสายพันธุ์ที่ดึงมาจากฐานข้อมูลสำเร็จ
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("🥚 สีของเปลือกไข่", breed_info["egg_color"])
-    with col2:
-        st.metric("🥣 ปริมาณอาหารที่กินเริ่มต้น", f"{breed_info['default_feed']} กรัม/ตัว/วัน")
-    with col3:
-        st.metric("📊 สถานะตารางสายพันธุ์", "🟢 เชื่อมต่อเสร็จสมบูรณ์")
+    if breed_options:
+        selected_breed_name = st.selectbox("🐓 เลือกสายพันธุ์ไก่ไข่เจาะจง:", breed_options)
+        breed_info = next(b for b in filtered_breeds if b["breed_name"] == selected_breed_name)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("🥚 สีของเปลือกไข่", breed_info.get("egg_color", "ไม่ระบุ"))
+        with col2:
+            st.metric("🥣 ปริมาณอาหารที่กินเริ่มต้น", f"{breed_info.get('default_feed', 0.0)} กรัม/ตัว/วัน")
+        with col3:
+            st.metric("📊 สถานะตารางสายพันธุ์", "🟢 เชื่อมต่อเสร็จสมบูรณ์")
+    else:
+        st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ในกลุ่มที่เลือก")
 else:
-    st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ในกลุ่มที่เลือก")
+    st.warning("⚠️ ไม่พบข้อมูลกลุ่มสายพันธุ์หลักในระบบ")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
