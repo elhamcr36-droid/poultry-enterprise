@@ -373,23 +373,26 @@ else:
     # ==========================================
     # 👑 USER ROUTE: CALCULATION ENGINE INTERFACE
     # ==========================================
-    page_tabs = st.tabs(["🥣 1. สูตรอาหาร & คลังสูตรเก่า", "💰 2. บันทึกรายวันฟาร์ม", "📊 3. ใบสั่งผสมอาหาร"])
+    # เติม key เพื่อแยกแยะตระกูล Tabs ของฝั่ง User
+    page_tabs = st.tabs(["🥣 1. สูตรอาหาร & คลังสูตรเก่า", "💰 2. บันทึกรายวันฟาร์ม", "📊 3. ใบสั่งผสมอาหาร"], key="user_main_tabs")
     
     with page_tabs[0]:
         col_br1, col_br2, col_br3 = st.columns(3)
         with col_br1:
-            selected_g = st.selectbox("📁 กลุ่มสายพันธุ์หลัก:", [g["group_name"] for g in st.session_state.db_groups])
-            edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=17.0, step=0.1)
+            # 💡 เพิ่ม key ป้องกันระบบสับสนกับ Selectbox และ Number input ของฝั่ง Admin
+            selected_g = st.selectbox("📁 กลุ่มสายพันธุ์หลัก:", [g["group_name"] for g in st.session_state.db_groups], key="user_sb_group")
+            edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=17.0, step=0.1, key="user_ni_protein")
         with col_br2:
             filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_g]
-            selected_b_name = st.selectbox("🐔 สายพันธุ์ไก่ไข่เป้าหมาย:", [b["breed_name"] for b in filtered_breeds] if filtered_breeds else ["ไม่มีข้อมูล"])
-            edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=2750.0, step=25.0)
+            selected_b_name = st.selectbox("🐔 สายพันธุ์ไก่ไข่เป้าหมาย:", [b["breed_name"] for b in filtered_breeds] if filtered_breeds else ["ไม่มีข้อมูล"], key="user_sb_breed")
+            edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=2750.0, step=25.0, key="user_ni_energy")
         with col_br3:
             stage_options = {s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()}
-            selected_stage_label = st.selectbox("📋 ช่วงระยะการผลิต:", list(stage_options.keys()))
+            selected_stage_label = st.selectbox("📋 ช่วงระยะการผลิต:", list(stage_options.keys()), key="user_sb_stage")
             
             st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
-            if st.button("⚡ สั่ง AI คำนวณสูตรด่วน (PuLP Opt.)", type="primary", use_container_width=True):
+            # 💡 เพิ่ม key ให้ปุ่มคำนวณ เพื่อไม่ให้ ID ชนกันเวลาสลับหน้าจอไปมา
+            if st.button("⚡ สั่ง AI คำนวณสูตรด่วน (PuLP Opt.)", type="primary", use_container_width=True, key="user_btn_calc_pulp"):
                 base_req = st.session_state.db_targets[stage_options[selected_stage_label]]
                 # รันสมการคำนวณราคาต่ำสุดเชิงเส้นจริง
                 st.session_state.current_weights = run_ai_solver(
@@ -409,7 +412,6 @@ else:
                 for k, v in st.session_state.current_weights.items() if v > 0
             ])
             st.dataframe(df_current, use_container_width=True, hide_index=True)
-
 
 # ==========================================
 # 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE
