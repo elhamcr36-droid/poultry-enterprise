@@ -5,6 +5,7 @@ import pulp
 import io
 import datetime
 import re
+import streamlit.components.v1 as components
 from supabase import create_client, Client
 
 # ==========================================
@@ -12,6 +13,7 @@ from supabase import create_client, Client
 # ==========================================
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
+APP_URL = st.secrets.get("APP_URL", "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -325,10 +327,105 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
 # ==========================================
 # 🔒 4. SECURITY GATEWAY (SUPABASE AUTH INTEGRATION)
 # ==========================================
+def get_query_param(name):
+    value = st.query_params.get(name)
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
+
+def normalize_recovery_link_params():
+    components.html(
+        """
+        <script>
+        const hash = window.location.hash;
+        const search = window.location.search;
+        if (hash && hash.includes('access_token') && !search.includes('access_token')) {
+            const params = new URLSearchParams(hash.substring(1));
+            const target = new URL(window.location.href);
+            params.forEach((value, key) => target.searchParams.set(key, value));
+            target.hash = '';
+            window.location.replace(target.toString());
+        }
+        </script>
+        """,
+        height=0,
+    )
+
+def detect_password_recovery_session():
+    access_token = get_query_param("access_token")
+    refresh_token = get_query_param("refresh_token")
+    recovery_type = get_query_param("type")
+    recovery_code = get_query_param("code")
+
+    if access_token and refresh_token and recovery_type == "recovery":
+        try:
+            supabase.auth.set_session(access_token, refresh_token)
+            st.session_state.auth_page_mode = "reset_password"
+            st.session_state.password_recovery_ready = True
+        except Exception as error:
+            st.error(f"ไม่สามารถเปิดหน้าตั้งรหัสผ่านใหม่ได้: {error}")
+    elif recovery_code and not st.session_state.get("password_recovery_ready"):
+        try:
+            supabase.auth.exchange_code_for_session(recovery_code)
+            st.session_state.auth_page_mode = "reset_password"
+            st.session_state.password_recovery_ready = True
+        except Exception as error:
+            st.error(f"ไม่สามารถยืนยันลิงก์ตั้งรหัสผ่านใหม่ได้: {error}")
+
+normalize_recovery_link_params()
+detect_password_recovery_session()
+
 if "user_database" not in st.session_state:
     st.session_state.user_database = {}
 
 if not st.session_state.is_authenticated:
+
+    # --- 4.0 หน้า RESET PASSWORD หลังจากกดลิงก์ในอีเมล ---
+    if st.session_state.auth_page_mode == "reset_password":
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>🔑 ตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+
+        new_pass = st.text_input("รหัสผ่านใหม่:", type="password", key="reset_new_pass")
+        new_pass_conf = st.text_input("ยืนยันรหัสผ่านใหม่:", type="password", key="reset_new_pass_conf")
+        is_reset_strong, reset_pass_msg = check_password_strength(new_pass) if new_pass else (False, "")
+
+        if new_pass:
+            if is_reset_strong:
+                st.success(reset_pass_msg)
+            else:
+                st.warning(reset_pass_msg)
+
+        if st.button("💾 บันทึกรหัสผ่านใหม่", type="primary", use_container_width=True):
+            if not new_pass or not new_pass_conf:
+                st.warning("กรุณากรอกรหัสผ่านใหม่ให้ครบทั้งสองช่อง")
+            elif new_pass != new_pass_conf:
+                st.error("รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน")
+            elif not is_reset_strong:
+                st.error("รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไขความปลอดภัย")
+            else:
+                try:
+                    supabase.auth.update_user({"password": new_pass})
+                    try:
+                        supabase.auth.sign_out()
+                    except Exception:
+                        pass
+                    st.session_state.is_authenticated = False
+                    st.session_state.auth_page_mode = "login"
+                    st.session_state.password_recovery_ready = False
+                    st.query_params.clear()
+                    st.success("เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่")
+                    st.rerun()
+                except Exception as error:
+                    st.error(f"ไม่สามารถเปลี่ยนรหัสผ่านได้: {error}")
+
+        if st.button("กลับไปหน้าเข้าสู่ระบบ", use_container_width=True):
+            st.session_state.auth_page_mode = "login"
+            st.query_params.clear()
+            st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
 
     # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
@@ -368,7 +465,7 @@ if not st.session_state.is_authenticated:
                         st.rerun()
 
                 except Exception as error:
-                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
+                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบข้อมูลอีกครั้ง")
 
         with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
@@ -424,7 +521,7 @@ if not st.session_state.is_authenticated:
                         st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
                     else:
                         try:
-                            supabase.auth.sign_up({
+                            auth_res = supabase.auth.sign_up({
                                 "email": su_email,
                                 "password": su_pass,
                                 "options": {
@@ -444,8 +541,13 @@ if not st.session_state.is_authenticated:
                                 "reg_date": str(datetime.date.today())
                             }
 
-                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ")
-                            st.session_state.auth_page_mode = "login"
+                            st.success("🎉 สมัครสมาชิกสำเร็จและเข้าสู่ระบบแล้ว")
+                            st.session_state.is_authenticated = True
+                            st.session_state.current_user_key = su_email
+                            st.session_state.user_role = "user"
+                            st.session_state.user_email = f"{su_email.split('@')[0]} [USER]"
+                            fetch_master_data_from_supabase()
+                            fetch_ingredients_from_supabase()
                             st.rerun()
 
                         except Exception as error:
@@ -473,7 +575,10 @@ if not st.session_state.is_authenticated:
         if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
             if fg_email:
                 try:
-                    supabase.auth.reset_password_for_email(fg_email)
+                    supabase.auth.reset_password_for_email(
+                        fg_email,
+                        {"redirect_to": APP_URL}
+                    )
                     st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
                 except Exception as error:
                     st.error(f"❌ เกิดข้อผิดพลาด: {error}")
