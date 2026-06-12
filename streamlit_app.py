@@ -152,10 +152,10 @@ FALLBACK_INGREDIENTS = {
 
 DEFAULT_INGREDIENT_OWNER = "system_default"
 MASTER_TABLE_CANDIDATES = {
-    "groups": ["breed_groups", "groups", "db_groups"],
-    "breeds": ["breeds", "db_breeds"],
-    "targets": ["nutrition_targets", "targets", "db_targets"],
-    "nutrient_keys": ["nutrient_keys", "db_nutrient_keys"],
+    "groups": ["db_groups", "breed_groups", "groups"],
+    "breeds": ["db_breeds", "breeds"],
+    "targets": ["db_targets", "nutrition_targets", "targets"],
+    "nutrient_keys": ["db_nutrient_keys", "nutrient_keys"],
 }
 
 def get_ingredient_owner_for_write(existing_ingredient=None):
@@ -168,11 +168,16 @@ def get_ingredient_owner_for_write(existing_ingredient=None):
 def fetch_first_available_table(table_key):
     for table_name in MASTER_TABLE_CANDIDATES.get(table_key, []):
         try:
-            response = supabase.table(table_name).select("*").execute()
-            if response.data is not None:
+            try:
+                response = supabase.table(table_name).select("*").order("id").execute()
+            except Exception:
+                response = supabase.table(table_name).select("*").execute()
+            if response.data:
+                st.session_state[f"{table_key}_table_source"] = table_name
                 return response.data
         except Exception:
             continue
+    st.session_state[f"{table_key}_table_source"] = ""
     return []
 
 def fetch_master_data_from_supabase():
@@ -706,7 +711,12 @@ if st.session_state.user_role == "admin":
                 b_feed = st.number_input("อัตรากินอาหารตามคู่มือ (กรัม/ตัว/วัน):", value=115.0, step=1.0)
                 if st.button("➕ บันทึกสายพันธุ์ใหม่", use_container_width=True, type="primary"):
                     if b_name.strip():
-                        st.session_state.db_breeds.append({"group_name": b_group, "breed_name": b_name, "egg_color": b_egg, "default_feed": b_feed})
+                        breed_payload = {"group_name": b_group, "breed_name": b_name, "egg_color": b_egg, "default_feed": b_feed}
+                        st.session_state.db_breeds.append(breed_payload)
+                        try:
+                            supabase.table("db_breeds").insert(breed_payload).execute()
+                        except Exception as cloud_err:
+                            st.warning(f"บันทึกสายพันธุ์ในหน่วยความจำแล้ว แต่ยังส่งขึ้น Supabase ไม่สำเร็จ: {cloud_err}")
                         st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
                         st.rerun()
                     else: st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
@@ -717,6 +727,10 @@ if st.session_state.user_role == "admin":
                     b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b["breed_name"] for b in st.session_state.db_breeds])
                     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
                     if st.button("🗑️ ยืนยันลบออกจากทำเนียบ", type="primary", use_container_width=True):
+                        try:
+                            supabase.table("db_breeds").delete().eq("breed_name", b_del).execute()
+                        except Exception as cloud_err:
+                            st.warning(f"ลบออกจากหน้าจอแล้ว แต่ยังลบจาก Supabase ไม่สำเร็จ: {cloud_err}")
                         st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
                         st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
                         st.rerun()
@@ -746,6 +760,10 @@ if st.session_state.user_role == "admin":
             st.markdown("<br>", unsafe_allow_html=True)
             if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้", type="primary", use_container_width=True):
                 st.session_state.db_targets[select_stage_crud].update(updated_target_values)
+                try:
+                    supabase.table("db_targets").update(updated_target_values).eq("stage_key", select_stage_crud).execute()
+                except Exception as cloud_err:
+                    st.warning(f"อัปเดตในหน้าจอแล้ว แต่ยังส่งขึ้น Supabase ไม่สำเร็จ: {cloud_err}")
                 st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
                 st.rerun()
 
