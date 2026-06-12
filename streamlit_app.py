@@ -129,7 +129,6 @@ FALLBACK_BREEDS = [
 
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
-        # แก้ไขจุด Syntax Error เติมคอมม่าคั่นเรียบร้อยแล้ว
         "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
@@ -174,14 +173,12 @@ def fetch_ingredients_from_supabase():
 # --- ฟังก์ชันดึงข้อมูล กลุ่มและสายพันธุ์ไก่ไข่ ---
 def fetch_breeds_and_groups_from_supabase():
     try:
-        # ดึงข้อมูลกลุ่มสายพันธุ์
         group_res = supabase.table("db_groups").select("*").execute()
         if group_res.data and len(group_res.data) > 0:
             st.session_state.db_groups = group_res.data
         else:
             st.session_state.db_groups = FALLBACK_GROUPS
 
-        # ดึงข้อมูลสายพันธุ์
         breed_res = supabase.table("db_breeds").select("*").execute()
         if breed_res.data and len(breed_res.data) > 0:
             st.session_state.db_breeds = breed_res.data
@@ -233,7 +230,6 @@ if "user_database" not in st.session_state:
     st.session_state.user_database = {}
 
 if not st.session_state.is_authenticated:
-    # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
@@ -291,13 +287,15 @@ st.subheader("🐓 การเลือกกลุ่มและจัดก�
 
 if st.session_state.db_groups:
     group_options = [g["group_name"] for g in st.session_state.db_groups]
-    selected_group = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", group_options)
+    # 🔥 แก้บั๊กโดยเพิ่ม key="main_group_select" ป้องกัน ID ชนกันในระบบ
+    selected_group = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", group_options, key="main_group_select")
 
     filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_group]
     breed_options = [b["breed_name"] for b in filtered_breeds]
 
     if breed_options:
-        selected_breed_name = st.selectbox("🐓 เลือกสายพันธุ์ไก่ไข่เจาะจง:", breed_options)
+        # 🔥 แก้บั๊กโดยเพิ่ม key="main_breed_select" ป้องกัน ID ชนกันในระบบ
+        selected_breed_name = st.selectbox("🐓 เลือกสายพันธุ์ไก่ไข่เจาะจง:", breed_options, key="main_breed_select")
         breed_info = next(b for b in filtered_breeds if b["breed_name"] == selected_breed_name)
         
         col1, col2, col3 = st.columns(3)
