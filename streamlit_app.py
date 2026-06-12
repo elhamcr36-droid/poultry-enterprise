@@ -14,6 +14,7 @@ from supabase import create_client, Client
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
 APP_URL = st.secrets.get("APP_URL", "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
+PASSWORD_RESET_REDIRECT_URL = st.secrets.get("PASSWORD_RESET_REDIRECT_URL", f"{APP_URL}?auth_action=reset_password")
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -356,6 +357,10 @@ def detect_password_recovery_session():
     refresh_token = get_query_param("refresh_token")
     recovery_type = get_query_param("type")
     recovery_code = get_query_param("code")
+    auth_action = get_query_param("auth_action")
+
+    if auth_action == "reset_password":
+        st.session_state.auth_page_mode = "reset_password"
 
     if access_token and refresh_token and recovery_type == "recovery":
         try:
@@ -385,6 +390,16 @@ if not st.session_state.is_authenticated:
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>🔑 ตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+
+        if not st.session_state.get("password_recovery_ready"):
+            st.warning("หน้านี้ใช้สำหรับตั้งรหัสผ่านใหม่หลังจากกดลิงก์ในอีเมลเท่านั้น")
+            st.info("ถ้าคุณต้องการกู้คืนรหัสผ่าน ให้กลับไปหน้าเข้าสู่ระบบแล้วกดปุ่มลืมรหัสผ่าน ระบบจะส่งลิงก์มายังอีเมลของคุณ")
+            if st.button("กลับไปหน้าเข้าสู่ระบบ", use_container_width=True):
+                st.session_state.auth_page_mode = "login"
+                st.query_params.clear()
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.stop()
 
         new_pass = st.text_input("รหัสผ่านใหม่:", type="password", key="reset_new_pass")
         new_pass_conf = st.text_input("ยืนยันรหัสผ่านใหม่:", type="password", key="reset_new_pass_conf")
@@ -577,7 +592,7 @@ if not st.session_state.is_authenticated:
                 try:
                     supabase.auth.reset_password_for_email(
                         fg_email,
-                        {"redirect_to": APP_URL}
+                        {"redirect_to": PASSWORD_RESET_REDIRECT_URL}
                     )
                     st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
                 except Exception as error:
