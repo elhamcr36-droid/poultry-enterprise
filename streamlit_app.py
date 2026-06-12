@@ -5,6 +5,9 @@ import pulp
 import io
 import datetime
 import re
+import json
+import urllib.error
+import urllib.request
 import streamlit.components.v1 as components
 from supabase import create_client, Client
 
@@ -15,6 +18,7 @@ SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supa
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
 APP_URL = st.secrets.get("APP_URL", "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
 PASSWORD_RESET_REDIRECT_URL = st.secrets.get("PASSWORD_RESET_REDIRECT_URL", f"{APP_URL}?auth_action=reset_password")
+PASSWORD_RESET_FUNCTION_URL = st.secrets.get("PASSWORD_RESET_FUNCTION_URL", f"{SUPABASE_URL}/functions/v1/reset-password-by-phone")
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -115,6 +119,39 @@ def check_password_strength(password):
     if not re.search("[0-9]", password): return False, "❌ รหัสผ่านต้องมีตัวเลข (0-9) อย่างน้อย 1 ตัว"
     if not re.search("[_@$!%*#?&.]", password): return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
+
+def reset_password_with_email_and_phone(email, phone, new_password):
+    payload = json.dumps({
+        "email": email.strip(),
+        "phone": phone.strip(),
+        "new_password": new_password,
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        PASSWORD_RESET_FUNCTION_URL,
+        data=payload,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "apikey": SUPABASE_KEY,
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        try:
+            result = json.loads(error.read().decode("utf-8"))
+        except Exception:
+            result = {"error": str(error)}
+        raise Exception(result.get("error", "ไม่สามารถรีเซ็ตรหัสผ่านได้"))
+    except Exception as error:
+        raise Exception(f"เชื่อมต่อระบบรีเซ็ตรหัสผ่านไม่ได้: {error}")
+
+    if not result.get("ok"):
+        raise Exception(result.get("error", "ไม่สามารถรีเซ็ตรหัสผ่านได้"))
+    return result
 
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = [
@@ -583,6 +620,47 @@ if not st.session_state.is_authenticated:
 
     # --- 4.3 หน้า FORGOT PASSWORD ---
     elif st.session_state.auth_page_mode == "forgot":
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนรหัสผ่านด้วยอีเมลและเบอร์โทร</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+
+        fg_email = st.text_input("📧 อีเมลที่ลงทะเบียนไว้:", key="phone_reset_email")
+        fg_phone = st.text_input("📞 เบอร์โทรที่ใช้สมัคร:", key="phone_reset_tel")
+        fg_new_pass = st.text_input("🔑 รหัสผ่านใหม่:", type="password", key="phone_reset_new_pass")
+        fg_new_pass_conf = st.text_input("🔄 ยืนยันรหัสผ่านใหม่:", type="password", key="phone_reset_new_pass_conf")
+        st.info("ระบบจะตรวจสอบอีเมลและเบอร์โทรให้ตรงกับข้อมูลสมัครสมาชิก แล้วเปลี่ยนรหัสผ่านให้ทันทีโดยไม่ส่งอีเมล")
+
+        is_forgot_strong, forgot_pass_msg = check_password_strength(fg_new_pass) if fg_new_pass else (False, "")
+        if fg_new_pass:
+            if is_forgot_strong:
+                st.success(forgot_pass_msg)
+            else:
+                st.warning(forgot_pass_msg)
+
+        if st.button("💾 ยืนยันเปลี่ยนรหัสผ่าน", type="primary", use_container_width=True):
+            if not fg_email or not fg_phone or not fg_new_pass or not fg_new_pass_conf:
+                st.warning("⚠️ กรุณากรอกอีเมล เบอร์โทร และรหัสผ่านใหม่ให้ครบ")
+            elif fg_new_pass != fg_new_pass_conf:
+                st.error("❌ รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน")
+            elif not is_forgot_strong:
+                st.error("❌ รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไขความปลอดภัย")
+            else:
+                try:
+                    reset_password_with_email_and_phone(fg_email, fg_phone, fg_new_pass)
+                    st.success("🎉 เปลี่ยนรหัสผ่านสำเร็จ กรุณากลับไปเข้าสู่ระบบด้วยรหัสผ่านใหม่")
+                    st.session_state.auth_page_mode = "login"
+                    st.query_params.clear()
+                    st.rerun()
+                except Exception as error:
+                    st.error(f"❌ เปลี่ยนรหัสผ่านไม่สำเร็จ: {error}")
+
+        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True, key="phone_reset_back"):
+            st.session_state.auth_page_mode = "login"
+            st.query_params.clear()
+            st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
