@@ -359,7 +359,9 @@ def detect_password_recovery_session():
     recovery_code = get_query_param("code")
     auth_action = get_query_param("auth_action")
 
-    if auth_action == "reset_password":
+    if auth_action == "forgot_password":
+        st.session_state.auth_page_mode = "forgot"
+    elif auth_action == "reset_password":
         st.session_state.auth_page_mode = "reset_password"
 
     if access_token and refresh_token and recovery_type == "recovery":
@@ -489,6 +491,7 @@ if not st.session_state.is_authenticated:
 
         st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
         if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
+            st.query_params["auth_action"] = "forgot_password"
             st.session_state.auth_page_mode = "forgot"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -602,6 +605,7 @@ if not st.session_state.is_authenticated:
 
         if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
             st.session_state.auth_page_mode = "login"
+            st.query_params.clear()
             st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
