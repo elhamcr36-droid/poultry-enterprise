@@ -10,8 +10,9 @@ from supabase import create_client, Client
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
-SUPABASE_URL = st.secrets.get("https://nxyncxqbtntlpzqessou.supabase.co")
-SUPABASE_KEY = st.secrets.get("sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
+# 💡 แก้ไขรูปแบบการใช้ st.secrets.get ให้ถูกต้อง (มีชื่อ Key นำหน้า และตามด้วยค่าสำรอง)
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -21,7 +22,7 @@ try:
     supabase = init_supabase()
 except Exception as e:
     st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
-
+    
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
