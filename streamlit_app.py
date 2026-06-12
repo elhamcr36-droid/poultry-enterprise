@@ -166,6 +166,9 @@ def get_ingredient_owner_for_write(existing_ingredient=None):
     return st.session_state.get("current_user_key") or DEFAULT_INGREDIENT_OWNER
 
 def fetch_first_available_table(table_key):
+    if "master_load_debug" not in st.session_state:
+        st.session_state.master_load_debug = []
+
     for table_name in MASTER_TABLE_CANDIDATES.get(table_key, []):
         try:
             try:
@@ -174,14 +177,24 @@ def fetch_first_available_table(table_key):
                 response = supabase.table(table_name).select("*").execute()
             if response.data:
                 st.session_state[f"{table_key}_table_source"] = table_name
+                st.session_state.master_load_debug.append(
+                    {"table_key": table_key, "table_name": table_name, "status": "loaded", "rows": len(response.data)}
+                )
                 return response.data
-        except Exception:
+            st.session_state.master_load_debug.append(
+                {"table_key": table_key, "table_name": table_name, "status": "empty", "rows": 0}
+            )
+        except Exception as table_err:
+            st.session_state.master_load_debug.append(
+                {"table_key": table_key, "table_name": table_name, "status": "error", "rows": 0, "error": str(table_err)}
+            )
             continue
     st.session_state[f"{table_key}_table_source"] = ""
     return []
 
 def fetch_master_data_from_supabase():
     try:
+        st.session_state.master_load_debug = []
         groups = fetch_first_available_table("groups")
         if groups:
             st.session_state.db_groups = [
@@ -477,6 +490,34 @@ if not st.session_state.is_authenticated:
 # 🔥 โหลดข้อมูลวัตถุดิบเริ่มต้นหลังจากผู้ใช้งานผ่านประตูความปลอดภัยเข้าสู่ระบบเรียบร้อยแล้ว เท่านั้น
 fetch_master_data_from_supabase()
 ingredients = fetch_ingredients_from_supabase()
+
+def show_master_data_load_status():
+    required_sources = {
+        "groups": st.session_state.get("groups_table_source"),
+        "breeds": st.session_state.get("breeds_table_source"),
+        "targets": st.session_state.get("targets_table_source"),
+    }
+    missing_sources = [name for name, source in required_sources.items() if not source]
+    if missing_sources:
+        st.error(
+            "ยังโหลดข้อมูล dropdown จาก Supabase ไม่ครบ: "
+            + ", ".join(missing_sources)
+            + " กรุณาตรวจ RLS Policy ของ db_groups, db_breeds, db_targets"
+        )
+        with st.expander("ดูรายละเอียดการโหลดตารางจาก Supabase", expanded=True):
+            debug_rows = st.session_state.get("master_load_debug", [])
+            if debug_rows:
+                st.dataframe(pd.DataFrame(debug_rows), use_container_width=True, hide_index=True)
+            else:
+                st.info("ยังไม่มีข้อมูล debug จากการโหลดตาราง")
+    elif st.session_state.get("user_role") == "admin":
+        with st.expander("สถานะข้อมูล dropdown จาก Supabase", expanded=False):
+            st.success(
+                "โหลดข้อมูล dropdown สำเร็จจาก "
+                + f"groups={required_sources['groups']}, "
+                + f"breeds={required_sources['breeds']}, "
+                + f"targets={required_sources['targets']}"
+            )
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
 # ==========================================
@@ -506,6 +547,7 @@ with col_h2:
             st.session_state.auth_page_mode = "login"
             st.rerun()
 st.markdown("---")
+show_master_data_load_status()
 # ==========================================
 # 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE (UX/UI PREMIUM VERSION)
 # ==========================================
