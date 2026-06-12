@@ -10,8 +10,8 @@ from supabase import create_client, Client
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
-SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
+SUPABASE_URL = st.secrets.get("https://nxyncxqbtntlpzqessou.supabase.co")
+SUPABASE_KEY = st.secrets.get("sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
 
 @st.cache_resource
 def init_supabase() -> Client:
