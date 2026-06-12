@@ -151,6 +151,12 @@ FALLBACK_INGREDIENTS = {
 }
 
 DEFAULT_INGREDIENT_OWNER = "system_default"
+MASTER_TABLE_CANDIDATES = {
+    "groups": ["breed_groups", "groups", "db_groups"],
+    "breeds": ["breeds", "db_breeds"],
+    "targets": ["nutrition_targets", "targets", "db_targets"],
+    "nutrient_keys": ["nutrient_keys", "db_nutrient_keys"],
+}
 
 def get_ingredient_owner_for_write(existing_ingredient=None):
     if isinstance(existing_ingredient, dict) and existing_ingredient.get("owner_email"):
@@ -158,6 +164,75 @@ def get_ingredient_owner_for_write(existing_ingredient=None):
     if st.session_state.get("user_role") == "admin":
         return DEFAULT_INGREDIENT_OWNER
     return st.session_state.get("current_user_key") or DEFAULT_INGREDIENT_OWNER
+
+def fetch_first_available_table(table_key):
+    for table_name in MASTER_TABLE_CANDIDATES.get(table_key, []):
+        try:
+            response = supabase.table(table_name).select("*").execute()
+            if response.data is not None:
+                return response.data
+        except Exception:
+            continue
+    return []
+
+def fetch_master_data_from_supabase():
+    try:
+        groups = fetch_first_available_table("groups")
+        if groups:
+            st.session_state.db_groups = [
+                {
+                    "group_name": item.get("group_name") or item.get("name"),
+                    "bg_color": item.get("bg_color", "#0284c7"),
+                }
+                for item in groups
+                if item.get("group_name") or item.get("name")
+            ]
+
+        breeds = fetch_first_available_table("breeds")
+        if breeds:
+            st.session_state.db_breeds = [
+                {
+                    "group_name": item.get("group_name", ""),
+                    "breed_name": item.get("breed_name") or item.get("name"),
+                    "egg_color": item.get("egg_color", ""),
+                    "default_feed": float(item.get("default_feed", 114.0)),
+                }
+                for item in breeds
+                if item.get("breed_name") or item.get("name")
+            ]
+            breed_group_names = sorted({item["group_name"] for item in st.session_state.db_breeds if item.get("group_name")})
+            current_group_names = {item.get("group_name") for item in st.session_state.db_groups}
+            if breed_group_names and not current_group_names.intersection(breed_group_names):
+                st.session_state.db_groups = [
+                    {"group_name": group_name, "bg_color": "#0284c7"}
+                    for group_name in breed_group_names
+                ]
+
+        targets = fetch_first_available_table("targets")
+        if targets:
+            normalized_targets = {}
+            for item in targets:
+                stage_key = item.get("stage_key") or item.get("key") or item.get("id")
+                if stage_key:
+                    normalized_item = item.copy()
+                    normalized_item["stage_key"] = stage_key
+                    normalized_item["stage_name"] = item.get("stage_name") or item.get("name") or str(stage_key)
+                    normalized_targets[stage_key] = normalized_item
+            st.session_state.db_targets = normalized_targets
+
+        nutrient_keys = fetch_first_available_table("nutrient_keys")
+        if nutrient_keys:
+            st.session_state.db_nutrient_keys = {
+                item.get("nutrient_key") or item.get("key") or item.get("name"): {
+                    "label": item.get("label") or item.get("nutrient_label") or item.get("name"),
+                    "step": float(item.get("step", 0.1)),
+                    "default": float(item.get("default", 0.0)),
+                }
+                for item in nutrient_keys
+                if item.get("nutrient_key") or item.get("key") or item.get("name")
+            }
+    except Exception as e:
+        st.warning(f"โหลดข้อมูลตั้งต้นจากฐานข้อมูลไม่สำเร็จ กำลังใช้ข้อมูลสำรองในระบบแทน: {e}")
 
 def fetch_ingredients_from_supabase():
     try:
@@ -268,6 +343,7 @@ if not st.session_state.is_authenticated:
                         st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
                         
                         # 🔥 ปรับปรุง: โหลดข้อมูลวัตถุดิบของยูสเซอร์ทันทีที่ผ่านสิทธิ์สำเร็จก่อนทำการเรนเดอร์ UI หลัก
+                        fetch_master_data_from_supabase()
                         fetch_ingredients_from_supabase()
                         
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
@@ -394,6 +470,7 @@ if not st.session_state.is_authenticated:
         st.stop()
 
 # 🔥 โหลดข้อมูลวัตถุดิบเริ่มต้นหลังจากผู้ใช้งานผ่านประตูความปลอดภัยเข้าสู่ระบบเรียบร้อยแล้ว เท่านั้น
+fetch_master_data_from_supabase()
 ingredients = fetch_ingredients_from_supabase()
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
