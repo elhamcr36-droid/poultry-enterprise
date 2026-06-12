@@ -1043,7 +1043,7 @@ if st.session_state.user_role == "admin":
                 else: 
                     st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
 
-    # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการ (ตาราง มาตรฐานโภชนาการไก่ไข่_layer_standards) ---
+# --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการ (ตาราง มาตรฐานโภชนาการไก่ไข่_layer_standards) ---
     with admin_tabs[3]:
         raw_targets = fetch_targets_from_supabase()
         
@@ -1072,20 +1072,33 @@ if st.session_state.user_role == "admin":
                 list(db_targets.keys())
             )
             
+            target_data = db_targets[select_stage_crud]
+            
             with st.form(key=f"form_target_{select_stage_crud}"):
                 st.markdown(f"📝 ตั้งค่าเกณฑ์ขั้นต่ำสำหรับช่วงอายุ: **{select_stage_crud}**")
                 
                 sc = st.columns(3)
-                target_data = db_targets[select_stage_crud]
                 with sc[0]:
-                    up_protein = st.number_input("ขั้นต่ำของ โปรตีนดิบ (% CP):", value=float(target_data.get("โปรตีนต่ำสุด_min_protein", target_data.get("min_protein", 0.0))), step=0.1)
-                    up_me = st.number_input("ขั้นต่ำของ พลังงานใช้ประโยชน์ได้ (ME kcal/kg):", value=float(target_data.get("พลังงานต่ำสุด_min_me", target_data.get("min_me", 0.0))), step=10.0)
+                    # เพิ่มระบบ .get() รองรับคีย์ทั้ง 2 รูปแบบอย่างปลอดภัย ป้องกันค่าเป็น None
+                    val_protein = target_data.get("โปรตีนต่ำสุด_min_protein", target_data.get("min_protein", 0.0))
+                    val_me = target_data.get("พลังงานต่ำสุด_min_me", target_data.get("min_me", 0.0))
+                    
+                    up_protein = st.number_input("ขั้นต่ำของ โปรตีนดิบ (% CP):", value=float(val_protein if val_protein is not None else 0.0), step=0.1, format="%.1f")
+                    up_me = st.number_input("ขั้นต่ำของ พลังงานใช้ประโยชน์ได้ (ME kcal/kg):", value=float(val_me if val_me is not None else 0.0), step=10.0, format="%.1f")
+                
                 with sc[1]:
-                    up_calcium = st.number_input("ขั้นต่ำของ แคลเซียม (% Ca):", value=float(target_data.get("แคลเซียมต่ำสุด_min_calcium", target_data.get("min_calcium", 0.0))), step=0.01)
-                    up_phos = st.number_input("ขั้นต่ำของ ฟอสฟอรัสเป็นประโยชน์ (%):", value=float(target_data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", target_data.get("min_phos", 0.0))), step=0.01)
+                    val_calcium = target_data.get("แคลเซียมต่ำสุด_min_calcium", target_data.get("min_calcium", 0.0))
+                    val_phos = target_data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", target_data.get("min_phosphorus", target_data.get("min_phos", 0.0)))
+                    
+                    up_calcium = st.number_input("ขั้นต่ำของ แคลเซียม (% Ca):", value=float(val_calcium if val_calcium is not None else 0.0), step=0.01, format="%.2f")
+                    up_phos = st.number_input("ขั้นต่ำของ ฟอสฟอรัสเป็นประโยชน์ (%):", value=float(val_phos if val_phos is not None else 0.0), step=0.01, format="%.2f")
+                
                 with sc[2]:
-                    up_lysine = st.number_input("ขั้นต่ำของ อะมิโน ไลซีน (% Lys):", value=float(target_data.get("ไลซีนต่ำสุด_min_lysine", target_data.get("min_lysine", 0.0))), step=0.01)
-                    up_methionine = st.number_input("ขั้นต่ำของ อะมิโน เมทไธโอนีน (% Met):", value=float(target_data.get("เมทิโอนีนต่ำสุด_min_methionine", target_data.get("min_methionine", 0.0))), step=0.01)
+                    val_lysine = target_data.get("ไลซีนต่ำสุด_min_lysine", target_data.get("min_lysine", 0.0))
+                    val_methionine = target_data.get("เมทิโอนีนต่ำสุด_min_methionine", target_data.get("min_methionine", 0.0))
+                    
+                    up_lysine = st.number_input("ขั้นต่ำของ อะมิโน ไลซีน (% Lys):", value=float(val_lysine if val_lysine is not None else 0.0), step=0.01, format="%.2f")
+                    up_methionine = st.number_input("ขั้นต่ำของ อะมิโน เมทไธโอนีน (% Met):", value=float(val_methionine if val_methionine is not None else 0.0), step=0.01, format="%.2f")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้ไปยังคลาวด์", type="primary", use_container_width=True):
@@ -1098,12 +1111,13 @@ if st.session_state.user_role == "admin":
                             "ไลซีนต่ำสุด_min_lysine": up_lysine,
                             "เมทิโอนีนต่ำสุด_min_methionine": up_methionine
                         }
+                        # ทำการส่งคำสั่งเซฟไปยัง Supabase
                         supabase.table("มาตรฐานโภชนาการไก่ไข่_layer_standards").update(update_payload).eq("ช่วงอายุการเลี้ยง_phase_name", select_stage_crud).execute()
-                        st.toast("🎉 อัปเดตเกณฑ์มาตรฐานโภชนาการสำเร็จ!")
+                        
+                        st.toast(f"🎉 อัปเดตเกณฑ์โภชนาการของ '{select_stage_crud}' สำเร็จแล้ว!", icon="✅")
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ อัปเดตข้อมูลล้มเหลว: {e}")
-
     # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
     with admin_tabs[4]:
         st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
