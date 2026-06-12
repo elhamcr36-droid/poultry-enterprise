@@ -491,33 +491,6 @@ if not st.session_state.is_authenticated:
 fetch_master_data_from_supabase()
 ingredients = fetch_ingredients_from_supabase()
 
-def show_master_data_load_status():
-    required_sources = {
-        "groups": st.session_state.get("groups_table_source"),
-        "breeds": st.session_state.get("breeds_table_source"),
-        "targets": st.session_state.get("targets_table_source"),
-    }
-    missing_sources = [name for name, source in required_sources.items() if not source]
-    if missing_sources:
-        st.error(
-            "ยังโหลดข้อมูล dropdown จาก Supabase ไม่ครบ: "
-            + ", ".join(missing_sources)
-            + " กรุณาตรวจ RLS Policy ของ db_groups, db_breeds, db_targets"
-        )
-        with st.expander("ดูรายละเอียดการโหลดตารางจาก Supabase", expanded=True):
-            debug_rows = st.session_state.get("master_load_debug", [])
-            if debug_rows:
-                st.dataframe(pd.DataFrame(debug_rows), use_container_width=True, hide_index=True)
-            else:
-                st.info("ยังไม่มีข้อมูล debug จากการโหลดตาราง")
-    elif st.session_state.get("user_role") == "admin":
-        with st.expander("สถานะข้อมูล dropdown จาก Supabase", expanded=False):
-            st.success(
-                "โหลดข้อมูล dropdown สำเร็จจาก "
-                + f"groups={required_sources['groups']}, "
-                + f"breeds={required_sources['breeds']}, "
-                + f"targets={required_sources['targets']}"
-            )
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
 # ==========================================
@@ -547,7 +520,6 @@ with col_h2:
             st.session_state.auth_page_mode = "login"
             st.rerun()
 st.markdown("---")
-show_master_data_load_status()
 # ==========================================
 # 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE (UX/UI PREMIUM VERSION)
 # ==========================================
