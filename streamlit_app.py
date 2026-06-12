@@ -810,7 +810,7 @@ if st.session_state.user_role == "admin":
                                 "step": new_nut_step,
                                 "default": 0.0
                             }).execute()
-                            st.success(f"🎉 เพิ่มโครงสร้างหัวข้อสารอาหาร '{new_nut_label}' ลงเซิร์ฟเวอร์เรียบร้อยแล้ว!")
+                            st.toast(f"🎉 เพิ่มหัวข้อ '{new_nut_label}' เรียบร้อยแล้ว!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ ไม่สามารถบันทึกข้อมูลลง Supabase ได้: {e}")
@@ -827,7 +827,7 @@ if st.session_state.user_role == "admin":
                     if st.button("🗑️ ยืนยันลบออกจากระบบถาวร", type="secondary", use_container_width=True):
                         try:
                             supabase.table("โครงสร้างสารอาหาร_nutrient_keys").delete().eq("key", nut_to_del).execute()
-                            st.success(f"🔥 ลบสารอาหาร '{db_nut_keys[nut_to_del]['label']}' ออกจาก Supabase สำเร็จ")
+                            st.toast(f"🔥 ลบสารอาหารออกสำเร็จ!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ ไม่สามารถลบข้อมูลออกจากเซิร์ฟเวอร์ได้: {e}")
@@ -863,31 +863,28 @@ if st.session_state.user_role == "admin":
                     with st.form(key=f"form_edit_{selected_ing_edit}"):
                         st.markdown(f"#### 📝 แก้ไขข้อมูลสารอาหารของ: **{selected_ing_edit}**")
                         
-                        # เพิ่มหมวดหมู่เพื่อให้ครบถ้วนตามโครงสร้าง DB ภาษาไทยใหม่
-                        edit_category = st.text_input("หมวดหมู่วัตถุดิบ (Category):", value=str(target_ing.get("category", "วัตถุดิบทั่วไป")))
+                        edit_category = st.text_input("หมวดหมู่วัตถุดิบ (Category):", value=str(target_ing.get("หมวดหมู่_category", target_ing.get("category", "วัตถุดิบทั่วไป"))))
                         
                         c_limits = st.columns(2)
                         with c_limits[0]:
-                            # ตารางไทยเก็บเป็นเปอร์เซ็นต์ (สัดส่วนขั้นต่ำ_min_limit และ สัดส่วนสูงสุด_max_limit)
-                            edit_ing_min = st.number_input("สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, max_value=100.0, value=float(target_ing.get("min_limit", 0.0)), step=0.1)
+                            edit_ing_min = st.number_input("สัดส่วนขั้นต่ำที่ต้องใช้ในสูตร (% Min):", min_value=0.0, max_value=100.0, value=float(target_ing.get("สัดส่วนขั้นต่ำ_min_limit", target_ing.get("min_limit", 0.0))), step=0.1)
                         with c_limits[1]:
-                            edit_ing_max = st.number_input("สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, max_value=100.0, value=float(target_ing.get("max_limit", 100.0)), step=0.1)
+                            edit_ing_max = st.number_input("สัดส่วนสูงสุดที่ห้ามเกินในสูตร (% Max):", min_value=0.0, max_value=100.0, value=float(target_ing.get("สัดส่วนสูงสุด_max_limit", target_ing.get("max_limit", 100.0))), step=0.1)
                         
                         st.markdown("**📊 ค่าโภชนาการและสารอาหาร**")
                         
                         ec = st.columns(3)
-                        # แมปและอัปเดตค่าเข้ากับฟิลด์ของตารางภาษาไทยใหม่
                         with ec[0]:
-                            edit_price = st.number_input("ราคา_price (บาท/กก.):", min_value=0.0, value=float(target_ing.get("price", 0.0)), step=0.1)
-                            edit_protein = st.number_input("โปรตีนดิบ_protein (%):", min_value=0.0, value=float(target_ing.get("protein", 0.0)), step=0.1)
-                            edit_me = st.number_input("พลังงานใช้ประโยชน์ได้_me_kcal (kcal/kg):", min_value=0.0, value=float(target_ing.get("me", 0.0)), step=10.0)
+                            edit_price = st.number_input("ราคา_price (บาท/กก.):", min_value=0.0, value=float(target_ing.get("ราคา_price", target_ing.get("price", 0.0))), step=0.1)
+                            edit_protein = st.number_input("โปรตีนดิบ_protein (%):", min_value=0.0, value=float(target_ing.get("โปรตีนดิบ_protein", target_ing.get("protein", 0.0))), step=0.1)
+                            edit_me = st.number_input("พลังงานใช้ประโยชน์ได้_me_kcal (kcal/kg):", min_value=0.0, value=float(target_ing.get("พลังงานใช้ประโยชน์ได้_me_kcal", target_ing.get("me", 0.0))), step=10.0)
                         with ec[1]:
-                            edit_calcium = st.number_input("แคลเซียม_calcium (%):", min_value=0.0, value=float(target_ing.get("calcium", 0.0)), step=0.01)
-                            edit_phosphorus = st.number_input("ฟอสฟอรัสที่ใช้ได้_phosphorus (%):", min_value=0.0, value=float(target_ing.get("phos", 0.0)), step=0.01)
-                            edit_fiber = st.number_input("เยื่อใยดิบ_fiber (%):", min_value=0.0, value=float(target_ing.get("fiber", 0.0)), step=0.1)
+                            edit_calcium = st.number_input("แคลเซียม_calcium (%):", min_value=0.0, value=float(target_ing.get("แคลเซียม_calcium", target_ing.get("calcium", 0.0))), step=0.01)
+                            edit_phosphorus = st.number_input("ฟอสฟอรัสที่ใช้ได้_phosphorus (%):", min_value=0.0, value=float(target_ing.get("ฟอสฟอรัสที่ใช้ได้_phosphorus", target_ing.get("phos", 0.0))), step=0.01)
+                            edit_fiber = st.number_input("เยื่อใยดิบ_fiber (%):", min_value=0.0, value=float(target_ing.get("เยื่อใยดิบ_fiber", target_ing.get("fiber", 0.0))), step=0.1)
                         with ec[2]:
-                            edit_lysine = st.number_input("ไลซีน_lysine (%):", min_value=0.0, value=float(target_ing.get("lysine", 0.0)), step=0.01)
-                            edit_methionine = st.number_input("เมทิโอนีน_methionine (%):", min_value=0.0, value=float(target_ing.get("methionine", 0.0)), step=0.01)
+                            edit_lysine = st.number_input("ไลซีน_lysine (%):", min_value=0.0, value=float(target_ing.get("ไลซีน_lysine", target_ing.get("lysine", 0.0))), step=0.01)
+                            edit_methionine = st.number_input("เมทิโอนีน_methionine (%):", min_value=0.0, value=float(target_ing.get("เมทิโอนีน_methionine", target_ing.get("methionine", 0.0))), step=0.01)
 
                         st.markdown("<br>", unsafe_allow_html=True)
                         if st.form_submit_button("💾 บันทึกการเปลี่ยนแปลงทั้งหมดไปยัง Supabase", type="primary", use_container_width=True):
@@ -909,7 +906,7 @@ if st.session_state.user_role == "admin":
                                         "เยื่อใยดิบ_fiber": edit_fiber
                                     }
                                     supabase.table("คลังวัตถุดิบไก่ไข่_layer_ingredients").update(payload).eq("ชื่อวัตถุดิบ_name", selected_ing_edit).execute()
-                                    st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' บนคลาวด์เรียบร้อยแล้ว")
+                                    st.toast(f"🎉 อัปเดต '{selected_ing_edit}' สำเร็จ!")
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"❌ ปรับปรุงข้อมูลล้มเหลว: {e}")
@@ -966,7 +963,7 @@ if st.session_state.user_role == "admin":
                                 "เยื่อใยดิบ_fiber": add_fiber
                             }
                             supabase.table("คลังวัตถุดิบไก่ไข่_layer_ingredients").insert(insert_data).execute()
-                            st.success(f"🎉 นำเข้า '{ing_name_clean}' สู่ฐานข้อมูล Supabase เรียบร้อย!")
+                            st.toast(f"🎉 นำเข้า '{ing_name_clean}' สำเร็จ!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ ไม่สามารถเพิ่มวัตถุดิบใหม่ได้: {e}")
@@ -980,7 +977,7 @@ if st.session_state.user_role == "admin":
                 if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบคลาวด์", type="primary", use_container_width=True):
                     try:
                         supabase.table("คลังวัตถุดิบไก่ไข่_layer_ingredients").delete().eq("ชื่อวัตถุดิบ_name", to_del).execute()
-                        st.success(f"🔥 ลบ '{to_del}' ออกจากระบบฐานข้อมูลเรียบร้อย")
+                        st.toast(f"🔥 ลบวัตถุดิบออกเรียบร้อย")
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ ลบล้มเหลว: {e}")
@@ -992,7 +989,6 @@ if st.session_state.user_role == "admin":
 
         with st.expander("📊 เปิดดูทำเนียบสายพันธุ์ไก่ไข่ในระบบทั้งหมด", expanded=True):
             if db_breeds:
-                # แปลงหัวข้อแสดงผลให้อ่านง่ายสอดคล้องตารางภาษาไทย
                 df_breeds_show = pd.DataFrame(db_breeds).rename(columns={
                     "กลุ่มสายพันธุ์_group_name": "กลุ่มสายพันธุ์",
                     "ชื่อสายพันธุ์_breed_name": "ชื่อสายพันธุ์สัตว์",
@@ -1009,7 +1005,7 @@ if st.session_state.user_role == "admin":
         with bc1:
             st.markdown("### ➕ เพิ่มสายพันธุ์ใหม่")
             with st.container(border=True):
-                group_options = [g.get("ชื่อกลุ่ม_group_name", "Unknown") for g in db_groups] if db_groups else ["ไม่มีกลุ่มสายพันธุ์"]
+                group_options = [g.get("ชื่อกลุ่ม_group_name", g.get("group_name", "Unknown")) for g in db_groups] if db_groups else ["ไม่มีกลุ่มสายพันธุ์"]
                 b_group = st.selectbox("กลุ่มสายพันธุ์หลัก:", group_options)
                 b_name = st.text_input("ชื่อทางการค้า (Breed Name):", placeholder="เช่น ไฮ-เซ็กซ์ บราวน์")
                 b_egg = st.text_input("ลักษณะเด่น/สีของเปลือกไข่:", placeholder="เช่น เปลือกไข่สีน้ำตาลเข้ม")
@@ -1024,7 +1020,7 @@ if st.session_state.user_role == "admin":
                                 "สีเปลือกไข่_egg_shell_color": b_egg, 
                                 "ปริมาณอาหารที่กิน_feed_intake_g": b_feed
                             }).execute()
-                            st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
+                            st.toast(f"🎉 เพิ่มสายพันธุ์เรียบร้อย")
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ เพิ่มสายพันธุ์ล้มเหลว: {e}")
@@ -1035,12 +1031,12 @@ if st.session_state.user_role == "admin":
             st.markdown("### ❌ ลบข้อมูลสายพันธุ์")
             with st.container(border=True):
                 if db_breeds:
-                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b.get("ชื่อสายพันธุ์_breed_name", "Unknown") for b in db_breeds])
+                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b.get("ชื่อสายพันธุ์_breed_name", b.get("breed_name", "Unknown")) for b in db_breeds])
                     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
                     if st.button("🗑️ ยืนยันลบออกจากทำเนียบเซิร์ฟเวอร์", type="primary", use_container_width=True):
                         try:
                             supabase.table("สายพันธุ์ไก่ไข่_layer_breeds").delete().eq("ชื่อสายพันธุ์_breed_name", b_del).execute()
-                            st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
+                            st.toast(f"🔥 ลบสายพันธุ์สำเร็จ")
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ ลบข้อมูลล้มเหลว: {e}")
@@ -1049,7 +1045,16 @@ if st.session_state.user_role == "admin":
 
     # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการ (ตาราง มาตรฐานโภชนาการไก่ไข่_layer_standards) ---
     with admin_tabs[3]:
-        db_targets = fetch_targets_from_supabase()
+        raw_targets = fetch_targets_from_supabase()
+        
+        # ป้องกันโครงสร้างข้อมูลเพี้ยนจากหลังบ้าน จัด Format ให้เป็น Dict สะอาดๆ
+        db_targets = {}
+        if isinstance(raw_targets, list):
+            for item in raw_targets:
+                k = item.get("ช่วงอายุการเลี้ยง_phase_name", item.get("phase_name", "Unknown"))
+                db_targets[k] = item
+        elif isinstance(raw_targets, dict):
+            db_targets = raw_targets
 
         with st.expander("📊 เปิดดูค่าเกณฑ์มาตรฐานโภชนาการสัตว์ ณ ปัจจุบัน", expanded=False):
             if db_targets:
@@ -1071,16 +1076,16 @@ if st.session_state.user_role == "admin":
                 st.markdown(f"📝 ตั้งค่าเกณฑ์ขั้นต่ำสำหรับช่วงอายุ: **{select_stage_crud}**")
                 
                 sc = st.columns(3)
-                # ดึงเป้าหมายสารอาหารเฉพาะตัวหลักออกมาให้ Admin ปรับได้ทันที
+                target_data = db_targets[select_stage_crud]
                 with sc[0]:
-                    up_protein = st.number_input("ขั้นต่ำของ โปรตีนดิบ (% CP):", value=float(db_targets[select_stage_crud].get("min_protein", 0.0)), step=0.1)
-                    up_me = st.number_input("ขั้นต่ำของ พลังงานใช้ประโยชน์ได้ (ME kcal/kg):", value=float(db_targets[select_stage_crud].get("min_me", 0.0)), step=10.0)
+                    up_protein = st.number_input("ขั้นต่ำของ โปรตีนดิบ (% CP):", value=float(target_data.get("โปรตีนต่ำสุด_min_protein", target_data.get("min_protein", 0.0))), step=0.1)
+                    up_me = st.number_input("ขั้นต่ำของ พลังงานใช้ประโยชน์ได้ (ME kcal/kg):", value=float(target_data.get("พลังงานต่ำสุด_min_me", target_data.get("min_me", 0.0))), step=10.0)
                 with sc[1]:
-                    up_calcium = st.number_input("ขั้นต่ำของ แคลเซียม (% Ca):", value=float(db_targets[select_stage_crud].get("min_calcium", 0.0)), step=0.01)
-                    up_phos = st.number_input("ขั้นต่ำของ ฟอสฟอรัสเป็นประโยชน์ (%):", value=float(db_targets[select_stage_crud].get("min_phos", 0.0)), step=0.01)
+                    up_calcium = st.number_input("ขั้นต่ำของ แคลเซียม (% Ca):", value=float(target_data.get("แคลเซียมต่ำสุด_min_calcium", target_data.get("min_calcium", 0.0))), step=0.01)
+                    up_phos = st.number_input("ขั้นต่ำของ ฟอสฟอรัสเป็นประโยชน์ (%):", value=float(target_data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", target_data.get("min_phos", 0.0))), step=0.01)
                 with sc[2]:
-                    up_lysine = st.number_input("ขั้นต่ำของ อะมิโน ไลซีน (% Lys):", value=float(db_targets[select_stage_crud].get("min_lysine", 0.0)), step=0.01)
-                    up_methionine = st.number_input("ขั้นต่ำของ อะมิโน เมทไธโอนีน (% Met):", value=float(db_targets[select_stage_crud].get("min_methionine", 0.0)), step=0.01)
+                    up_lysine = st.number_input("ขั้นต่ำของ อะมิโน ไลซีน (% Lys):", value=float(target_data.get("ไลซีนต่ำสุด_min_lysine", target_data.get("min_lysine", 0.0))), step=0.01)
+                    up_methionine = st.number_input("ขั้นต่ำของ อะมิโน เมทไธโอนีน (% Met):", value=float(target_data.get("เมทิโอนีนต่ำสุด_min_methionine", target_data.get("min_methionine", 0.0))), step=0.01)
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้ไปยังคลาวด์", type="primary", use_container_width=True):
@@ -1094,7 +1099,7 @@ if st.session_state.user_role == "admin":
                             "เมทิโอนีนต่ำสุด_min_methionine": up_methionine
                         }
                         supabase.table("มาตรฐานโภชนาการไก่ไข่_layer_standards").update(update_payload).eq("ช่วงอายุการเลี้ยง_phase_name", select_stage_crud).execute()
-                        st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการบนคลาวด์เรียบร้อยแล้ว!")
+                        st.toast("🎉 อัปเดตเกณฑ์มาตรฐานโภชนาการสำเร็จ!")
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ อัปเดตข้อมูลล้มเหลว: {e}")
