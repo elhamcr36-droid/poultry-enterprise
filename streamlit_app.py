@@ -150,17 +150,31 @@ FALLBACK_INGREDIENTS = {
     "เปลือกหอยบด": {"name": "เปลือกหอยบด", "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
 }
 
+DEFAULT_INGREDIENT_OWNER = "system_default"
+
+def get_ingredient_owner_for_write(existing_ingredient=None):
+    if isinstance(existing_ingredient, dict) and existing_ingredient.get("owner_email"):
+        return existing_ingredient["owner_email"]
+    if st.session_state.get("user_role") == "admin":
+        return DEFAULT_INGREDIENT_OWNER
+    return st.session_state.get("current_user_key") or DEFAULT_INGREDIENT_OWNER
+
 def fetch_ingredients_from_supabase():
     try:
+        rows = []
         # 🔥 แก้ไข: ตรวจสอบและดึงข้อมูลแยกตามเจ้าของ (owner_email) ตัวใครตัวมันอย่างแท้จริง
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             user_email = st.session_state.current_user_key
-            response = supabase.table("ingredients").select("*").eq("owner_email", user_email).execute()
+            default_response = supabase.table("ingredients").select("*").eq("owner_email", DEFAULT_INGREDIENT_OWNER).execute()
+            user_response = supabase.table("ingredients").select("*").eq("owner_email", user_email).execute()
+            rows.extend(default_response.data or [])
+            rows.extend(user_response.data or [])
         else:
             response = supabase.table("ingredients").select("*").execute()
+            rows = response.data or []
             
-        if response.data and len(response.data) > 0:
-            ingredients_dict = {item["name"]: item for item in response.data}
+        if rows:
+            ingredients_dict = {item["name"]: item for item in rows}
             st.session_state.db_ingredients = ingredients_dict
             return ingredients_dict
         else:
@@ -535,8 +549,10 @@ if st.session_state.user_role == "admin":
                         
                         # ⚡ ซิงค์ความถาวรลง Supabase Cloud Database แบบเรียลไทม์
                         try:
-                            payload = {"name": selected_ing_edit, "min_limit": edit_ing_min, "max_limit": edit_ing_max}
+                            owner_email = get_ingredient_owner_for_write(target_ing)
+                            payload = {"name": selected_ing_edit, "min_limit": edit_ing_min, "max_limit": edit_ing_max, "owner_email": owner_email}
                             payload.update(edited_values)
+                            st.session_state.db_ingredients[selected_ing_edit]["owner_email"] = owner_email
                             supabase.table("ingredients").upsert(payload).execute()
                             st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' ลงระบบคลาวด์เรียบร้อยแล้ว")
                             st.rerun()
@@ -570,7 +586,8 @@ if st.session_state.user_role == "admin":
                     elif ing_min > ing_max:
                         st.error("❌ ข้อผิดพลาด: ค่าต่ำสุดห้ามมากกว่าค่าสูงสุด")
                     else:
-                        base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max}
+                        owner_email = get_ingredient_owner_for_write()
+                        base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max, "owner_email": owner_email}
                         base_data.update(new_material_data)
                         
                         # บันทึกลงเครื่องและยิงขึ้นฐานข้อมูลคลาวด์ Supabase
@@ -586,11 +603,12 @@ if st.session_state.user_role == "admin":
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
             to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
             if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
-                del st.session_state.db_ingredients[to_del]
+                owner_email = get_ingredient_owner_for_write(st.session_state.db_ingredients.get(to_del, {}))
                 try:
-                    supabase.table("ingredients").delete().eq("name", to_del).execute()
+                    supabase.table("ingredients").delete().eq("name", to_del).eq("owner_email", owner_email).execute()
                 except:
                     pass
+                del st.session_state.db_ingredients[to_del]
                 st.success(f"🔥 ลบ '{to_del}' ออกจากคลังเรียบร้อยแล้ว")
                 st.rerun()
 
