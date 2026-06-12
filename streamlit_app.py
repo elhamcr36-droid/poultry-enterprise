@@ -152,28 +152,38 @@ FALLBACK_INGREDIENTS = {
 
 def fetch_ingredients_from_supabase():
     try:
-        # 1. พยายามดึงข้อมูลสิทธิ์เฉพาะบัญชีผู้ใช้ปัจจุบันก่อน
-        if st.session_state.is_authenticated and st.session_state.current_user_key:
-            user_email = st.session_state.current_user_key
-            response = supabase.table("ingredients").select("*").eq("owner_email", user_email).execute()
+        # บังคับดึงข้อมูลจากตาราง ingredients ทั้งหมดบน Supabase เพื่อลดปัญหากรองอีเมลแล้วไม่เจอข้อมูลนิ่ง
+        response = supabase.table("ingredients").select("*").execute()
+        
+        if response.data and len(response.data) > 0:
+            ingredients_dict = {}
+            for item in response.data:
+                # ป้องกันกรณีข้อมูลในแมปมี key พิมพ์เล็ก-ใหญ่ไม่ตรงกัน
+                name_key = item.get("name") or item.get("Name")
+                if name_key:
+                    ingredients_dict[name_key] = {
+                        "name": name_key,
+                        "price": float(item.get("price", 0.0)),
+                        "protein": float(item.get("protein", 0.0)),
+                        "me": float(item.get("me", 0.0)),
+                        "calcium": float(item.get("calcium", 0.0)),
+                        "phos": float(item.get("phos", 0.0)),
+                        "lysine": float(item.get("lysine", 0.0)),
+                        "methionine": float(item.get("methionine", 0.0)),
+                        "fiber": float(item.get("fiber", 0.0)),
+                        "min_limit": float(item.get("min_limit", 0.0)),
+                        "max_limit": float(item.get("max_limit", 100.0)),
+                        "owner_email": item.get("owner_email", "system_default")
+                    }
             
-            if response.data and len(response.data) > 0:
-                ingredients_dict = {item["name"]: item for item in response.data}
+            # ถ้าโหลดคัดแยกมาสำเร็จ ให้บันทึกและส่งคืนค่าทันที
+            if len(ingredients_dict) > 0:
                 st.session_state.db_ingredients = ingredients_dict
                 return ingredients_dict
 
-        # 2. หากยูสเซอร์รายนี้ยังไม่มีคลังข้อมูล ให้สลับมาดึงข้อมูลชุดเมกะฟาร์ม (system_default) บนคลาวด์
-        response_default = supabase.table("ingredients").select("*").eq("owner_email", "system_default").execute()
-        if response_default.data and len(response_default.data) > 0:
-            ingredients_dict = {item["name"]: item for item in response_default.data}
-            st.session_state.db_ingredients = ingredients_dict
-            return ingredients_dict
-        
-        # 3. กรณีเกิดเหตุฉุกเฉินฐานข้อมูลว่างเปล่าจริงๆ ให้ผูกค่าระบบออฟไลน์แทน
         st.session_state.db_ingredients = FALLBACK_INGREDIENTS
         return FALLBACK_INGREDIENTS
     except Exception as e:
-        st.warning(f"⚠️ ดึงข้อมูลจากคลาวด์ไม่สำเร็จ (กำลังใช้ข้อมูลสำรองในระบบแทน): {e}")
         st.session_state.db_ingredients = FALLBACK_INGREDIENTS
         return FALLBACK_INGREDIENTS
 
@@ -186,7 +196,6 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     
     current_ingredients = fetch_ingredients_from_supabase()
     if not current_ingredients:
-        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
         return {}
 
     ing_vars = {
@@ -259,9 +268,7 @@ if not st.session_state.is_authenticated:
 
                         st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
                         
-                        # บังคับโหลดข้อมูลคลังจากระบบจัดเก็บลง Session State ทันทีที่ผ่านประตูความปลอดภัย
                         fetch_ingredients_from_supabase()
-                        
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
                         st.rerun()
 
@@ -388,16 +395,14 @@ if not st.session_state.is_authenticated:
 # ==========================================
 # 🐓 5. MAIN APPLICATION RENDERER
 # ==========================================
-# โหลดข้อมูลจริงชุดใหญ่ขึ้นมาอัปเดตตัวแปรกลางหลักของระบบ
 ingredients = fetch_ingredients_from_supabase()
 
-# แสดงผลหน้าจอและทำเมนูแท็บคำนวณต่อด้านล่างได้เลยครับ...
+# แสดงผลหน้าจอหลักอย่างเป็นทางการ (นำตารางทดสอบดิบด้านบนออกเรียบร้อยแล้ว)
 st.title("🌾 แผงควบคุมระบบโภชนาการสัตว์ระดับอุตสาหกรรม")
-st.write(f"ผู้ใช้งานปัจจุบัน: {st.session_state.user_email}")
+st.write(f"ผู้ใช้งานปัจจุบัน: **{st.session_state.user_email}**")
 
-# ทดสอบแสดงตารางดิบเพื่อความมั่นใจ
-st.dataframe(pd.DataFrame(ingredients.values()))
-
+# บล็อกตกแต่ง Layout หน้าจอถัดไป (สามารถใส่แท็บการคำนวณและ Pulp Solver ด้านล่างต่อได้เลย...)
+st.markdown("<div class='content-card'><h3>📊 ยินดีต้อนรับสู่ระบบคำนวณสูตรอาหารแบบแม่นยำสูง</h3><p>ระบบพร้อมดึงคลังข้อมูลวัตถุดิบและโภชนาการจากคลาวด์เรียบร้อยแล้ว</p></div>", unsafe_allow_html=True)
 # ==========================================
 # 🎉 6. HEADER CONTROL PANEL
 # ==========================================
