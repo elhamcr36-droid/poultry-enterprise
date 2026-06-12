@@ -18,36 +18,18 @@ if "cloud_connected" not in st.session_state:
     st.session_state.cloud_connected = False
 
 @st.cache_resource(show_spinner=False)
-def init_supabase():
+def init_supabase_client():
+    """ริเริ่มการเชื่อมต่อ Supabase เพียงครั้งเดียวและปลอดภัย"""
     try:
-        client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        st.session_state.cloud_connected = True
+        client = create_client(SUPABASE_URL.strip(), SUPABASE_KEY.strip())
+        # ทดสอบการเชื่อมต่อเบื้องต้นแบบเบาๆ
         return client
     except Exception as e:
-        st.session_state.cloud_connected = False
         return None
 
-supabase = init_supabase()
-@st.cache_resource(show_spinner=False)
-def init_supabase():
-    try:
-        st.write("Connecting to:", SUPABASE_URL)
-
-        client = create_client(
-            SUPABASE_URL.strip(),
-            SUPABASE_KEY.strip()
-        )
-
-        # ทดสอบ Query จริง
-        client.table("ingredients").select("*").limit(1).execute()
-
-        st.session_state.cloud_connected = True
-        return client
-
-    except Exception as e:
-        st.session_state.cloud_connected = False
-        st.exception(e)
-        return None
+# เรียกใช้งาน Client
+supabase = init_supabase_client()
+st.session_state.cloud_connected = True if supabase is not None else False
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
@@ -116,6 +98,18 @@ st.markdown(
 # ==========================================
 # 🔐 2. SECURITY & STATE INITIALIZATION
 # ==========================================
+FALLBACK_INGREDIENTS = {
+    "ข้าวโพดบด": {"name": "ข้าวโพดบด", "min_limit": 0.0, "max_limit": 65.0, "price": 12.5, "protein": 8.0, "me": 3370, "calcium": 0.02, "phos": 0.08, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
+    "กากถั่วเหลือง (44%)": {"name": "กากถั่วเหลือง (44%)", "min_limit": 0.0, "max_limit": 35.0, "price": 22.0, "protein": 44.0, "me": 2230, "calcium": 0.29, "phos": 0.20, "lysine": 2.69, "methionine": 0.62, "fiber": 6.0},
+    "รำละเอียด": {"name": "รำละเอียด", "min_limit": 0.0, "max_limit": 20.0, "price": 10.5, "protein": 12.0, "me": 2860, "calcium": 0.07, "phos": 0.22, "lysine": 0.60, "methionine": 0.24, "fiber": 4.0},
+    "เปลือกหอยบด": {"name": "เปลือกหอยบด", "min_limit": 0.0, "max_limit": 12.0, "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
+}
+
+FALLBACK_TARGETS = {
+    "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "🐣 ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
+    "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "🐓 ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
+}
+
 states = {
     "is_authenticated": False,
     "auth_page_mode": "login",
@@ -125,8 +119,9 @@ states = {
     "saved_formulas": [],
     "daily_logs": [],
     "current_weights": {},
-    "db_ingredients": {},
-    "db_targets": {}
+    "db_ingredients": FALLBACK_INGREDIENTS, # ป้องกันปัญหากล่องข้อมูลว่างเปล่า
+    "db_targets": FALLBACK_TARGETS,
+    "view_mode": "user"
 }
 
 for key, value in states.items():
@@ -166,18 +161,6 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-FALLBACK_INGREDIENTS = {
-    "ข้าวโพดบด": {"name": "ข้าวโพดบด", "min_limit": 0.0, "max_limit": 65.0, "price": 12.5, "protein": 8.0, "me": 3370, "calcium": 0.02, "phos": 0.08, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
-    "กากถั่วเหลือง (44%)": {"name": "กากถั่วเหลือง (44%)", "min_limit": 0.0, "max_limit": 35.0, "price": 22.0, "protein": 44.0, "me": 2230, "calcium": 0.29, "phos": 0.20, "lysine": 2.69, "methionine": 0.62, "fiber": 6.0},
-    "รำละเอียด": {"name": "รำละเอียด", "min_limit": 0.0, "max_limit": 20.0, "price": 10.5, "protein": 12.0, "me": 2860, "calcium": 0.07, "phos": 0.22, "lysine": 0.60, "methionine": 0.24},
-    "เปลือกหอยบด": {"name": "เปลือกหอยบด", "min_limit": 0.0, "max_limit": 12.0, "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
-}
-
-FALLBACK_TARGETS = {
-    "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "🐣 ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-    "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "🐓 ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
-}
-
 # ==========================================
 # 📥 2.5 SUPABASE DATA FETCHING FUNCTIONS
 # ==========================================
@@ -193,12 +176,9 @@ def fetch_ingredients_from_supabase():
                 ingredients_dict = {item["name"]: item for item in response.data}
                 st.session_state.db_ingredients = ingredients_dict
                 return ingredients_dict
-        
-        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
-        return FALLBACK_INGREDIENTS
+        return st.session_state.db_ingredients
     except Exception:
-        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
-        return FALLBACK_INGREDIENTS
+        return st.session_state.db_ingredients
 
 def fetch_targets_from_supabase():
     try:
@@ -208,12 +188,9 @@ def fetch_targets_from_supabase():
                 targets_dict = {item["stage_key"]: item for item in response.data}
                 st.session_state.db_targets = targets_dict
                 return targets_dict
-        
-        st.session_state.db_targets = FALLBACK_TARGETS
-        return FALLBACK_TARGETS
+        return st.session_state.db_targets
     except Exception:
-        st.session_state.db_targets = FALLBACK_TARGETS
-        return FALLBACK_TARGETS
+        return st.session_state.db_targets
 
 def fetch_saved_formulas_from_supabase():
     try:
@@ -248,39 +225,40 @@ def save_formula_to_supabase(formula_name, stage_name, calculated_mix, total_cos
 # ==========================================
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_Layer_Solver", pulp.LpMinimize)
-    current_ingredients = st.session_state.db_ingredients if st.session_state.db_ingredients else FALLBACK_INGREDIENTS
+    current_ingredients = st.session_state.db_ingredients
     
-    # 🌟 ตั้งค่าตัวแปรตัดสินใจ (Decision Variables) อิงตามข้อมูลกรอบ Min-Max ในระบบ
+    # 🌟 ตั้งค่าตัวแปรตัดสินใจ (Decision Variables)
     ing_vars = {}
     for name, d in current_ingredients.items():
         low = float(d.get("min_limit", 0)) / 100.0
         up = float(d.get("max_limit", 100)) / 100.0
         ing_vars[name] = pulp.LpVariable(name, lowBound=low, upBound=up)
     
-    # ตัวแปรผ่อนปรน (Elastic Slacks) ป้องกันสมการไร้คำตอบ (Infeasible)
-    s_p = pulp.LpVariable("s_p", lowBound=0)
-    s_m = pulp.LpVariable("s_m", lowBound=0)
-    s_c = pulp.LpVariable("s_c", lowBound=0)
+    # ตัวแปรผ่อนปรน (Elastic Slacks) ป้องกันสมการไร้คำตอบ ครอบคลุมทุกสารอาหารหลัก
+    slacks = {k: pulp.LpVariable(f"s_{k}", lowBound=0) for k in ["p", "m", "c", "ph", "ly", "me"]}
     
-    # Objective Function: คำนวณหาต้นทุนราคาวัตถุดิบเฉลี่ยที่ถูกที่สุด
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("price", 0)) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Cost"
+    # Objective Function: คำนวณหาต้นทุนราคาวัตถุดิบเฉลี่ยที่ถูกที่สุด + Penalty สำหรับ Slack
+    penalty = 10000.0
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("price", 0)) for name, d in current_ingredients.items()]) + \
+            pulp.lpSum([slacks[k] * penalty for k in slacks.keys()]), "Cost"
     
     # Constraints: สัดส่วนรวมวัตถุดิบทั้งหมดต้องเท่ากับ 100% (1.0)
     prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
     
-    # สารอาหารขั้นต่ำที่ต้องการ
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("protein", 0)) for name, d in current_ingredients.items()]) + s_p >= req_p
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("me", 0)) for name, d in current_ingredients.items()]) + s_m >= req_m
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("calcium", 0)) for name, d in current_ingredients.items()]) + s_c >= req_c
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("phos", 0)) for name, d in current_ingredients.items()]) >= req_ph
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("lysine", 0)) for name, d in current_ingredients.items()]) >= req_ly
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("methionine", 0)) for name, d in current_ingredients.items()]) >= req_me
+    # สารอาหารขั้นต่ำที่ต้องการบวกตัวแปรผ่อนปรน
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("protein", 0)) for name, d in current_ingredients.items()]) + slacks["p"] >= req_p
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("me", 0)) for name, d in current_ingredients.items()]) + slacks["m"] >= req_m
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("calcium", 0)) for name, d in current_ingredients.items()]) + slacks["c"] >= req_c
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("phos", 0)) for name, d in current_ingredients.items()]) + slacks["ph"] >= req_ph
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("lysine", 0)) for name, d in current_ingredients.items()]) + slacks["ly"] >= req_ly
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("methionine", 0)) for name, d in current_ingredients.items()]) + slacks["me"] >= req_me
     
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
     res = {}
     for name in current_ingredients.keys():
-        res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
+        val = ing_vars[name].varValue
+        res[name] = round(val * 100.0, 1) if val is not None else 0.0
     return res
 
 # ==========================================
@@ -309,6 +287,7 @@ if not st.session_state.is_authenticated:
                             st.session_state.is_authenticated = True
                             st.session_state.current_user_key = email_login
                             st.session_state.user_role = "admin" if email_login.lower() == "222@gmail.com" else "user"
+                            st.session_state.view_mode = st.session_state.user_role
                             st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
                             
                             fetch_ingredients_from_supabase()
@@ -319,13 +298,13 @@ if not st.session_state.is_authenticated:
                     except Exception:
                         st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือระบบ Cloud ขัดข้อง")
                 else:
-                    # Offline Master Bypass หากระบบตรวจพบว่าหน้างานไม่มีอินเทอร์เน็ต
+                    # Offline Master Bypass
                     if email_login == "admin@gmail.com" and pass_login == "1234":
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = "admin@gmail.com"
                         st.session_state.user_role = "admin"
+                        st.session_state.view_mode = "admin"
                         st.session_state.user_email = "Local Admin [OFFLINE]"
-                        fetch_ingredients_from_supabase()
                         st.rerun()
                     else:
                         st.error("⚠️ โหมดออฟไลน์ใช้งานได้เฉพาะบัญชีผู้ดูแลระบบฉุกเฉินเท่านั้น")
@@ -338,7 +317,6 @@ if not st.session_state.is_authenticated:
         st.stop()
 
     elif st.session_state.auth_page_mode == "signup":
-        # ... [ ส่วนหน้า Signup คงเดิมตามสถาปัตยกรรมเดิมของคุณ ] ...
         st.markdown("<div class='content-card' style='max-width: 600px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>📝 สมัครสมาชิกฟาร์มใหม่ (Sign Up)</h2>", unsafe_allow_html=True)
         su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้:")
@@ -349,12 +327,6 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-# 🔄 โหลดข้อมูลใส่หน่วยความจำ State หล่อเลี้ยงแอปพลิเคชัน
-if not st.session_state.db_ingredients:
-    fetch_ingredients_from_supabase()
-if not st.session_state.db_targets:
-    fetch_targets_from_supabase()
-
 # ==========================================
 # 🎉 5. MAIN ROUTER & INTERFACE CONTROL
 # ==========================================
@@ -364,10 +336,11 @@ with col_h1:
 with col_h2:
     cc1, cc2 = st.columns(2)
     with cc1:
-        if st.session_state.user_role == "admin" or "admin" in st.session_state.user_email.lower():
-            current_mode = st.session_state.get("view_mode", "admin")
-            if st.button(f"🔄 ดูหน้า {'User' if current_mode == 'admin' else 'Admin'}", use_container_width=True):
-                st.session_state.view_mode = "user" if current_mode == "admin" else "admin"
+        if st.session_state.user_role == "admin":
+            current_mode = st.session_state.view_mode
+            toggle_mode = "user" if current_mode == "admin" else "admin"
+            if st.button(f"🔄 ดูหน้า {toggle_mode.upper()}", use_container_width=True):
+                st.session_state.view_mode = toggle_mode
                 st.rerun()
     with cc2:
         if st.button("🔴 ออกจากระบบ", use_container_width=True):
@@ -377,8 +350,7 @@ with col_h2:
             st.rerun()
 st.markdown("---")
 
-# คัดกรองหน้าเมนูย่อยตามบทบาทของผู้ใช้ขณะนั้น
-view_mode = st.session_state.get("view_mode", st.session_state.user_role)
+view_mode = st.session_state.view_mode
 
 if view_mode == "admin":
     st.title("💻 Admin Master Data Control")
@@ -387,7 +359,6 @@ if view_mode == "admin":
     with admin_tabs[1]:
         st.subheader("จัดการวัตถุดิบแกนกลางฟาร์ม")
         st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
-        # ส่วนกระบวนการจัดการ CRUD วัตถุดิบของคุณ...
 
 else:
     # ==========================================
