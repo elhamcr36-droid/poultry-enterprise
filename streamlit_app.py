@@ -157,21 +157,24 @@ def fetch_ingredients_from_supabase():
         if response.data and len(response.data) > 0:
             ingredients_dict = {}
             for item in response.data:
+                # ตรวจสอบตัวพิมพ์เล็ก-ใหญ่ของชื่อวัตถุดิบตามหัวตารางจริง
                 name_key = item.get("name") or item.get("Name")
                 if name_key:
-                    # ป้องกัน KeyError: กรณีคอลัมน์ใน Supabase ไม่มี หรือชื่อพิมพ์เล็กพิมพ์ใหญ่ไม่ตรงกัน
+                    # ตรวจจับคุณค่าอาหารจากตาราง Supabase จริง ป้องกันค่า None พังระบบด้วยการ OR 0.0 
                     ingredients_dict[name_key] = {
                         "name": name_key,
-                        "price": float(item.get("price") or 0.0),
-                        "protein": float(item.get("protein") or 0.0),
-                        "me": float(item.get("me") or 0.0),
-                        "calcium": float(item.get("calcium") or 0.0),
-                        "phos": float(item.get("phos") or 0.0),
-                        "lysine": float(item.get("lysine") or 0.0),
-                        "methionine": float(item.get("methionine") or 0.0),
-                        "fiber": float(item.get("fiber") or 0.0),
-                        "min_limit": float(item.get("min_limit") or 0.0),
-                        "max_limit": float(item.get("max_limit") or 100.0),
+                        "price": float(item.get("price") if item.get("price") is not None else 0.0),
+                        "protein": float(item.get("protein") if item.get("protein") is not None else 0.0),
+                        "me": float(item.get("me") if item.get("me") is not None else 0.0),
+                        "calcium": float(item.get("calcium") if item.get("calcium") is not None else 0.0),
+                        "phos": float(item.get("phos") if item.get("phos") is not None else 0.0),
+                        # หากไม่มีคอลัมน์ lysine, methionine หรือ fiber ใน DB ให้สกัดจากชื่อหรือใส่ค่า Default ไว้ก่อน
+                        "lysine": float(item.get("lysine") if item.get("lysine") is not None else (94.0 if "Lysine" in name_key or "ไลซีน" in name_key else 0.0)),
+                        "methionine": float(item.get("methionine") if item.get("methionine") is not None else (58.0 if "Methionine" in name_key or "เมทไธโอนีน" in name_key else 0.0)),
+                        "fiber": float(item.get("fiber") if item.get("fiber") is not None else 0.0),
+                        # สลบล็อกขอบเขตขั้นต่ำ-สูงสุด ป้องกันระบบพังเนื่องจากในตาราง Supabase ไม่มีคอลัมน์เหล่านี้
+                        "min_limit": float(item.get("min_limit") if item.get("min_limit") is not None else 0.0),
+                        "max_limit": float(item.get("max_limit") if item.get("max_limit") is not None else 100.0),
                         "owner_email": item.get("owner_email", "system_default")
                     }
             
@@ -182,6 +185,7 @@ def fetch_ingredients_from_supabase():
         st.session_state.db_ingredients = FALLBACK_INGREDIENTS
         return FALLBACK_INGREDIENTS
     except Exception as e:
+        # หากเกิดข้อผิดพลาดในการเชื่อมต่อหรือ Query ข้อมูลขัดข้อง ให้สลับไปใช้ Fallback
         st.session_state.db_ingredients = FALLBACK_INGREDIENTS
         return FALLBACK_INGREDIENTS
 
@@ -390,19 +394,34 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
+
 # ==========================================
 # 🐓 5. MAIN APPLICATION RENDERER
 # ==========================================
-# ดึงข้อมูลมาแสดงผลในแอปอย่างเป็นทางการหลังจากล็อกอินสำเร็จ
+# ดึงข้อมูลจาก Supabase ล่าสุดเข้าสู่ระบบหลังยืนยันตัวตนผ่านเรียบร้อย
 ingredients = fetch_ingredients_from_supabase()
 
 st.title("🌾 แผงควบคุมระบบโภชนาการสัตว์ระดับอุตสาหกรรม")
 st.write(f"ผู้ใช้งานปัจจุบัน: **{st.session_state.user_email}**")
 
-# สามารถเขียนการแสดงผลตารางหรือกราฟในแถบเมนูต่างๆ ต่อจากด้านล่างนี้ได้เลยครับ...
+# --- ส่วนของการทดสอบและแสดงผลตารางวัตถุดิบจริงจาก Supabase ---
+st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+st.subheader("📋 รายการวัตถุดิบอาหารสัตว์อาหารไก่ไข่จากฐานข้อมูล Supabase")
 
-# บล็อกตกแต่ง Layout หน้าจอถัดไป (สามารถใส่แท็บการคำนวณและ Pulp Solver ด้านล่างต่อได้เลย...)
-st.markdown("<div class='content-card'><h3>📊 ยินดีต้อนรับสู่ระบบคำนวณสูตรอาหารแบบแม่นยำสูง</h3><p>ระบบพร้อมดึงคลังข้อมูลวัตถุดิบและโภชนาการจากคลาวด์เรียบร้อยแล้ว</p></div>", unsafe_allow_html=True)
+if ingredients:
+    # แปลง Dictionary ข้อมูลวัตถุดิบเป็น DataFrame เพื่อให้ดึงไปเปิดดูและตรวจสอบบนหน้าเว็บ Streamlit
+    df_display = pd.DataFrame.from_dict(ingredients, orient='index')
+    
+    # จัดคอลัมน์ให้อ่านง่ายสำหรับผู้ใช้งาน
+    df_display = df_display[['name', 'price', 'protein', 'me', 'calcium', 'phos']]
+    df_display.columns = ['ชื่อวัตถุดิบ', 'ราคา (บาท/กก.)', 'โปรตีนดิบ (%)', 'พลังงานใช้ประโยชน์ได้ (ME)', 'แคลเซียม (%)', 'ฟอสฟอรัส (%)']
+    
+    st.dataframe(df_display, use_container_width=True)
+    st.success(f"🟢 ดึงข้อมูลวัตถุดิบสำเร็จ! พบข้อมูลทั้งหมด {len(df_display)} รายการ")
+else:
+    st.warning("⚠️ ไม่พบข้อมูลวัตถุดิบในระบบ หรือฐานข้อมูลกำลังใช้โหมดสำรองอยู่")
+
+st.markdown("</div>", unsafe_allow_html=True)
 # ==========================================
 # 🎉 6. HEADER CONTROL PANEL
 # ==========================================
