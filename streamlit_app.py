@@ -10,7 +10,6 @@ from supabase import create_client, Client
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
-# แนะนำให้ย้ายคีย์ไปไว้ที่ .streamlit/secrets.toml ในการใช้งานจริง
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
 
@@ -90,7 +89,6 @@ st.markdown(
 # ==========================================
 # 🔐 2. SECURITY & STATE INITIALIZATION
 # ==========================================
-# รวบรวม State พื้นฐานให้สั้นกระชับ
 states = {
     "is_authenticated": False,
     "auth_page_mode": "login",
@@ -99,14 +97,13 @@ states = {
     "saved_formulas": [],
     "daily_logs": [],
     "current_weights": {},
-    "db_ingredients": {}  # เพิ่มส่วนนี้เพื่อเก็บข้อมูลวัตถุดิบที่ดึงมาจากคลาวด์
+    "db_ingredients": {}  
 }
 
 for key, value in states.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-# ฟังก์ชันตรวจสอบระดับความปลอดภัยของรหัสผ่าน
 def check_password_strength(password):
     if len(password) < 8: return False, "❌ รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร"
     if not re.search("[a-z]", password): return False, "❌ รหัสผ่านต้องมีอักษรพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว"
@@ -115,7 +112,6 @@ def check_password_strength(password):
     if not re.search("[_@$!%*#?&.]", password): return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
 
-# ข้อมูลดิบพื้นฐานภายในแอป (Local Master Data)
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = [
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309"},
@@ -133,8 +129,9 @@ if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
         "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
-    ]
+    }
 
+# ✅ แก้ไขจุดวงเล็บผิดคู่จาก ] เป็น } เรียบร้อยแล้วตรงนี้
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
         "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
@@ -147,14 +144,12 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-# ข้อมูลวัตถุดิบสำรอง (Fallback Dataset) เผื่อกรณี Supabase เชื่อมต่อไม่ได้
 FALLBACK_INGREDIENTS = {
     "ข้าวโพดบด": {"name": "ข้าวโพดบด", "price": 12.5, "protein": 8.0, "me": 3370, "calcium": 0.02, "phos": 0.08, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
     "กากถั่วเหลือง (44%)": {"name": "กากถั่วเหลือง (44%)", "price": 22.0, "protein": 44.0, "me": 2230, "calcium": 0.29, "phos": 0.20, "lysine": 2.69, "methionine": 0.62, "fiber": 6.0},
     "เปลือกหอยบด": {"name": "เปลือกหอยบด", "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
 }
 
-# 🔄 ฟังก์ชันดึงข้อมูลวัตถุดิบแบบ Real-time จาก Supabase ปรับปรุงใหม่
 def fetch_ingredients_from_supabase():
     try:
         response = supabase.table("ingredients").select("*").execute()
@@ -163,7 +158,6 @@ def fetch_ingredients_from_supabase():
             st.session_state.db_ingredients = ingredients_dict
             return ingredients_dict
         else:
-            # หากตารางในฐานข้อมูลว่างเปล่า ให้ใช้ค่า Fallback แทน
             st.session_state.db_ingredients = FALLBACK_INGREDIENTS
             return FALLBACK_INGREDIENTS
     except Exception as e:
@@ -171,9 +165,9 @@ def fetch_ingredients_from_supabase():
         st.session_state.db_ingredients = FALLBACK_INGREDIENTS
         return FALLBACK_INGREDIENTS
 
-# โหลดข้อมูลวัตถุดิบเข้าสู่ระบบตั้งแต่เริ่มต้นแอป
+# โหลดข้อมูลวัตถุดิบเข้าสู่ระบบเริ่มต้น
 ingredients = fetch_ingredients_from_supabase()
-return {}
+
 
 # ==========================================
 # 🧮 3. CORE AI SOLVER ENGINE
@@ -181,13 +175,11 @@ return {}
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     
-    # ดึงข้อมูลดิบจากคลังวัตถุดิบ (จะดึงจาก State หรือ Supabase ตามฟังก์ชันพาร์ทแรก)
     current_ingredients = fetch_ingredients_from_supabase()
     if not current_ingredients:
         st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
         return {}
 
-    # สร้างตัวแปรการตัดสินใจ (Decision Variables) โดยแปลงเปอร์เซ็นต์ข้อจำกัดให้เป็นทศนิยม
     ing_vars = {
         name: pulp.LpVariable(
             name, 
@@ -197,18 +189,14 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
         for name, d in current_ingredients.items()
     }
     
-    # Slack Variables (ตัวแปรเทียมป้องกันสถานการณ์สมการหาคำตอบไม่ได้)
     s_p = pulp.LpVariable("s_p", lowBound=0)
     s_m = pulp.LpVariable("s_m", lowBound=0)
     s_c = pulp.LpVariable("s_c", lowBound=0)
     
-    # Objective Function: คำนวณราคาต่ำสุด + โทษปรับ (Penalty) กรณีสารอาหารขาดหาย
     prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Cost"
     
-    # Constraint 1: สัดส่วนรวมของวัตถุดิบต้องเท่ากับ 100% (1.0) พอดี
     prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
     
-    # Constraints 2-7: ข้อจำกัดทางโภชนาการที่ระบบต้องการ
     prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= req_p
     prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= req_m
     prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in current_ingredients.items()]) + s_c >= req_c
@@ -216,10 +204,8 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= req_ly
     prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= req_me
     
-    # สั่งให้ Solver เริ่มกระบวนการคำนวณทางคณิตศาสตร์
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
-    # ส่งคืนผลลัพธ์สัดส่วนวัตถุดิบกลับไปในรูปของเปอร์เซ็นต์ (%)
     res = {}
     for name in current_ingredients.keys():
         res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
@@ -228,7 +214,6 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
 # ==========================================
 # 🔒 4. SECURITY GATEWAY (SUPABASE AUTH INTEGRATION)
 # ==========================================
-# ตรวจสอบและสร้างสเตตัสรองรับการเก็บข้อมูลผู้ใช้ภายในเครื่อง (Local Sandbox) หากยังไม่มี
 if "user_database" not in st.session_state:
     st.session_state.user_database = {}
 
@@ -323,7 +308,6 @@ if not st.session_state.is_authenticated:
                         st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
                     else:
                         try:
-                            # สมัครสมาชิกลงระบบ Supabase Authentication
                             supabase.auth.sign_up({
                                 "email": su_email,
                                 "password": su_pass,
@@ -336,7 +320,6 @@ if not st.session_state.is_authenticated:
                                 }
                             })
 
-                            # จัดเก็บบัญชีผู้ใช้ลง Sandbox State สำรองในระบบ
                             st.session_state.user_database[su_email] = {
                                 "name": su_name,
                                 "surname": su_surname,
@@ -362,7 +345,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.3 หน้า FORGOT PASSWORD --- (ปรับระดับย่อหน้าให้อยู่ใต้เงื่อนไขเซสชันที่ถูกต้องแล้ว)
+    # --- 4.3 หน้า FORGOT PASSWORD ---
     elif st.session_state.auth_page_mode == "forgot":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
