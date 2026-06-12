@@ -5,31 +5,22 @@ import pulp
 import io
 import datetime
 import re
-import numpy as np
 from supabase import create_client, Client
 
 # ==========================================
-# 🔌 SUPABASE CONNECTION WITH SAFETY FALLBACK
+# 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
 
-if "cloud_connected" not in st.session_state:
-    st.session_state.cloud_connected = False
+@st.cache_resource
+def init_supabase() -> Client:
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@st.cache_resource(show_spinner=False)
-def init_supabase_client():
-    """ริเริ่มการเชื่อมต่อ Supabase เพียงครั้งเดียวและปลอดภัย"""
-    try:
-        client = create_client(SUPABASE_URL.strip(), SUPABASE_KEY.strip())
-        # ทดสอบการเชื่อมต่อเบื้องต้นแบบเบาๆ
-        return client
-    except Exception as e:
-        return None
-
-# เรียกใช้งาน Client
-supabase = init_supabase_client()
-st.session_state.cloud_connected = True if supabase is not None else False
+try:
+    supabase = init_supabase()
+except Exception as e:
+    st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
@@ -98,18 +89,6 @@ st.markdown(
 # ==========================================
 # 🔐 2. SECURITY & STATE INITIALIZATION
 # ==========================================
-FALLBACK_INGREDIENTS = {
-    "ข้าวโพดบด": {"name": "ข้าวโพดบด", "min_limit": 0.0, "max_limit": 65.0, "price": 12.5, "protein": 8.0, "me": 3370, "calcium": 0.02, "phos": 0.08, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
-    "กากถั่วเหลือง (44%)": {"name": "กากถั่วเหลือง (44%)", "min_limit": 0.0, "max_limit": 35.0, "price": 22.0, "protein": 44.0, "me": 2230, "calcium": 0.29, "phos": 0.20, "lysine": 2.69, "methionine": 0.62, "fiber": 6.0},
-    "รำละเอียด": {"name": "รำละเอียด", "min_limit": 0.0, "max_limit": 20.0, "price": 10.5, "protein": 12.0, "me": 2860, "calcium": 0.07, "phos": 0.22, "lysine": 0.60, "methionine": 0.24, "fiber": 4.0},
-    "เปลือกหอยบด": {"name": "เปลือกหอยบด", "min_limit": 0.0, "max_limit": 12.0, "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
-}
-
-FALLBACK_TARGETS = {
-    "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "🐣 ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-    "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "🐓 ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
-}
-
 states = {
     "is_authenticated": False,
     "auth_page_mode": "login",
@@ -119,9 +98,7 @@ states = {
     "saved_formulas": [],
     "daily_logs": [],
     "current_weights": {},
-    "db_ingredients": FALLBACK_INGREDIENTS, # ป้องกันปัญหากล่องข้อมูลว่างเปล่า
-    "db_targets": FALLBACK_TARGETS,
-    "view_mode": "user"
+    "db_ingredients": {}  
 }
 
 for key, value in states.items():
@@ -149,6 +126,12 @@ if "db_breeds" not in st.session_state:
         {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0}
     ]
 
+if "db_targets" not in st.session_state:
+    st.session_state.db_targets = {
+        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
+        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
+    }
+
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
         "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
@@ -161,104 +144,111 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-# ==========================================
-# 📥 2.5 SUPABASE DATA FETCHING FUNCTIONS
-# ==========================================
+FALLBACK_INGREDIENTS = {
+    "ข้าวโพดบด": {"name": "ข้าวโพดบด", "price": 12.5, "protein": 8.0, "me": 3370, "calcium": 0.02, "phos": 0.08, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
+    "กากถั่วเหลือง (44%)": {"name": "กากถั่วเหลือง (44%)", "price": 22.0, "protein": 44.0, "me": 2230, "calcium": 0.29, "phos": 0.20, "lysine": 2.69, "methionine": 0.62, "fiber": 6.0},
+    "เปลือกหอยบด": {"name": "เปลือกหอยบด", "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
+}
+
 def fetch_ingredients_from_supabase():
     try:
-        if st.session_state.cloud_connected and supabase:
-            if st.session_state.is_authenticated and st.session_state.current_user_key:
-                response = supabase.table("ingredients").select("*").eq("owner_email", st.session_state.current_user_key).execute()
-            else:
-                response = supabase.table("ingredients").select("*").execute()
-                
-            if response.data and len(response.data) > 0:
-                ingredients_dict = {item["name"]: item for item in response.data}
-                st.session_state.db_ingredients = ingredients_dict
-                return ingredients_dict
-        return st.session_state.db_ingredients
-    except Exception:
-        return st.session_state.db_ingredients
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            user_email = st.session_state.current_user_key
+            response = supabase.table("ingredients").select("*").eq("owner_email", user_email).execute()
+        else:
+            response = supabase.table("ingredients").select("*").execute()
+            
+        if response.data and len(response.data) > 0:
+            ingredients_dict = {item["name"]: item for item in response.data}
+            st.session_state.db_ingredients = ingredients_dict
+            return ingredients_dict
+        else:
+            st.session_state.db_ingredients = FALLBACK_INGREDIENTS
+            return FALLBACK_INGREDIENTS
+    except Exception as e:
+        st.warning(f"⚠️ ดึงข้อมูลจากคลาวด์ไม่สำเร็จ (กำลังใช้ข้อมูลสำรองในระบบแทน): {e}")
+        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
+        return FALLBACK_INGREDIENTS
 
-def fetch_targets_from_supabase():
+# ==========================================
+# 📊 SUPABASE DAILY LOGS SERVICE (ฟังก์ชันที่เพิ่ม/แก้ไข)
+# ==========================================
+def fetch_daily_logs_from_supabase():
+    """ ดึงข้อมูลบันทึกประจำวันจาก Supabase แยกตามเจ้าของบัญชี """
     try:
-        if st.session_state.cloud_connected and supabase:
-            response = supabase.table("มาตรฐานโภชนาการไก่ไข่").select("*").execute()
-            if response.data and len(response.data) > 0:
-                targets_dict = {item["stage_key"]: item for item in response.data}
-                st.session_state.db_targets = targets_dict
-                return targets_dict
-        return st.session_state.db_targets
-    except Exception:
-        return st.session_state.db_targets
-
-def fetch_saved_formulas_from_supabase():
-    try:
-        if st.session_state.cloud_connected and supabase and st.session_state.is_authenticated:
-            response = supabase.table("บันทึกสูตรอาหารไก่ไข่").select("*").eq("owner_email", st.session_state.current_user_key).execute()
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            user_email = st.session_state.current_user_key
+            # ใน schema ตารางใช้ user_id เก็บ email (ตามข้อมูลในภาพสกรีนช็อต)
+            response = supabase.table("daily_logs").select("*").eq("user_id", user_email).order("date", descending=True).execute()
             if response.data:
-                st.session_state.saved_formulas = response.data
+                st.session_state.daily_logs = response.data
                 return response.data
         return []
-    except Exception:
+    except Exception as e:
+        st.error(f"⚠️ ไม่สามารถโหลดข้อมูล Daily Logs ได้: {e}")
         return []
 
-def save_formula_to_supabase(formula_name, stage_name, calculated_mix, total_cost):
+def save_daily_log_to_supabase(date, flock_age, bird_count, env_temp):
+    """ บันทึกข้อมูลประจำวันลงในตาราง daily_logs บนคลาวด์ """
     try:
-        if st.session_state.cloud_connected and supabase and st.session_state.is_authenticated:
-            payload = {
-                "owner_email": st.session_state.current_user_key,
-                "formula_name": formula_name,
-                "stage_name": stage_name,
-                "calculated_mix": calculated_mix,
-                "total_cost": float(total_cost),
-                "created_at": str(datetime.datetime.now())
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            user_email = st.session_state.current_user_key
+            log_data = {
+                "user_id": user_email,
+                "date": str(date),
+                "flock_age_weeks": int(flock_age),
+                "bird_count": int(bird_count),
+                "env_temp": float(env_temp)
             }
-            supabase.table("บันทึกสูตรอาหารไก่ไข่").insert(payload).execute()
-            st.success("💾 บันทึกสูตรอาหารลงระบบ Cloud เรียบร้อยแล้ว!")
-            fetch_saved_formulas_from_supabase()
+            response = supabase.table("daily_logs").insert(log_data).execute()
+            if response.data:
+                st.success("💾 บันทึกข้อมูลประวัติฟาร์มประจำวันเรียบร้อยแล้ว!")
+                fetch_daily_logs_from_supabase() # โหลดข้อมูลใหม่ล่าสุดทันที
+                return True
+        else:
+            st.error("❌ สิทธิ์การใช้งานไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่")
     except Exception as e:
-        st.error(f"❌ ไม่สามารถบันทึกสูตรอาหารลงระบบคลาวด์ได้: {e}")
+        st.error(f"❌ ไม่สามารถบันทึกข้อมูลลงฐานข้อมูลได้: {e}")
+    return False
 
 # ==========================================
-# 🧮 3. CORE AI SOLVER ENGINE (⚙️ REAL LINEAR PROGRAMMING)
+# 🧮 3. CORE AI SOLVER ENGINE
 # ==========================================
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
-    prob = pulp.LpProblem("AI_Layer_Solver", pulp.LpMinimize)
-    current_ingredients = st.session_state.db_ingredients
+    prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
+    current_ingredients = fetch_ingredients_from_supabase()
+    if not current_ingredients:
+        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
+        return {}
+
+    ing_vars = {
+        name: pulp.LpVariable(
+            name, 
+            lowBound=float(d.get("min_limit", 0)) / 100.0, 
+            upBound=float(d.get("max_limit", 100)) / 100.0
+        ) 
+        for name, d in current_ingredients.items()
+    }
     
-    # 🌟 ตั้งค่าตัวแปรตัดสินใจ (Decision Variables)
-    ing_vars = {}
-    for name, d in current_ingredients.items():
-        low = float(d.get("min_limit", 0)) / 100.0
-        up = float(d.get("max_limit", 100)) / 100.0
-        ing_vars[name] = pulp.LpVariable(name, lowBound=low, upBound=up)
+    s_p = pulp.LpVariable("s_p", lowBound=0)
+    s_m = pulp.LpVariable("s_m", lowBound=0)
+    s_c = pulp.LpVariable("s_c", lowBound=0)
     
-    # ตัวแปรผ่อนปรน (Elastic Slacks) ป้องกันสมการไร้คำตอบ ครอบคลุมทุกสารอาหารหลัก
-    slacks = {k: pulp.LpVariable(f"s_{k}", lowBound=0) for k in ["p", "m", "c", "ph", "ly", "me"]}
-    
-    # Objective Function: คำนวณหาต้นทุนราคาวัตถุดิบเฉลี่ยที่ถูกที่สุด + Penalty สำหรับ Slack
-    penalty = 10000.0
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("price", 0)) for name, d in current_ingredients.items()]) + \
-            pulp.lpSum([slacks[k] * penalty for k in slacks.keys()]), "Cost"
-    
-    # Constraints: สัดส่วนรวมวัตถุดิบทั้งหมดต้องเท่ากับ 100% (1.0)
+    prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Cost"
     prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
     
-    # สารอาหารขั้นต่ำที่ต้องการบวกตัวแปรผ่อนปรน
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("protein", 0)) for name, d in current_ingredients.items()]) + slacks["p"] >= req_p
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("me", 0)) for name, d in current_ingredients.items()]) + slacks["m"] >= req_m
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("calcium", 0)) for name, d in current_ingredients.items()]) + slacks["c"] >= req_c
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("phos", 0)) for name, d in current_ingredients.items()]) + slacks["ph"] >= req_ph
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("lysine", 0)) for name, d in current_ingredients.items()]) + slacks["ly"] >= req_ly
-    prob += pulp.lpSum([ing_vars[name] * float(d.get("methionine", 0)) for name, d in current_ingredients.items()]) + slacks["me"] >= req_me
+    prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= req_p
+    prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= req_m
+    prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in current_ingredients.items()]) + s_c >= req_c
+    prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in current_ingredients.items()]) >= req_ph
+    prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= req_ly
+    prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= req_me
     
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
     res = {}
     for name in current_ingredients.keys():
-        val = ing_vars[name].varValue
-        res[name] = round(val * 100.0, 1) if val is not None else 0.0
+        res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
     return res
 
 # ==========================================
@@ -268,6 +258,7 @@ if "user_database" not in st.session_state:
     st.session_state.user_database = {}
 
 if not st.session_state.is_authenticated:
+    # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
@@ -277,55 +268,232 @@ if not st.session_state.is_authenticated:
         pass_login = st.text_input("🔑 รหัสผ่านเข้าใช้งาน:", type="password", key="login_pass")
 
         col_btn1, col_btn2 = st.columns(2)
-
         with col_btn1:
             if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
-                if st.session_state.cloud_connected and supabase:
-                    try:
-                        auth_res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
-                        if auth_res.user:
-                            st.session_state.is_authenticated = True
-                            st.session_state.current_user_key = email_login
-                            st.session_state.user_role = "admin" if email_login.lower() == "222@gmail.com" else "user"
-                            st.session_state.view_mode = st.session_state.user_role
-                            st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
-                            
-                            fetch_ingredients_from_supabase()
-                            fetch_targets_from_supabase()
-                            fetch_saved_formulas_from_supabase()
-                            st.success("🎉 เข้าสู่ระบบสำเร็จ")
-                            st.rerun()
-                    except Exception:
-                        st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือระบบ Cloud ขัดข้อง")
-                else:
-                    # Offline Master Bypass
-                    if email_login == "admin@gmail.com" and pass_login == "1234":
+                try:
+                    auth_res = supabase.auth.sign_in_with_password({
+                        "email": email_login,
+                        "password": pass_login
+                    })
+
+                    if auth_res.user:
                         st.session_state.is_authenticated = True
-                        st.session_state.current_user_key = "admin@gmail.com"
-                        st.session_state.user_role = "admin"
-                        st.session_state.view_mode = "admin"
-                        st.session_state.user_email = "Local Admin [OFFLINE]"
+                        st.session_state.current_user_key = email_login
+
+                        if email_login.lower() == "222@gmail.com":
+                            st.session_state.user_role = "admin"
+                        else:
+                            st.session_state.user_role = "user"
+
+                        st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
+                        
+                        # โหลดข้อมูลต่างๆ ของยูสเซอร์ทันทีหลังผ่านสิทธิ์
+                        fetch_ingredients_from_supabase()
+                        fetch_daily_logs_from_supabase()
+                        
+                        st.success("🎉 เข้าสู่ระบบสำเร็จ")
                         st.rerun()
-                    else:
-                        st.error("⚠️ โหมดออฟไลน์ใช้งานได้เฉพาะบัญชีผู้ดูแลระบบฉุกเฉินเท่านั้น")
+                except Exception as error:
+                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
 
         with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
                 st.session_state.auth_page_mode = "signup"
                 st.rerun()
+
+        st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
+        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
+            st.session_state.auth_page_mode = "forgot"
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
+    # --- 4.2 หน้า SIGN UP ---
     elif st.session_state.auth_page_mode == "signup":
         st.markdown("<div class='content-card' style='max-width: 600px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>📝 สมัครสมาชิกฟาร์มใหม่ (Sign Up)</h2>", unsafe_allow_html=True)
-        su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้:")
-        su_pass = st.text_input("🔑 ตั้งรหัสผ่าน:", type="password")
-        if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
-            st.session_state.auth_page_mode = "login"
-            st.rerun()
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+
+        su_name = st.text_input("👤 ชื่อจริง:")
+        su_surname = st.text_input("👤 นามสกุล:")
+        su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ:")
+        su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้ (ใช้เป็นไอดีสำหรับ Log In):")
+
+        st.markdown(
+            "<div style='background-color:#1e293b; padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; color:#94a3b8;'>"
+            "🔒 <b>ข้อกำหนดรหัสผ่านความปลอดภัยสูง:</b><br>"
+            "- ความยาวไม่น้อยกว่า 8 ตัวอักษร<br>"
+            "- มีอักษรพิมพ์ใหญ่ (A-Z) และพิมพ์เล็ก (a-z)<br>"
+            "- มีตัวเลข (0-9) และอักขระพิเศษอย่างน้อย 1 ตัว (@, #, $, %, !, ., _)"
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        su_pass = st.text_input("🔑 ตั้งรหัสผ่านความปลอดภัยสูง:", type="password")
+        su_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านอีกครั้ง:", type="password")
+
+        is_strong, pass_msg = check_password_strength(su_pass) if su_pass else (False, "")
+        if su_pass:
+            if is_strong: st.success(pass_msg)
+            else: st.warning(pass_msg)
+
+        col_su1, col_su2 = st.columns(2)
+        with col_su1:
+            if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
+                if su_email and su_pass and su_name and su_tel:
+                    if su_pass != su_pass_conf:
+                        st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
+                    elif not is_strong:
+                        st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
+                    else:
+                        try:
+                            supabase.auth.sign_up({
+                                "email": su_email,
+                                "password": su_pass,
+                                "options": {
+                                    "data": {
+                                        "first_name": su_name,
+                                        "last_name": su_surname,
+                                        "phone": su_tel
+                                    }
+                                }
+                            })
+                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ")
+                            st.session_state.auth_page_mode = "login"
+                            st.rerun()
+                        except Exception as error:
+                            st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
+                else:
+                    st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
+
+        with col_su2:
+            if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
+                st.session_state.auth_page_mode = "login"
+                st.rerun()
+
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
+
+    # --- 4.3 หน้า FORGOT PASSWORD ---
+    elif st.session_state.auth_page_mode == "forgot":
+        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+
+        fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
+        st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
+
+        if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
+            if fg_email:
+                try:
+                    supabase.auth.reset_password_for_email(fg_email)
+                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
+                except Exception as error:
+                    st.error(f"❌ เกิดข้อผิดพลาด: {error}")
+            else:
+                st.warning("⚠️ กรุณากรอกอีเมล")
+
+        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
+            st.session_state.auth_page_mode = "login"
+            st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
+
+# โหลดข้อมูลหลักเมื่อผู้ใช้งานล็อกอินสำเร็จแล้ว
+ingredients = fetch_ingredients_from_supabase()
+if not st.session_state.daily_logs:
+    fetch_daily_logs_from_supabase()
+
+# ==========================================
+# 🎉 5. HEADER CONTROL PANEL
+# ==========================================
+col_h1, col_h2 = st.columns([7.5, 2.5])
+with col_h1:
+    st.markdown(f"# 🐔 Layer Nutrition Studio Pro <span style='font-size:1.1rem; color:#38bdf8;'>[สิทธิ์การใช้งาน: {st.session_state.user_email}]</span>", unsafe_allow_html=True)
+with col_h2:
+    cc1, cc2 = st.columns(2)
+    with cc1:
+        if "admin" in st.session_state.user_email.lower() or st.session_state.user_role == "admin":
+            if st.session_state.user_role == "user":
+                if st.button("🔄 หน้า Admin", use_container_width=True):
+                    st.session_state.user_role = "admin"
+                    st.rerun()
+            else:
+                if st.button("🔄 หน้า User", use_container_width=True):
+                    st.session_state.user_role = "user"
+                    st.rerun()
+    with cc2:
+        if st.button("🔴 ออกจากระบบ", use_container_width=True):
+            try:
+                supabase.auth.sign_out()
+            except:
+                pass
+            st.session_state.is_authenticated = False
+            st.session_state.current_weights = {}
+            st.session_state.daily_logs = []
+            st.session_state.auth_page_mode = "login"
+            st.rerun()
+st.markdown("---")
+
+# ==========================================
+# 📊 6. MAIN APPLICATION WORKSPACE & TABS
+# ==========================================
+tab1, tab2, tab3 = st.tabs(["⚙️ คำนวณสูตรอาหาร AI", "📝 บันทึกข้อมูลประจำวัน (Daily Logs)", "📊 ประวัติฟาร์ม"])
+
+with tab1:
+    st.subheader("🛠️ ระบบ AI คำนวณต้นทุนต่ำสุด (Least-Cost Rationing)")
+    st.write("ส่วนควบคุมสมการเชิงเส้นและจัดการสัดส่วนสารอาหารของคุณ...")
+    # (เพิ่มโค้ดการคำนวณและ Form เลือกวัตถุดิบเดิมของคุณต่อจากตรงนี้ได้เลย)
+
+with tab2:
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("### 📝 บันทึกข้อมูลการจัดการฟาร์มประจำวัน (Daily Logs)")
+    st.write("ระบบจะส่งข้อมูลนี้ไปเก็บไว้บนคลาวด์แยกตามบัญชีของคุณ เพื่อนำไปใช้วิเคราะห์ประสิทธิภาพฝูงไก่")
+    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+    
+    # แบบฟอร์มบันทึกข้อมูลรายวันสอดคล้องกับคอลัมน์ใน Supabase
+    with st.form("daily_log_form", clear_on_submit=True):
+        col_l1, col_l2 = st.columns(2)
+        with col_l1:
+            log_date = st.date_input("📅 วันที่บันทึก:", datetime.date.today())
+            flock_age = st.number_input("🐓 อายุฝูงไก่ (สัปดาห์):", min_value=1, max_value=150, value=20, step=1)
+        with col_l2:
+            bird_count = st.number_input("🔢 จำนวนไก่คงเหลือในโรงเรือน (ตัว):", min_value=0, max_value=1000000, value=5000, step=100)
+            env_temp = st.number_input("🌡️ อุณหภูมิเฉลี่ยในโรงเรือน (°C):", min_value=0.0, max_value=50.0, value=28.5, step=0.1)
+            
+        submit_log = st.form_submit_button("💾 บันทึกข้อมูลลงระบบคลาวด์", type="primary")
+        if submit_log:
+            save_daily_log_to_supabase(log_date, flock_age, bird_count, env_temp)
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with tab3:
+    st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+    st.markdown("### 📊 ประวัติการบันทึกข้อมูลย้อนหลังในระบบ (Cloud Data Records)")
+    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+    
+    if st.session_state.daily_logs and len(st.session_state.daily_logs) > 0:
+        # แปลงข้อมูลเป็น DataFrame เพื่อความสวยงามและแสดงผล
+        df_logs = pd.DataFrame(st.session_state.daily_logs)
+        
+        # จัดการสลับลำดับคอลัมน์ให้ดูง่ายขึ้น
+        display_cols = {
+            "date": "วันที่",
+            "flock_age_weeks": "อายุฝูงไก่ (สัปดาห์)",
+            "bird_count": "จำนวนไก่ (ตัว)",
+            "env_temp": "อุณหภูมิโรงเรือน (°C)"
+        }
+        
+        # กรองเอาเฉพาะคอลัมน์ที่จะโชว์
+        df_show = df_logs[[c for c in display_cols.keys() if c in df_logs.columns]].rename(columns=display_cols)
+        
+        # แสดงผลตารางแบบ Interactive Dataframe
+        st.dataframe(df_show, use_container_width=True)
+    else:
+        st.info("💡 ยังไม่มีประวัติการบันทึกข้อมูลในบัญชีนี้ คุณสามารถเริ่มกรอกข้อมูลได้ที่แท็บ 'บันทึกข้อมูลประจำวัน'")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # 🎉 5. MAIN ROUTER & INTERFACE CONTROL
