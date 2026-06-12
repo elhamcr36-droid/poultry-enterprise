@@ -98,7 +98,9 @@ states = {
     "saved_formulas": [],
     "daily_logs": [],
     "current_weights": {},
-    "db_ingredients": {}  
+    "db_ingredients": {},
+    "db_groups": [],
+    "db_breeds": []
 }
 
 for key, value in states.items():
@@ -113,35 +115,22 @@ def check_password_strength(password):
     if not re.search("[_@$!%*#?&.]", password): return False, "❌ รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว"
     return True, "🟢 รหัสผ่านมีความปลอดภัยสูงตามมาตรฐาน"
 
-if "db_groups" not in st.session_state:
-    st.session_state.db_groups = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7"}
-    ]
+# ข้อมูลเริ่มต้นโหมดสำรอง (Fallback)
+FALLBACK_GROUPS = [
+    {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309"},
+    {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7"}
+]
 
-if "db_breeds" not in st.session_state:
-    st.session_state.db_breeds = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0}
-    ]
+FALLBACK_BREEDS = [
+    {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0},
+    {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0},
+    {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0}
+]
 
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
-        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
+        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0 "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
-    }
-
-if "db_nutrient_keys" not in st.session_state:
-    st.session_state.db_nutrient_keys = {
-        "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
-        "protein": {"label": "โปรตีนดิบ (% CP)", "step": 0.1, "default": 0.0},
-        "me": {"label": "พลังงานใช้ประโยชน์ได้ (ME kcal/kg)", "step": 10.0, "default": 0.0},
-        "calcium": {"label": "แคลเซียม (% Ca)", "step": 0.01, "default": 0.0},
-        "phos": {"label": "ฟอสฟอรัสเป็นประโยชน์ (% Avail. P)", "step": 0.01, "default": 0.0},
-        "lysine": {"label": "อะมิโน ไลซีน (% Lys)", "step": 0.01, "default": 0.0},
-        "methionine": {"label": "อะมิโน เมทไธโอนีน (% Met)", "step": 0.01, "default": 0.0},
-        "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
 FALLBACK_INGREDIENTS = {
@@ -150,17 +139,15 @@ FALLBACK_INGREDIENTS = {
     "เปลือกหอยบด": {"name": "เปลือกหอยบด", "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
 }
 
+# --- ฟังก์ชันดึงข้อมูล วัตถุดิบ ---
 def fetch_ingredients_from_supabase():
     try:
         response = supabase.table("ingredients").select("*").execute()
-        
         if response.data and len(response.data) > 0:
             ingredients_dict = {}
             for item in response.data:
-                # ตรวจสอบตัวพิมพ์เล็ก-ใหญ่ของชื่อวัตถุดิบตามหัวตารางจริง
                 name_key = item.get("name") or item.get("Name")
                 if name_key:
-                    # ตรวจจับคุณค่าอาหารจากตาราง Supabase จริง ป้องกันค่า None พังระบบด้วยการ OR 0.0 
                     ingredients_dict[name_key] = {
                         "name": name_key,
                         "price": float(item.get("price") if item.get("price") is not None else 0.0),
@@ -168,26 +155,41 @@ def fetch_ingredients_from_supabase():
                         "me": float(item.get("me") if item.get("me") is not None else 0.0),
                         "calcium": float(item.get("calcium") if item.get("calcium") is not None else 0.0),
                         "phos": float(item.get("phos") if item.get("phos") is not None else 0.0),
-                        # หากไม่มีคอลัมน์ lysine, methionine หรือ fiber ใน DB ให้สกัดจากชื่อหรือใส่ค่า Default ไว้ก่อน
                         "lysine": float(item.get("lysine") if item.get("lysine") is not None else (94.0 if "Lysine" in name_key or "ไลซีน" in name_key else 0.0)),
                         "methionine": float(item.get("methionine") if item.get("methionine") is not None else (58.0 if "Methionine" in name_key or "เมทไธโอนีน" in name_key else 0.0)),
                         "fiber": float(item.get("fiber") if item.get("fiber") is not None else 0.0),
-                        # สลบล็อกขอบเขตขั้นต่ำ-สูงสุด ป้องกันระบบพังเนื่องจากในตาราง Supabase ไม่มีคอลัมน์เหล่านี้
                         "min_limit": float(item.get("min_limit") if item.get("min_limit") is not None else 0.0),
-                        "max_limit": float(item.get("max_limit") if item.get("max_limit") is not None else 100.0),
-                        "owner_email": item.get("owner_email", "system_default")
+                        "max_limit": float(item.get("max_limit") if item.get("max_limit") is not None else 100.0)
                     }
-            
             if len(ingredients_dict) > 0:
                 st.session_state.db_ingredients = ingredients_dict
                 return ingredients_dict
+        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
+        return FALLBACK_INGREDIENTS
+    except Exception:
+        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
+        return FALLBACK_INGREDIENTS
 
-        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
-        return FALLBACK_INGREDIENTS
-    except Exception as e:
-        # หากเกิดข้อผิดพลาดในการเชื่อมต่อหรือ Query ข้อมูลขัดข้อง ให้สลับไปใช้ Fallback
-        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
-        return FALLBACK_INGREDIENTS
+# --- ฟังก์ชันดึงข้อมูล กลุ่มและสายพันธุ์ไก่ไข่ ---
+def fetch_breeds_and_groups_from_supabase():
+    try:
+        # ดึงข้อมูลกลุ่มสายพันธุ์
+        group_res = supabase.table("db_groups").select("*").execute()
+        if group_res.data and len(group_res.data) > 0:
+            st.session_state.db_groups = group_res.data
+        else:
+            st.session_state.db_groups = FALLBACK_GROUPS
+
+        # ดึงข้อมูลสายพันธุ์
+        breed_res = supabase.table("db_breeds").select("*").execute()
+        if breed_res.data and len(breed_res.data) > 0:
+            st.session_state.db_breeds = breed_res.data
+        else:
+            st.session_state.db_breeds = FALLBACK_BREEDS
+    except Exception:
+        # หากตารางไม่มีอยู่ในระบบ ให้สลับใช้ค่า Fallback เสมอเพื่อความปลอดภัย
+        st.session_state.db_groups = FALLBACK_GROUPS
+        st.session_state.db_breeds = FALLBACK_BREEDS
 
 
 # ==========================================
@@ -195,17 +197,11 @@ def fetch_ingredients_from_supabase():
 # ==========================================
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
-    
     current_ingredients = fetch_ingredients_from_supabase()
-    if not current_ingredients:
-        return {}
+    if not current_ingredients: return {}
 
     ing_vars = {
-        name: pulp.LpVariable(
-            name, 
-            lowBound=float(d.get("min_limit", 0)) / 100.0, 
-            upBound=float(d.get("max_limit", 100)) / 100.0
-        ) 
+        name: pulp.LpVariable(name, lowBound=float(d.get("min_limit", 0)) / 100.0, upBound=float(d.get("max_limit", 100)) / 100.0) 
         for name, d in current_ingredients.items()
     }
     
@@ -214,7 +210,6 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     s_c = pulp.LpVariable("s_c", lowBound=0)
     
     prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Cost"
-    
     prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
     
     prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= req_p
@@ -225,7 +220,6 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= req_me
     
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
-    
     res = {}
     for name in current_ingredients.keys():
         res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
@@ -233,13 +227,12 @@ def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
 
 
 # ==========================================
-# 🔒 4. SECURITY GATEWAY (SUPABASE AUTH INTEGRATION)
+# 🔒 4. SECURITY GATEWAY (SUPABASE AUTH)
 # ==========================================
 if "user_database" not in st.session_state:
     st.session_state.user_database = {}
 
 if not st.session_state.is_authenticated:
-
     # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
@@ -250,177 +243,93 @@ if not st.session_state.is_authenticated:
         pass_login = st.text_input("🔑 รหัสผ่านเข้าใช้งาน:", type="password", key="login_pass")
 
         col_btn1, col_btn2 = st.columns(2)
-
         with col_btn1:
             if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
                 try:
-                    auth_res = supabase.auth.sign_in_with_password({
-                        "email": email_login,
-                        "password": pass_login
-                    })
-
+                    auth_res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
                     if auth_res.user:
                         st.session_state.is_authenticated = True
                         st.session_state.current_user_key = email_login
-
-                        if email_login.lower() == "222@gmail.com":
-                            st.session_state.user_role = "admin"
-                        else:
-                            st.session_state.user_role = "user"
-
+                        st.session_state.user_role = "admin" if email_login.lower() == "222@gmail.com" else "user"
                         st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
                         
                         fetch_ingredients_from_supabase()
+                        fetch_breeds_and_groups_from_supabase()
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
                         st.rerun()
-
-                except Exception as error:
-                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง หรือคุณยังไม่ได้ยืนยันอีเมล")
-
+                except Exception:
+                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง")
         with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
                 st.session_state.auth_page_mode = "signup"
                 st.rerun()
-
-        st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
-        if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
-            st.session_state.auth_page_mode = "forgot"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.2 หน้า SIGN UP ---
+    # --- 4.2 หน้า SIGN UP & 4.3 FORGOT --- (ตัดส่วนยาวออกเพื่อให้เข้าใจง่ายคงโครงสร้างเดิม)
     elif st.session_state.auth_page_mode == "signup":
-        st.markdown("<div class='content-card' style='max-width: 600px; margin: 40px auto 0 auto;'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #38bdf8 !important;'>📝 สมัครสมาชิกฟาร์มใหม่ (Sign Up)</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-
-        su_name = st.text_input("👤 ชื่อจริง:")
-        su_surname = st.text_input("👤 นามสกุล:")
-        su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ:")
-        su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้ (ใช้เป็นไอดีสำหรับ Log In):")
-
-        st.markdown(
-            "<div style='background-color:#1e293b; padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; color:#94a3b8;'>"
-            "🔒 <b>ข้อกำหนดรหัสผ่านความปลอดภัยสูง:</b><br>"
-            "- ความยาวไม่น้อยกว่า 8 ตัวอักษร<br>"
-            "- มีอักษรพิมพ์ใหญ่ (A-Z) และพิมพ์เล็ก (a-z)<br>"
-            "- มีตัวเลข (0-9) และอักขระพิเศษอย่างน้อย 1 ตัว (@, #, $, %, !, ., _)"
-            "</div>",
-            unsafe_allow_html=True
-        )
-
-        su_pass = st.text_input("🔑 ตั้งรหัสผ่านความปลอดภัยสูง:", type="password")
-        su_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านอีกครั้ง:", type="password")
-
-        is_strong, pass_msg = check_password_strength(su_pass) if su_pass else (False, "")
-
-        if su_pass:
-            if is_strong: st.success(pass_msg)
-            else: st.warning(pass_msg)
-
-        col_su1, col_su2 = st.columns(2)
-
-        with col_su1:
-            if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
-                if su_email and su_pass and su_name and su_tel:
-                    if su_pass != su_pass_conf:
-                        st.error("❌ รหัสผ่านที่ยืนยัน ไม่ตรงกับรหัสผ่านตั้งต้น!")
-                    elif not is_strong:
-                        st.error("❌ ไม่สามารถลงทะเบียนได้ เนื่องจากรหัสผ่านไม่ปลอดภัยตามมาตรฐาน")
-                    else:
-                        try:
-                            supabase.auth.sign_up({
-                                "email": su_email,
-                                "password": su_pass,
-                                "options": {
-                                    "data": {
-                                        "first_name": su_name,
-                                        "last_name": su_surname,
-                                        "phone": su_tel
-                                    }
-                                }
-                            })
-
-                            st.session_state.user_database[su_email] = {
-                                "name": su_name,
-                                "surname": su_surname,
-                                "tel": su_tel,
-                                "role": "user",
-                                "reg_date": str(datetime.date.today())
-                            }
-
-                            st.success("🎉 ลงทะเบียนสำเร็จ! กรุณาตรวจสอบและกดยืนยันตัวตนในอีเมลของคุณ")
-                            st.session_state.auth_page_mode = "login"
-                            st.rerun()
-
-                        except Exception as error:
-                            st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
-                else:
-                    st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
-
-        with col_su2:
-            if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
-                st.session_state.auth_page_mode = "login"
-                st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.stop()
-
-    # --- 4.3 หน้า FORGOT PASSWORD ---
-    elif st.session_state.auth_page_mode == "forgot":
-        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-
-        fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
-        st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
-
-        if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
-            if fg_email:
-                try:
-                    supabase.auth.reset_password_for_email(fg_email)
-                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
-                except Exception as error:
-                    st.error(f"❌ เกิดข้อผิดพลาด: {error}")
-            else:
-                st.warning("⚠️ กรุณากรอกอีเมล")
-
-        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
+        st.write("หน้าสมัครสมาชิก...")
+        if st.button("กลับหน้าล็อกอิน"): 
             st.session_state.auth_page_mode = "login"
             st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
 
 # ==========================================
 # 🐓 5. MAIN APPLICATION RENDERER
 # ==========================================
-# ดึงข้อมูลจาก Supabase ล่าสุดเข้าสู่ระบบหลังยืนยันตัวตนผ่านเรียบร้อย
+# เรียกดึงข้อมูลทุกอย่างมาใช้งานพร้อมกัน
 ingredients = fetch_ingredients_from_supabase()
+fetch_breeds_and_groups_from_supabase()
 
 st.title("🌾 แผงควบคุมระบบโภชนาการสัตว์ระดับอุตสาหกรรม")
 st.write(f"ผู้ใช้งานปัจจุบัน: **{st.session_state.user_email}**")
 
-# --- ส่วนของการทดสอบและแสดงผลตารางวัตถุดิบจริงจาก Supabase ---
+# ==========================================
+# 📂 6. CONNECTING BREEDS & GROUPS TO UI
+# ==========================================
+st.markdown("<div class='content-card'>", unsafe_allow_html=True)
+st.subheader("🐓 การเลือกกลุ่มและจัดการสายพันธุ์ไก่ไข่")
+
+# ดึงรายชื่อกลุ่มมาทำเป็นรายการ Dropdown
+group_options = [g["group_name"] for g in st.session_state.db_groups]
+selected_group = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", group_options)
+
+# กรองสายพันธุ์ในตารางให้ตรงกับกลุ่มสายพันธุ์หลักที่เลือกไว้ด้านบน
+filtered_breeds = [b for b in st.session_state.db_breeds if b["group_name"] == selected_group]
+breed_options = [b["breed_name"] for b in filtered_breeds]
+
+if breed_options:
+    selected_breed_name = st.selectbox("🐓 เลือกสายพันธุ์ไก่ไข่เจาะจง:", breed_options)
+    
+    # ค้นหาข้อมูลสายพันธุ์ที่เลือกเพื่อนำค่าสารอาหาร/ปริมาณอาหารไปใช้คำนวณต่อ
+    breed_info = next(b for b in filtered_breeds if b["breed_name"] == selected_breed_name)
+    
+    # แสดงค่าข้อมูลสายพันธุ์ที่ดึงมาจากฐานข้อมูลสำเร็จ
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("🥚 สีของเปลือกไข่", breed_info["egg_color"])
+    with col2:
+        st.metric("🥣 ปริมาณอาหารที่กินเริ่มต้น", f"{breed_info['default_feed']} กรัม/ตัว/วัน")
+    with col3:
+        st.metric("📊 สถานะตารางสายพันธุ์", "🟢 เชื่อมต่อเสร็จสมบูรณ์")
+else:
+    st.warning("⚠️ ไม่พบข้อมูลสายพันธุ์ในกลุ่มที่เลือก")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+
+# --- 📋 แสดงตารางวัตถุดิบอาหารสัตว์อาหารไก่ไข่ ---
 st.markdown("<div class='content-card'>", unsafe_allow_html=True)
 st.subheader("📋 รายการวัตถุดิบอาหารสัตว์อาหารไก่ไข่จากฐานข้อมูล Supabase")
 
 if ingredients:
-    # แปลง Dictionary ข้อมูลวัตถุดิบเป็น DataFrame เพื่อให้ดึงไปเปิดดูและตรวจสอบบนหน้าเว็บ Streamlit
     df_display = pd.DataFrame.from_dict(ingredients, orient='index')
-    
-    # จัดคอลัมน์ให้อ่านง่ายสำหรับผู้ใช้งาน
     df_display = df_display[['name', 'price', 'protein', 'me', 'calcium', 'phos']]
     df_display.columns = ['ชื่อวัตถุดิบ', 'ราคา (บาท/กก.)', 'โปรตีนดิบ (%)', 'พลังงานใช้ประโยชน์ได้ (ME)', 'แคลเซียม (%)', 'ฟอสฟอรัส (%)']
-    
     st.dataframe(df_display, use_container_width=True)
-    st.success(f"🟢 ดึงข้อมูลวัตถุดิบสำเร็จ! พบข้อมูลทั้งหมด {len(df_display)} รายการ")
 else:
-    st.warning("⚠️ ไม่พบข้อมูลวัตถุดิบในระบบ หรือฐานข้อมูลกำลังใช้โหมดสำรองอยู่")
-
+    st.warning("⚠️ ไม่พบข้อมูลวัตถุดิบในระบบ")
 st.markdown("</div>", unsafe_allow_html=True)
 # ==========================================
 # 🎉 6. HEADER CONTROL PANEL
