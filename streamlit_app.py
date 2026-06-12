@@ -94,6 +94,7 @@ states = {
     "auth_page_mode": "login",
     "user_role": "user",
     "user_email": "",
+    "current_user_key": "",  # เก็บบัญชีอีเมลเพื่อใช้แบ่งแยกตัวใครตัวมันบนคลาวด์
     "saved_formulas": [],
     "daily_logs": [],
     "current_weights": {},
@@ -131,7 +132,6 @@ if "db_targets" not in st.session_state:
         "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
     }
 
-# ✅ แก้ไขจุดวงเล็บผิดคู่จาก ] เป็น } เรียบร้อยแล้วตรงนี้
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
         "price": {"label": "ราคากลาง (บาท/กก.)", "step": 0.1, "default": 0.0},
@@ -152,7 +152,13 @@ FALLBACK_INGREDIENTS = {
 
 def fetch_ingredients_from_supabase():
     try:
-        response = supabase.table("ingredients").select("*").execute()
+        # 🔥 แก้ไข: ตรวจสอบและดึงข้อมูลแยกตามเจ้าของ (owner_email) ตัวใครตัวมันอย่างแท้จริง
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            user_email = st.session_state.current_user_key
+            response = supabase.table("ingredients").select("*").eq("owner_email", user_email).execute()
+        else:
+            response = supabase.table("ingredients").select("*").execute()
+            
         if response.data and len(response.data) > 0:
             ingredients_dict = {item["name"]: item for item in response.data}
             st.session_state.db_ingredients = ingredients_dict
@@ -165,9 +171,6 @@ def fetch_ingredients_from_supabase():
         st.session_state.db_ingredients = FALLBACK_INGREDIENTS
         return FALLBACK_INGREDIENTS
 
-# โหลดข้อมูลวัตถุดิบเข้าสู่ระบบเริ่มต้น
-ingredients = fetch_ingredients_from_supabase()
-
 
 # ==========================================
 # 🧮 3. CORE AI SOLVER ENGINE
@@ -175,6 +178,7 @@ ingredients = fetch_ingredients_from_supabase()
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     
+    # ดึงวัตถุดิบที่กรองเฉพาะของยูสเซอร์คนนั้นๆ ออกมาเข้าสมการคำนวณราคาต่ำสุด
     current_ingredients = fetch_ingredients_from_supabase()
     if not current_ingredients:
         st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
@@ -248,6 +252,10 @@ if not st.session_state.is_authenticated:
                             st.session_state.user_role = "user"
 
                         st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
+                        
+                        # 🔥 ปรับปรุง: โหลดข้อมูลวัตถุดิบของยูสเซอร์ทันทีที่ผ่านสิทธิ์สำเร็จก่อนทำการเรนเดอร์ UI หลัก
+                        fetch_ingredients_from_supabase()
+                        
                         st.success("🎉 เข้าสู่ระบบสำเร็จ")
                         st.rerun()
 
@@ -371,6 +379,8 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
+# 🔥 โหลดข้อมูลวัตถุดิบเริ่มต้นหลังจากผู้ใช้งานผ่านประตูความปลอดภัยเข้าสู่ระบบเรียบร้อยแล้ว เท่านั้น
+ingredients = fetch_ingredients_from_supabase()
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
 # ==========================================
