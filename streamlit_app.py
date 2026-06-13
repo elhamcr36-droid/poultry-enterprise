@@ -336,6 +336,8 @@ def read_first_available_float(data, column_names, default=0.0):
 
 def format_nutrition_standard_row(data):
     return {
+        "phase_key": data.get("phase_key") or data.get("stage_key") or "",
+        "phase_name": data.get("phase_name") or data.get("stage_name") or data.get("ช่วงอายุการเลี้ยง_phase_name") or "",
         "min_protein": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_protein"]),
         "min_me": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_me"]),
         "min_calcium": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_calcium"]),
@@ -395,6 +397,42 @@ def fetch_nutrition_standards(breed_id, phase_name, phase_key=None):
     except Exception as e:
         st.error(f"⚠️ เกิดข้อผิดพลาดในการดึงมาตรฐานโภชนาการจาก Supabase: {e}")
     return None
+
+def fetch_nutrition_standard_phase_options(breed_id=None):
+    """
+    Use the phase labels from nutrition_standards so the displayed language
+    always matches the database rows used for breed-specific nutrient standards.
+    """
+    fallback_options = [
+        {
+            "phase_key": str(target.get("stage_key") or key),
+            "phase_name": str(target.get("stage_name") or target.get("stage_key") or key),
+        }
+        for key, target in st.session_state.db_targets.items()
+        if target.get("stage_key") or target.get("stage_name")
+    ]
+
+    try:
+        query = supabase.table("nutrition_standards").select("phase_key, phase_name, id")
+        if breed_id is not None:
+            query = query.eq("breed_id", int(breed_id))
+        response = query.order("id").execute()
+        rows = response.data or []
+
+        phase_options = []
+        seen = set()
+        for row in rows:
+            phase_key = str(row.get("phase_key") or "").strip()
+            phase_name = str(row.get("phase_name") or phase_key).strip()
+            if not phase_key or phase_key in seen:
+                continue
+            phase_options.append({"phase_key": phase_key, "phase_name": phase_name})
+            seen.add(phase_key)
+
+        return phase_options or fallback_options
+    except Exception as phase_err:
+        st.warning(f"ยังดึงรายชื่อช่วงโภชนาการจาก nutrition_standards ไม่สำเร็จ จึงใช้รายการช่วงสำรอง: {phase_err}")
+        return fallback_options
 
 def fetch_ingredients_from_supabase():
     try:
@@ -1298,14 +1336,15 @@ else:
             st.session_state["current_breed_default_feed"] = float(current_breed_data.get("default_feed", 114.0))
 
         with col_br3:
-            # ดึงตัวเลือกระยะการเลี้ยงจากฐานข้อมูล db_targets
-            stage_options = {
-                s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()
-            }
+            # ดึงตัวเลือกระยะการเลี้ยงจากตารางมาตรฐานโภชนาการ เพื่อให้ภาษา/ชื่อช่วงตรงกับ Database
+            phase_options = fetch_nutrition_standard_phase_options(selected_breed_id)
             selected_stage_label = st.selectbox(
-                "📋 เลือกช่วงระยะการให้ไข่:", list(stage_options.keys())
+                "📋 เลือกช่วงระยะการให้ไข่:",
+                phase_options,
+                format_func=lambda item: item["phase_name"],
             )
-            selected_stage_key = stage_options[selected_stage_label]
+            selected_stage_key = selected_stage_label["phase_key"]
+            selected_stage_label = selected_stage_label["phase_name"]
             phase_query_name = selected_stage_key
 
         # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time ---
