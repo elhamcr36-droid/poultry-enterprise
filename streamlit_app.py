@@ -1736,7 +1736,106 @@ else:
             line_text += f"💰 งบประมาณรวมรอบนี้: {total_po_cost:,.0f} บาท"
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
-            # [แก้ไขแล้ว] ลบอักขระ Escape Backslash (\) หน้า "text" ออกเพื่อความถูกต้องในการ Syntax Highlight
+            # [แก้ไขแล้ว] ลบอักขระ Escape Backslimport streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+import pulp
+import io
+import datetime
+import re
+import json
+import urllib.error
+import urllib.request
+import streamlit.components.v1 as components
+from supabase import create_client, Client
+
+# ==========================================
+# 🔌 SUPABASE CONNECTION INITIALIZATION
+# ==========================================
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
+APP_URL = st.secrets.get("APP_URL", "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
+PASSWORD_RESET_REDIRECT_URL = st.secrets.get("PASSWORD_RESET_REDIRECT_URL", f"{APP_URL}?auth_action=reset_password")
+PASSWORD_RESET_FUNCTION_URL = st.secrets.get("PASSWORD_RESET_FUNCTION_URL", f"{SUPABASE_URL}/functions/v1/reset-password-by-phone")
+
+@st.cache_resource
+def init_supabase() -> Client:
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+try:
+    supabase = init_supabase()
+except Exception as e:
+    st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
+
+# ==========================================
+# 🔱 1. INITIAL APP CONFIGURATION & THEME
+# ==========================================
+st.set_page_config(
+    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+st.markdown(
+    """
+    <style>
+    [data-testid="collapsedControl"] { display: none; }
+    .stApp {
+        background-image: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)), 
+                          url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
+        background-size: cover; background-position: center;
+        background-repeat: no-repeat; background-attachment: fixed;
+    }
+    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, [data-testid="stHeader"] {
+        color: #ffffff !important;
+        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.95) !important;
+    }
+    
+    div[data-testid="stSelectbox"] > label {
+        font-size: 1.15rem !important;
+        font-weight: 800 !important;
+        color: #ffb703 !important;
+        margin-bottom: 6px !important;
+        display: block;
+    }
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+        font-size: 1.1rem !important; 
+        font-weight: bold !important;
+        background-color: rgba(26, 26, 26, 0.9) !important;
+        border: 2px solid #ffb703 !important; 
+        border-radius: 10px !important;
+        color: white !important;
+    }
+    
+    .divider-line {
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+        margin: 22px 0;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        padding: 8px; border-radius: 10px; backdrop-filter: blur(10px);
+    }
+    .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold !important; font-size:1.05rem !important; }
+    .content-card {
+        background-color: rgba(0, 0, 0, 0.90) !important; padding: 30px;
+        border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(10px); margin-bottom: 25px;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 2.2rem !important; color: #ffb703 !important;
+    }
+    [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.95) !important; border-radius: 8px; padding: 5px; }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ==========================================
+# 🔐 2. SECURITY & STATE INITIALIZATION
+# ==========================================
+states = {
+    "is_authenticated": False,ash (\) หน้า "text" ออกเพื่อความถูกต้องในการ Syntax Highlight
             st.code(line_text, language="text")
 
             # ดาวน์โหลดแบบไฟล์ CSV
