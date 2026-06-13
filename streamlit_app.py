@@ -115,13 +115,15 @@ def render_readable_table(data, *, column_order=None, column_labels=None, column
         df = df[visible_cols]
 
     df = df.rename(columns=column_labels)
-    st.dataframe(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        column_config=column_config,
-        height=height,
-    )
+    dataframe_options = {
+        "use_container_width": True,
+        "hide_index": True,
+        "column_config": column_config,
+    }
+    if height is not None:
+        dataframe_options["height"] = height
+
+    st.dataframe(df, **dataframe_options)
     return df
 
 def build_ingredients_display():
