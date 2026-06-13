@@ -204,6 +204,7 @@ DEFAULT_INGREDIENT_OWNER = "system_default"
 SAVED_FORMULAS_TABLE = "saved_formulas"
 DAILY_LOGS_TABLE = "daily_logs"
 DAILY_LOG_USER_COLUMN = "user_id"
+USER_PROFILES_TABLE = "user_profiles"
 MASTER_TABLE_CANDIDATES = {
     "groups": ["db_groups", "groups"],
     "breeds": ["db_breeds", "breeds"],
@@ -546,6 +547,90 @@ def save_daily_log_to_supabase(log_data):
         st.error(f"❌ ไม่สามารถบันทึกข้อมูลฟาร์มรายวันได้: {e}")
         return False
 
+def fetch_user_profiles_from_supabase():
+    try:
+        response = supabase.table(USER_PROFILES_TABLE).select("*").order("created_at", desc=True).execute()
+        profiles = response.data or []
+        st.session_state.user_database = {
+            item.get("email"): {
+                "name": item.get("first_name", "") or "",
+                "surname": item.get("last_name", "") or "",
+                "tel": item.get("phone", "") or "",
+                "role": item.get("role", "user") or "user",
+                "reg_date": str(item.get("created_at", ""))[:10] or "-",
+                "status": item.get("status", "active") or "active",
+            }
+            for item in profiles
+            if item.get("email")
+        }
+        return profiles
+    except Exception as e:
+        st.warning(f"⚠️ ไม่สามารถดึงรายชื่อผู้ใช้งานจาก Supabase ได้: {e}")
+        return []
+
+def upsert_user_profile(email, first_name="", last_name="", phone="", role="user"):
+    if not email:
+        return False
+    payload = {
+        "email": email.strip().lower(),
+        "role": role,
+        "status": "active",
+        "updated_at": datetime.datetime.utcnow().isoformat(),
+    }
+    if first_name:
+        payload["first_name"] = first_name
+    if last_name:
+        payload["last_name"] = last_name
+    if phone:
+        payload["phone"] = phone
+    try:
+        supabase.table(USER_PROFILES_TABLE).upsert(payload, on_conflict="email").execute()
+        fetch_user_profiles_from_supabase()
+        return True
+    except Exception as e:
+        st.warning(f"⚠️ บันทึกข้อมูลโปรไฟล์ผู้ใช้ไม่สำเร็จ: {e}")
+        return False
+
+def get_user_role_from_supabase(email):
+    if not email:
+        return "user"
+    if email.strip().lower() == "222@gmail.com":
+        return "admin"
+    try:
+        response = supabase.table(USER_PROFILES_TABLE).select("role,status").eq("email", email.strip().lower()).limit(1).execute()
+        if response.data:
+            profile = response.data[0]
+            if profile.get("status") == "disabled":
+                return "disabled"
+            return profile.get("role", "user") or "user"
+    except Exception:
+        pass
+    return "user"
+
+def update_user_profile_role(email, role):
+    try:
+        supabase.table(USER_PROFILES_TABLE).update({
+            "role": role,
+            "updated_at": datetime.datetime.utcnow().isoformat(),
+        }).eq("email", email).execute()
+        fetch_user_profiles_from_supabase()
+        return True
+    except Exception as e:
+        st.error(f"❌ อัปเดตสิทธิ์ผู้ใช้ไม่สำเร็จ: {e}")
+        return False
+
+def disable_user_profile(email):
+    try:
+        supabase.table(USER_PROFILES_TABLE).update({
+            "status": "disabled",
+            "updated_at": datetime.datetime.utcnow().isoformat(),
+        }).eq("email", email).execute()
+        fetch_user_profiles_from_supabase()
+        return True
+    except Exception as e:
+        st.error(f"❌ ระงับบัญชีไม่สำเร็จ: {e}")
+        return False
+
 
 # ==========================================
 # 🧮 3. CORE AI SOLVER ENGINE
@@ -757,14 +842,22 @@ if not st.session_state.is_authenticated:
 
                         if auth_res.user:
                             st.session_state.is_authenticated = True
-                            st.session_state.current_user_key = email_login.strip()
+                            login_email = email_login.strip().lower()
+                            st.session_state.current_user_key = login_email
 
-                            if email_login.strip().lower() == "222@gmail.com":
+                            user_role = get_user_role_from_supabase(login_email)
+                            if user_role == "disabled":
+                                supabase.auth.sign_out()
+                                st.session_state.is_authenticated = False
+                                st.error("❌ บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ")
+                                st.stop()
+                            if user_role == "admin":
                                 st.session_state.user_role = "admin"
                             else:
                                 st.session_state.user_role = "user"
+                            upsert_user_profile(login_email, role=st.session_state.user_role)
 
-                            st.session_state.user_email = f"{email_login.strip().split('@')[0]} [{st.session_state.user_role.upper()}]"
+                            st.session_state.user_email = f"{login_email.split('@')[0]} [{st.session_state.user_role.upper()}]"
                             
                             # 🔥 [เพิ่มคำสั่งโหลดข้อมูลของ USER ทันทีที่ล็อกอินผ่าน]
                             fetch_master_data_from_supabase()
@@ -836,7 +929,7 @@ if not st.session_state.is_authenticated:
                     else:
                         try:
                             auth_res = supabase.auth.sign_up({
-                                "email": su_email,
+                                "email": su_email.strip().lower(),
                                 "password": su_pass,
                                 "options": {
                                     "data": {
@@ -846,7 +939,9 @@ if not st.session_state.is_authenticated:
                                     }
                                 }
                             })
-                            st.session_state.user_database[su_email] = {
+                            su_email_clean = su_email.strip().lower()
+                            upsert_user_profile(su_email_clean, su_name, su_surname, su_tel, "user")
+                            st.session_state.user_database[su_email_clean] = {
                                 "name": su_name,
                                 "surname": su_surname,
                                 "tel": su_tel,
@@ -855,9 +950,9 @@ if not st.session_state.is_authenticated:
                             }
                             st.success("🎉 สมัครสมาชิกสำเร็จและเข้าสู่ระบบแล้ว")
                             st.session_state.is_authenticated = True
-                            st.session_state.current_user_key = su_email
+                            st.session_state.current_user_key = su_email_clean
                             st.session_state.user_role = "user"
-                            st.session_state.user_email = f"{su_email.split('@')[0]} [USER]"
+                            st.session_state.user_email = f"{su_email_clean.split('@')[0]} [USER]"
                             
                             # 🔥 [เพิ่มคำสั่งโหลดข้อมูลของ USER ใหม่ที่สมัครเสร็จ]
                             fetch_master_data_from_supabase()
@@ -1176,22 +1271,28 @@ if st.session_state.user_role == "admin":
     # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
     with admin_tabs[4]:
         st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
+        if st.button("🔄 โหลดรายชื่อผู้ใช้จาก Supabase", use_container_width=True):
+            fetch_user_profiles_from_supabase()
+            st.rerun()
+        fetch_user_profiles_from_supabase()
         
         users_list = []
         for email, info in st.session_state.user_database.items():
             role_badge = "🔑 ADMIN" if info.get("role") == "admin" else "👤 USER"
+            status_badge = "⛔ ระงับ" if info.get("status") == "disabled" else "✅ ใช้งาน"
             users_list.append({
                 "Email ID / Username": email,
                 "ชื่อ-นามสกุล": f"{info.get('name', '-')} {info.get('surname', '-')}",
                 "เบอร์โทรศัพท์": info.get("tel", "-"),
                 "ระดับสิทธิ์ (Role)": role_badge,
+                "สถานะ": status_badge,
                 "วันที่ลงทะเบียน": info.get("reg_date", "2026-01-01")
             })
             
         if users_list:
             st.dataframe(pd.DataFrame(users_list), use_container_width=True, hide_index=True)
         else:
-            st.info("ℹ️ ปัจจุบันใช้ระบบทดสอบจำลอง (ไม่มีประวัติบัญชีผู้ใช้อื่นในตารางชั่วคราว)")
+            st.info("ℹ️ ยังไม่มีข้อมูลในตาราง user_profiles กรุณารัน SQL sync_user_profiles.sql ใน Supabase ก่อน")
             
         st.markdown("---")
         uc1, uc2 = st.columns(2, gap="large")
@@ -1200,22 +1301,22 @@ if st.session_state.user_role == "admin":
             with st.container(border=True):
                 user_keys = list(st.session_state.get("user_database", {}).keys())
                 if not user_keys:
-                    st.warning("ยังไม่มีข้อมูลสมาชิกในระบบหน่วยความจำชั่วคราว")
+                    st.warning("ยังไม่มีข้อมูลสมาชิกในตาราง user_profiles")
                 else:
                     selected_user_email = st.selectbox("เลือกบัญชีอีเมลที่ต้องการแก้ไข:", user_keys)
                     current_user_role = st.session_state.user_database[selected_user_email]["role"]
                     new_role = st.selectbox("ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:", ["user", "admin"], index=0 if current_user_role == "user" else 1)
                     
                     if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
-                        st.session_state.user_database[selected_user_email]["role"] = new_role
-                        st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
-                        st.rerun()
+                        if update_user_profile_role(selected_user_email, new_role):
+                            st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
+                            st.rerun()
                 
         with uc2:
             st.markdown("### ❌ ระงับและลบบัญชี")
             with st.container(border=True):
-                user_to_delete = st.selectbox("เลือกบัญชีที่จะลบออกจากระบบถาวร:", ["-- เลือกบัญชี --"] + list(st.session_state.user_database.keys()))
-                if st.button("🗑️ ยืนยันคำสั่งลบบัญชีผู้ใช้", type="primary", use_container_width=True):
+                user_to_delete = st.selectbox("เลือกบัญชีที่จะระงับการใช้งาน:", ["-- เลือกบัญชี --"] + list(st.session_state.user_database.keys()))
+                if st.button("🗑️ ยืนยันคำสั่งระงับบัญชีผู้ใช้", type="primary", use_container_width=True):
                     current_user = st.session_state.get("current_user_key", "").lower().strip()
                     
                     if user_to_delete == "-- เลือกบัญชี --":
@@ -1226,9 +1327,9 @@ if st.session_state.user_role == "admin":
                     elif user_to_delete.lower().strip() == current_user:
                         st.error("❌ คุณไม่สามารถสั่งลบบัญชีตัวเองที่กำลังใช้งานล็อกอินอยู่ได้")
                     else:
-                        del st.session_state.user_database[user_to_delete]
-                        st.success(f"🔥 ลบบัญชี {user_to_delete} เรียบร้อย")
-                        st.rerun()
+                        if disable_user_profile(user_to_delete):
+                            st.success(f"🔥 ระงับบัญชี {user_to_delete} เรียบร้อย")
+                            st.rerun()
         
     st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("🔄 สลับบทบาทกลับไปโหมดผู้ใช้งานทั่วไป (User Dashboard)", use_container_width=True):
