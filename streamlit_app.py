@@ -1012,7 +1012,7 @@ if st.session_state.user_role == "admin":
                 nut_info = st.session_state.db_nutrient_keys[nut_key]
                 with sc[idx % 3]:
                     raw_val = st.session_state.db_targets[select_stage_crud].get(nut_key, 0.0)
-current_target_val = float(raw_val) if raw_val is not None else 0.0
+                    current_target_val = float(raw_val) if raw_val is not None else 0.0
                     updated_target_values[nut_key] = st.number_input(f"ขั้นต่ำของ {nut_info['label']}:", value=current_target_val, step=nut_info["step"])
             
             st.markdown("<br>", unsafe_allow_html=True)
