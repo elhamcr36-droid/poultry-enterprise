@@ -14,15 +14,13 @@ from supabase import create_client, Client
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
-# ดึงค่าจาก st.secrets โดยตรง (แนะนำให้ใส่ค่าจริงในหน้า Dashboard ของ Streamlit Cloud)
-SUPABASE_URL = st.secrets.get("https://nxyncxqbtntlpzqessou.supabase.co")
-SUPABASE_KEY = st.secrets.get("sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
-APP_URL = st.secrets.get("https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
+# ดึงค่าจาก st.secrets บน Streamlit Cloud เป็นหลัก
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")  # ลบค่าตัวอย่าง 'sb_publishable...' ออกแล้ว
+APP_URL = st.secrets.get("APP_URL", "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
 
-# ตั้งค่า URL สำหรับการรีเซ็ตรหัสผ่านและการเรียก Edge Function
 PASSWORD_RESET_REDIRECT_URL = st.secrets.get("PASSWORD_RESET_REDIRECT_URL", f"{APP_URL}?auth_action=reset_password")
 
-# ป้องกันข้อผิดพลาดกรณี SUPABASE_URL เป็น None หรือว่างเปล่า
 if SUPABASE_URL:
     PASSWORD_RESET_FUNCTION_URL = st.secrets.get("PASSWORD_RESET_FUNCTION_URL", f"{SUPABASE_URL}/functions/v1/reset-password-by-phone")
 else:
@@ -30,9 +28,8 @@ else:
 
 @st.cache_resource
 def init_supabase() -> Client:
-    # ตรวจสอบว่ามีค่า Config ครบถ้วนก่อนเชื่อมต่อ
     if not SUPABASE_URL or not SUPABASE_KEY:
-        raise ValueError("❌ คีย์ระบบไม่ครบ: กรุณาตั้งค่า SUPABASE_URL และ SUPABASE_KEY ใน Streamlit Secrets")
+        raise ValueError("❌ ตรวจพบข้อผิดพลาด: กรุณากรอก SUPABASE_KEY ตัวจริงในหน้า Streamlit Secrets")
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 try:
