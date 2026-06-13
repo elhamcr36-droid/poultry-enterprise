@@ -307,7 +307,6 @@ def fetch_master_data_from_supabase():
 def fetch_ingredients_from_supabase():
     try:
         rows = []
-        # 🔥 ดึงข้อมูลแยกตามเจ้าของ (owner_email) ตัวใครตัวมันอย่างแท้จริง
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             user_email = st.session_state.current_user_key
             default_response = supabase.table("ingredients").select("*").eq("owner_email", DEFAULT_INGREDIENT_OWNER).execute()
@@ -331,7 +330,7 @@ def fetch_ingredients_from_supabase():
         return FALLBACK_INGREDIENTS
 
 # =========================================================================
-# 🔄 บล็อกฟังก์ชันเพิ่มเติม: จัดการข้อมูลสูตรอาหาร และบันทึกฟาร์มรายวันตัวใครตัวมัน
+# 🔄 FUNCTIONS: จัดการข้อมูลสูตรอาหาร และบันทึกฟาร์มรายวันตัวใครตัวมัน
 # =========================================================================
 
 def fetch_saved_formulas_from_supabase():
@@ -350,13 +349,13 @@ def fetch_saved_formulas_from_supabase():
         return []
 
 def save_formula_to_supabase(formula_data):
-    """บันทึกสูตรอาหารใหม่ โดยทำการผูก owner_email ของผู้ใช้งานไปด้วยทุกครั้ง"""
+    """บันทึกสูตรอาหารใหม่ ผูกเจ้าของด้วย owner_email ทุกครั้ง"""
     try:
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             formula_data["owner_email"] = st.session_state.current_user_key
             supabase.table("saved_formulas").insert(formula_data).execute()
             st.success("🎉 บันทึกสูตรอาหารลงพื้นที่ส่วนตัวของคุณเรียบร้อยแล้ว!")
-            fetch_saved_formulas_from_supabase()  # รีโหลดสูตรอาหารล่าสุดเข้ามาในแอปฯ
+            fetch_saved_formulas_from_supabase()
             return True
         else:
             st.error("❌ กรุณาเข้าสู่ระบบก่อนทำการบันทึกข้อมูล")
@@ -387,7 +386,7 @@ def save_daily_log_to_supabase(log_data):
             log_data["owner_email"] = st.session_state.current_user_key
             supabase.table("daily_logs").insert(log_data).execute()
             st.success("🎉 บันทึกประวัติกิจกรรมฟาร์มประจำวันสำเร็จ!")
-            fetch_daily_logs_from_supabase()  # รีโหลดประวัติล่าสุดเข้ามาในแอปฯ
+            fetch_daily_logs_from_supabase()
             return True
         else:
             st.error("❌ กรุณาเข้าสู่ระบบก่อนทำการบันทึกข้อมูล")
@@ -403,7 +402,6 @@ def save_daily_log_to_supabase(log_data):
 def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
     prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
     
-    # ดึงวัตถุดิบที่กรองเฉพาะของยูสเซอร์คนนั้นๆ ออกมาเข้าสมการคำนวณราคาต่ำสุด
     current_ingredients = fetch_ingredients_from_supabase()
     if not current_ingredients:
         st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
@@ -559,7 +557,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-# --- 4.1 หน้า LOGIN ---
+    # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
@@ -572,23 +570,19 @@ if not st.session_state.is_authenticated:
 
         with col_btn1:
             if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
-                # ตรวจสอบค่าว่างก่อนส่งไปตรวจสอบกับฐานข้อมูล
                 if not email_login.strip() or not pass_login:
                     st.warning("⚠️ กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน")
                 else:
                     try:
-                        # 1. ส่งคำขอตรวจสอบสิทธิ์ไปยัง Supabase Auth
                         auth_res = supabase.auth.sign_in_with_password({
                             "email": email_login.strip(),
                             "password": pass_login
                         })
 
-                        # 2. หากยืนยันตัวตนผ่านและมีข้อมูลผู้ใช้กลับมา
                         if auth_res.user:
                             st.session_state.is_authenticated = True
                             st.session_state.current_user_key = email_login.strip()
 
-                            # ตรวจสอบสิทธิ์และแบ่งแยกสถานะผู้ใช้งาน
                             if email_login.strip().lower() == "222@gmail.com":
                                 st.session_state.user_role = "admin"
                             else:
@@ -596,18 +590,19 @@ if not st.session_state.is_authenticated:
 
                             st.session_state.user_email = f"{email_login.strip().split('@')[0]} [{st.session_state.user_role.upper()}]"
                             
-                            st.success("🎉 เข้าสู่ระบบสำเร็จ ระบบกำลังนำคุณเข้าสู่หน้าหลัก...")
+                            # 🔥 [เพิ่มคำสั่งโหลดข้อมูลของ USER ทันทีที่ล็อกอินผ่าน]
+                            fetch_master_data_from_supabase()
+                            fetch_ingredients_from_supabase()
+                            fetch_saved_formulas_from_supabase() # โหลดสูตรอาหารส่วนตัว
+                            fetch_daily_logs_from_supabase()    # โหลดสมุดฟาร์มรายวันส่วนตัว
                             
-                            # 3. สั่ง Rerun ทันทีเพื่ออัปเดต Token สิทธิ์ใน Supabase Client ให้เรียบร้อย
+                            st.success("🎉 เข้าสู่ระบบสำเร็จ ระบบกำลังนำคุณเข้าสู่หน้าหลัก...")
                             st.rerun()
 
                     except Exception as error:
-                        # แปลงข้อความ error เป็นตัวพิมพ์เล็กเพื่อตรวจสอบสาเหตุที่แท้จริง
                         error_msg = str(error).lower()
-                        
-                        # ดักจับข้อผิดพลาดเรื่องการเชื่อมต่อเครือข่าย/DNS ล่ม
                         if "name or service not known" in error_msg or "temporary failure in name resolution" in error_msg:
-                            st.error("🌐 ไม่สามารถเชื่อมต่ออินเทอร์เน็ตหรือเซิร์ฟเวอร์ฐานข้อมูลได้ (Name or service not known) กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณ หรือตรวจสอบว่า SUPABASE_URL ในโค้ดถูกต้องหรือไม่")
+                            st.error("🌐 ไม่สามารถเชื่อมต่ออินเทอร์เน็ตหรือเซิร์ฟเวอร์ฐานข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ")
                         elif "invalid login credentials" in error_msg or "bad credentials" in error_msg:
                             st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบข้อมูลอีกครั้ง")
                         else:
@@ -636,28 +631,25 @@ if not st.session_state.is_authenticated:
         su_surname = st.text_input("👤 นามสกุล:")
         su_tel = st.text_input("📞 เบอร์โทรศัพท์ติดต่อ:")
         su_email = st.text_input("📧 อีเมลบัญชีผู้ใช้ (ใช้เป็นไอดีสำหรับ Log In):")
-
         st.markdown(
             "<div style='background-color:#1e293b; padding:12px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; color:#94a3b8;'>"
             "🔒 <b>ข้อกำหนดรหัสผ่านความปลอดภัยสูง:</b><br>"
             "- ความยาวไม่น้อยกว่า 8 ตัวอักษร<br>"
             "- มีอักษรพิมพ์ใหญ่ (A-Z) และพิมพ์เล็ก (a-z)<br>"
             "- มีตัวเลข (0-9) และอักขระพิเศษอย่างน้อย 1 ตัว (@, #, $, %, !, ., _)"
-            "</div>",
-            unsafe_allow_html=True
+            "</div>", unsafe_allow_html=True
         )
-
         su_pass = st.text_input("🔑 ตั้งรหัสผ่านความปลอดภัยสูง:", type="password")
         su_pass_conf = st.text_input("🔄 พิมพ์ยืนยันรหัสผ่านอีกครั้ง:", type="password")
-
         is_strong, pass_msg = check_password_strength(su_pass) if su_pass else (False, "")
 
         if su_pass:
-            if is_strong: st.success(pass_msg)
-            else: st.warning(pass_msg)
+            if is_strong:
+                st.success(pass_msg)
+            else:
+                st.warning(pass_msg)
 
         col_su1, col_su2 = st.columns(2)
-
         with col_su1:
             if st.button("✅ ยืนยันการลงทะเบียน", type="primary", use_container_width=True):
                 if su_email and su_pass and su_name and su_tel:
@@ -678,7 +670,6 @@ if not st.session_state.is_authenticated:
                                     }
                                 }
                             })
-
                             st.session_state.user_database[su_email] = {
                                 "name": su_name,
                                 "surname": su_surname,
@@ -686,96 +677,27 @@ if not st.session_state.is_authenticated:
                                 "role": "user",
                                 "reg_date": str(datetime.date.today())
                             }
-
                             st.success("🎉 สมัครสมาชิกสำเร็จและเข้าสู่ระบบแล้ว")
                             st.session_state.is_authenticated = True
                             st.session_state.current_user_key = su_email
                             st.session_state.user_role = "user"
                             st.session_state.user_email = f"{su_email.split('@')[0]} [USER]"
+                            
+                            # 🔥 [เพิ่มคำสั่งโหลดข้อมูลของ USER ใหม่ที่สมัครเสร็จ]
                             fetch_master_data_from_supabase()
                             fetch_ingredients_from_supabase()
+                            fetch_saved_formulas_from_supabase() # ดึงตารางสูตร
+                            fetch_daily_logs_from_supabase()    # ดึงตารางสมุดประจำวัน
+                            
                             st.rerun()
-
                         except Exception as error:
                             st.error(f"❌ ลงทะเบียนล้มเหลว: {error}")
                 else:
                     st.warning("⚠️ กรุณากรอกข้อมูลในช่องจำเป็นให้ครบถ้วน")
-
         with col_su2:
             if st.button("⬅️ ย้อนกลับไปหน้าล็อกอิน", use_container_width=True):
                 st.session_state.auth_page_mode = "login"
                 st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.stop()
-
-    # --- 4.3 หน้า FORGOT PASSWORD ---
-    elif st.session_state.auth_page_mode == "forgot":
-        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนรหัสผ่านด้วยอีเมลและเบอร์โทร</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-
-        fg_email = st.text_input("📧 อีเมลที่ลงทะเบียนไว้:", key="phone_reset_email")
-        fg_phone = st.text_input("📞 เบอร์โทรที่ใช้สมัคร:", key="phone_reset_tel")
-        fg_new_pass = st.text_input("🔑 รหัสผ่านใหม่:", type="password", key="phone_reset_new_pass")
-        fg_new_pass_conf = st.text_input("🔄 ยืนยันรหัสผ่านใหม่:", type="password", key="phone_reset_new_pass_conf")
-        st.info("ระบบจะตรวจสอบอีเมลและเบอร์โทรให้ตรงกับข้อมูลสมัครสมาชิก แล้วเปลี่ยนรหัสผ่านให้ทันทีโดยไม่ส่งอีเมล")
-
-        is_forgot_strong, forgot_pass_msg = check_password_strength(fg_new_pass) if fg_new_pass else (False, "")
-        if fg_new_pass:
-            if is_forgot_strong:
-                st.success(forgot_pass_msg)
-            else:
-                st.warning(forgot_pass_msg)
-
-        if st.button("💾 ยืนยันเปลี่ยนรหัสผ่าน", type="primary", use_container_width=True):
-            if not fg_email or not fg_phone or not fg_new_pass or not fg_new_pass_conf:
-                st.warning("⚠️ กรุณากรอกอีเมล เบอร์โทร และรหัสผ่านใหม่ให้ครบ")
-            elif fg_new_pass != fg_new_pass_conf:
-                st.error("❌ รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน")
-            elif not is_forgot_strong:
-                st.error("❌ รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไขความปลอดภัย")
-            else:
-                try:
-                    reset_password_with_email_and_phone(fg_email, fg_phone, fg_new_pass)
-                    st.success("🎉 เปลี่ยนรหัสผ่านสำเร็จ กรุณากลับไปเข้าสู่ระบบด้วยรหัสผ่านใหม่")
-                    st.session_state.auth_page_mode = "login"
-                    st.query_params.clear()
-                    st.rerun()
-                except Exception as error:
-                    st.error(f"❌ เปลี่ยนรหัสผ่านไม่สำเร็จ: {error}")
-
-        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True, key="phone_reset_back"):
-            st.session_state.auth_page_mode = "login"
-            st.query_params.clear()
-            st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.stop()
-        st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #f43f5e !important;'>🔑 กู้คืนและตั้งรหัสผ่านใหม่</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
-
-        fg_email = st.text_input("📧 ป้อนอีเมลที่ลงทะเบียนไว้:")
-        st.info("🎯 ระบบจะส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณโดยตรง")
-
-        if st.button("📨 ส่งลิงก์กู้คืนรหัสผ่าน", type="primary", use_container_width=True):
-            if fg_email:
-                try:
-                    supabase.auth.reset_password_for_email(
-                        fg_email,
-                        {"redirect_to": PASSWORD_RESET_REDIRECT_URL}
-                    )
-                    st.success("🚀 ส่งข้อมูลกู้คืนเรียบร้อยแล้ว! โปรดเช็คอีเมลเพื่อตั้งรหัสผ่านใหม่")
-                except Exception as error:
-                    st.error(f"❌ เกิดข้อผิดพลาด: {error}")
-            else:
-                st.warning("⚠️ กรุณากรอกอีเมล")
-
-        if st.button("⬅️ ยกเลิกและกลับหน้าเข้าสู่ระบบ", use_container_width=True):
-            st.session_state.auth_page_mode = "login"
-            st.query_params.clear()
-            st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
