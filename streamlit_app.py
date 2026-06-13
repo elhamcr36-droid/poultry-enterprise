@@ -567,14 +567,18 @@ def run_ai_solver(nutrient_targets):
         st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ Supabase ไม่สามารถคำนวณได้")
         return {}
 
+    def make_lp_var_name(name):
+        safe_name = re.sub(r"[^0-9A-Za-z_]+", "_", str(name)).strip("_")
+        return safe_name or "ingredient"
+
     # กำหนดตัวแปรสำหรับสัดส่วนผสมวัตถุดิบแต่ละชนิด (LowBound - UpBound อิงตามที่ตั้งไว้ในฐานข้อมูล)
     ing_vars = {
         name: pulp.LpVariable(
-            name.replace(" ", "_").replace("(", "").replace(")", ""), 
+            f"ing_{idx}_{make_lp_var_name(name)}",
             lowBound=float(d.get("min_limit", 0)) / 100.0, 
             upBound=float(d.get("max_limit", 100)) / 100.0
         ) 
-        for name, d in current_ingredients.items()
+        for idx, (name, d) in enumerate(current_ingredients.items())
     }
     
     # ตัวแปรเสริมชดเชยเพื่อป้องกันสมองกลหาทางออกไม่ได้ (Slack Variables)
@@ -583,32 +587,31 @@ def run_ai_solver(nutrient_targets):
     s_c = pulp.LpVariable("slack_calcium", lowBound=0)
     
     # Objective Function: คำนวณราคาวัตถุดิบให้มีต้นทุนรวมต่ำที่สุดสุทธิ
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["price"]) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Total_Cost"
+    prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Total_Cost"
     
     # Constraint 1: สัดส่วนผสมของวัตถุดิบทุกชนิดรวมกันต้องได้ 100% พอดี
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] for name in current_ingredients.keys()]) == 1.0, "Total_Weight_100_Percent"
+    prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Total_Weight_100_Percent"
     
     # Constraints 2-8: ผูกข้อจำกัดสารอาหารตามค่าที่ดึงมาจาก Supabase จริง
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= nutrient_targets["min_protein"]
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= nutrient_targets["min_me"]
+    prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= nutrient_targets["min_protein"]
+    prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= nutrient_targets["min_me"]
     
     # แคลเซียม (ตรวจเกณฑ์ขั้นต่ำ และขั้นสูงสุดตามสายพันธุ์)
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["calcium"]) for name, d in current_ingredients.items()]) + s_c >= nutrient_targets["min_calcium"]
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["calcium"]) for name, d in current_ingredients.items()]) <= nutrient_targets["max_calcium"]
+    prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in current_ingredients.items()]) + s_c >= nutrient_targets["min_calcium"]
+    prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in current_ingredients.items()]) <= nutrient_targets["max_calcium"]
     
     # ฟอสฟอรัส, ไลซีน, เมทิโอนีน และเยื่อใยสูงสุด
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["phos"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_phosphorus"]
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_lysine"]
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_methionine"]
-    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d.get("fiber", 0.0)) for name, d in current_ingredients.items()]) <= nutrient_targets["max_fiber"]
+    prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_phosphorus"]
+    prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_lysine"]
+    prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_methionine"]
+    prob += pulp.lpSum([ing_vars[name] * float(d.get("fiber", 0.0)) for name, d in current_ingredients.items()]) <= nutrient_targets["max_fiber"]
     
     # เริ่มสั่งเปิดระบบ Solver คำนวณหาทางออกที่ดีที่สุด
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
     res = {}
     for name in current_ingredients.keys():
-        var_key = name.replace(" ", "_").replace("(", "").replace(")", "")
-        res[name] = round((ing_vars[var_key].varValue if ing_vars[var_key].varValue is not None else 0.0) * 100.0, 1)
+        res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
     return res
 
 # ==========================================
