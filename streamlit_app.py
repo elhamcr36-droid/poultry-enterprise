@@ -855,8 +855,6 @@ if not st.session_state.is_authenticated:
                                 st.session_state.user_role = "admin"
                             else:
                                 st.session_state.user_role = "user"
-                            upsert_user_profile(login_email, role=st.session_state.user_role)
-
                             st.session_state.user_email = f"{login_email.split('@')[0]} [{st.session_state.user_role.upper()}]"
                             
                             # 🔥 [เพิ่มคำสั่งโหลดข้อมูลของ USER ทันทีที่ล็อกอินผ่าน]
