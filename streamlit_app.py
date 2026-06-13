@@ -282,24 +282,31 @@ def fetch_master_data_from_supabase():
 
 def fetch_nutrition_standards(breed_id, phase_name):
     """ 
-    ฟีเจอร์พิเศษ: ดึงมาตรฐานโภชนาการไก่ไข่รายสายพันธุ์ตรงจากฐานข้อมูล 100% 
-    แก้ปัญหาข้อมูลในตาราง db_targets ไม่มีค่าสารอาหาร
+    ดึงมาตรฐานโภชนาการไก่ไข่รายสายพันธุ์ตรงจากฐานข้อมูล 100%
+    เพื่อนำไปป้อนเป็น Constraints ให้กับตัว Solver
     """
     try:
-        res = supabase.table("มาตรฐานโภชนาการไก่ไข่").select("*").eq("breed_id", breed_id).eq("ช่วงอายุการเลี้ยง_phase_name", phase_name).execute()
+        # ดึงแถวข้อมูลสารอาหารที่ตรงกับ breed_id และ ชื่อระยะการเลี้ยง
+        res = supabase.table("มาตรฐานโภชนาการไก่ไข่") \
+            .select("*") \
+            .eq("breed_id", int(breed_id)) \
+            .eq("ช่วงอายุการเลี้ยง_phase_name", phase_name) \
+            .execute()
+            
         if res.data:
             data = res.data[0]
             return {
-                "protein": float(data.get("โปรตีนต่ำสุด_min_protein", 0.0)),
-                "me": float(data.get("พลังงานต่ำสุด_min_me", 0.0)),
-                "calcium": float(data.get("แคลเซียมต่ำสุด_min_calcium", 0.0)),
-                "phos": float(data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", 0.0)),
-                "lysine": float(data.get("ไลซีนต่ำสุด_min_lysine", 0.0)),
-                "methionine": float(data.get("เมทิโอนีนต่ำสุด_min_methionine", 0.0)),
-                "fiber_max": 5.0 # ค่าเริ่มต้นเยื่อใยสูงสุดกรณีไม่มีในตาราง
+                "min_protein": float(data.get("โปรตีนต่ำสุด_min_protein", 0.0)),
+                "min_me": float(data.get("พลังงานต่ำสุด_min_me", 0.0)),
+                "min_calcium": float(data.get("แคลเซียมต่ำสุด_min_calcium", 0.0)),
+                "max_calcium": float(data.get("แคลเซียมสูงสุด_max_calcium", 5.5)),
+                "min_phosphorus": float(data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", 0.0)),
+                "min_lysine": float(data.get("ไลซีนต่ำสุด_min_lysine", 0.0)),
+                "min_methionine": float(data.get("เมทิโอนีนต่ำสุด_min_methionine", 0.0)),
+                "max_fiber": 5.0 # ค่าตั้งต้นสำหรับเยื่อใยสูงสุด
             }
-    except Exception:
-        pass
+    except Exception as e:
+        st.error(f"⚠️ เกิดข้อผิดพลาดในการดึงมาตรฐานโภชนาการจาก Supabase: {e}")
     return None
 
 def fetch_ingredients_from_supabase():
@@ -398,43 +405,65 @@ def save_daily_log_to_supabase(log_data):
 # ==========================================
 # 🧮 3. CORE AI SOLVER ENGINE
 # ==========================================
-def run_ai_solver(req_p, req_m, req_c, req_ph, req_ly, req_me):
-    prob = pulp.LpProblem("AI_First_Solver", pulp.LpMinimize)
-    
-    current_ingredients = fetch_ingredients_from_supabase()
-    if not current_ingredients:
-        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ ไม่สามารถคำนวณได้")
+def run_ai_solver(nutrient_targets):
+    """
+    สมองกลคำนวณสูตรอาหารต้นทุนต่ำสุด (Linear Programming)
+    โดยดึงข้อจำกัด (Constraints) มาจากตารางมาตรฐานโภชนาการบน Supabase 100%
+    """
+    if not nutrient_targets:
+        st.error("❌ ไม่สามารถคำนวณได้เนื่องจากไม่มีข้อมูลเกณฑ์เป้าหมายโภชนาการ")
         return {}
 
+    prob = pulp.LpProblem("AI_Layer_Nutrition_Solver", pulp.LpMinimize)
+    
+    # ดึงวัตถุดิบปัจจุบันจากคลังใน Supabase
+    current_ingredients = fetch_ingredients_from_supabase()
+    if not current_ingredients:
+        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ Supabase ไม่สามารถคำนวณได้")
+        return {}
+
+    # กำหนดตัวแปรสำหรับสัดส่วนผสมวัตถุดิบแต่ละชนิด (LowBound - UpBound อิงตามที่ตั้งไว้ในฐานข้อมูล)
     ing_vars = {
         name: pulp.LpVariable(
-            name, 
+            name.replace(" ", "_").replace("(", "").replace(")", ""), 
             lowBound=float(d.get("min_limit", 0)) / 100.0, 
             upBound=float(d.get("max_limit", 100)) / 100.0
         ) 
         for name, d in current_ingredients.items()
     }
     
-    s_p = pulp.LpVariable("s_p", lowBound=0)
-    s_m = pulp.LpVariable("s_m", lowBound=0)
-    s_c = pulp.LpVariable("s_c", lowBound=0)
+    # ตัวแปรเสริมชดเชยเพื่อป้องกันสมองกลหาทางออกไม่ได้ (Slack Variables)
+    s_p = pulp.LpVariable("slack_protein", lowBound=0)
+    s_m = pulp.LpVariable("slack_me", lowBound=0)
+    s_c = pulp.LpVariable("slack_calcium", lowBound=0)
     
-    prob += pulp.lpSum([ing_vars[name] * float(d["price"]) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Cost"
+    # Objective Function: คำนวณราคาวัตถุดิบให้มีต้นทุนรวมต่ำที่สุดสุทธิ
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["price"]) for name, d in current_ingredients.items()]) + (10000.0 * s_p) + (10.0 * s_m) + (10000.0 * s_c), "Total_Cost"
     
-    prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Weight"
+    # Constraint 1: สัดส่วนผสมของวัตถุดิบทุกชนิดรวมกันต้องได้ 100% พอดี
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] for name in current_ingredients.keys()]) == 1.0, "Total_Weight_100_Percent"
     
-    prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= req_p
-    prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= req_m
-    prob += pulp.lpSum([ing_vars[name] * float(d["calcium"]) for name, d in current_ingredients.items()]) + s_c >= req_c
-    prob += pulp.lpSum([ing_vars[name] * float(d["phos"]) for name, d in current_ingredients.items()]) >= req_ph
-    prob += pulp.lpSum([ing_vars[name] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= req_ly
-    prob += pulp.lpSum([ing_vars[name] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= req_me
+    # Constraints 2-8: ผูกข้อจำกัดสารอาหารตามค่าที่ดึงมาจาก Supabase จริง
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= nutrient_targets["min_protein"]
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= nutrient_targets["min_me"]
     
+    # แคลเซียม (ตรวจเกณฑ์ขั้นต่ำ และขั้นสูงสุดตามสายพันธุ์)
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["calcium"]) for name, d in current_ingredients.items()]) + s_c >= nutrient_targets["min_calcium"]
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["calcium"]) for name, d in current_ingredients.items()]) <= nutrient_targets["max_calcium"]
+    
+    # ฟอสฟอรัส, ไลซีน, เมทิโอนีน และเยื่อใยสูงสุด
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["phos"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_phosphorus"]
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["lysine"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_lysine"]
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d["methionine"]) for name, d in current_ingredients.items()]) >= nutrient_targets["min_methionine"]
+    prob += pulp.lpSum([ing_vars[name.replace(" ", "_").replace("(", "").replace(")", "")] * float(d.get("fiber", 0.0)) for name, d in current_ingredients.items()]) <= nutrient_targets["max_fiber"]
+    
+    # เริ่มสั่งเปิดระบบ Solver คำนวณหาทางออกที่ดีที่สุด
     prob.solve(pulp.PULP_CBC_CMD(msg=False))
     
     res = {}
     for name in current_ingredients.keys():
-        res[name] = round((ing_vars[name].varValue if ing_vars[name].varValue is not None else 0.0) * 100.0, 1)
+        var_key = name.replace(" ", "_").replace("(", "").replace(")", "")
+        res[name] = round((ing_vars[var_key].varValue if ing_vars[var_key].varValue is not None else 0.0) * 100.0, 1)
     return res
 
 # ==========================================
@@ -1122,7 +1151,7 @@ else:
         ]
     )
 
-    # ------------------------------------------
+# ------------------------------------------
     # TAB 1: MANAGEMENT & FORMULA MATRIX
     # ------------------------------------------
     with page_tabs[0]:
@@ -1151,7 +1180,7 @@ else:
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมาย ---
+        # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมายจาก Supabase ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("### 🐓 เลือกสายพันธุ์และโภชนาการเป้าหมาย")
 
@@ -1160,79 +1189,73 @@ else:
             list_groups = [g["group_name"] for g in st.session_state.db_groups]
             selected_g = st.selectbox("📁 เลือกกลุ่มสายพันธุ์หลัก:", list_groups)
 
-            # ย้ายเป้าหมายมาอยู่ด้านบนเพื่อความลื่นไหลในการใช้งาน
-            edit_p = st.number_input(
-                "🎯 โปรตีนเป้าหมาย (%):",
-                min_value=5.0,
-                value=float(st.session_state.get("base_req_protein", 16.5)),
-                step=0.1,
-            )
-            edit_m = st.number_input(
-                "🎯 พลังงานเป้าหมาย (kcal/kg):",
-                min_value=1000.0,
-                value=float(st.session_state.get("base_req_me", 2750.0)),
-                step=25.0,
-            )
-
-        with col_br2:
+            # กรองสายพันธุ์ตามกลุ่มที่เลือก
             filtered_breeds = [
                 b for b in st.session_state.db_breeds if b["group_name"] == selected_g
             ]
             breed_names = (
                 [b["breed_name"] for b in filtered_breeds] if filtered_breeds else ["ไม่มีข้อมูล"]
             )
+
+        with col_br2:
             selected_b_name = st.selectbox("🐔 เลือกสายพันธุ์ไก่ไข่:", breed_names)
 
-            # ดึงข้อมูลสายพันธุ์และเซฟเข้า session_state เพื่อป้องกันความผิดพลาดข้ามแท็บ
+            # ดึงข้อมูลสายพันธุ์และเซฟเข้า session_state เพื่อใช้งานข้ามแท็บ
             current_breed_data = next(
                 (b for b in filtered_breeds if b["breed_name"] == selected_b_name),
-                {"default_feed": 114.0, "egg_color": "ไม่ระบุ"},
+                {"id": 1, "default_feed": 114.0, "egg_color": "ไม่ระบุ"},
             )
-            st.session_state["current_breed_default_feed"] = current_breed_data.get(
-                "default_feed", 114.0
-            )
-
-            edit_c = st.number_input(
-                "🎯 แคลเซียมเป้าหมาย (%):",
-                min_value=0.5,
-                value=float(st.session_state.get("base_req_calcium", 3.8)),
-                step=0.05,
-            )
-            edit_ph = st.number_input(
-                "🎯 ฟอสฟอรัสเป้าหมาย (%):",
-                min_value=0.1,
-                value=float(st.session_state.get("base_req_phos", 0.45)),
-                step=0.02,
-            )
+            selected_breed_id = current_breed_data.get("id", 1)
+            st.session_state["current_breed_default_feed"] = float(current_breed_data.get("default_feed", 114.0))
 
         with col_br3:
+            # ดึงตัวเลือกระยะการเลี้ยงจากฐานข้อมูล db_targets
             stage_options = {
                 s["stage_name"]: s["stage_key"] for s in st.session_state.db_targets.values()
             }
             selected_stage_label = st.selectbox(
                 "📋 เลือกช่วงระยะการให้ไข่:", list(stage_options.keys())
             )
-            base_req = st.session_state.db_targets[stage_options[selected_stage_label]]
+            
+            # ตัดคำเพื่อเอาคำหลัก (เช่น "ระยะลูกไก่") ไปค้นหาในตารางมาตรฐานโภชนาการบน Supabase
+            phase_query_name = selected_stage_label.split(" ")[0]
 
-            # โหลดค่าเริ่มต้นจากสายพันธุ์ที่เลือกเข้า session
-            if "base_req_protein" not in st.session_state:
-                st.session_state["base_req_protein"] = base_req["protein"]
-                st.session_state["base_req_me"] = base_req["me"]
-                st.session_state["base_req_calcium"] = base_req["calcium"]
-                st.session_state["base_req_phos"] = base_req["phos"]
+        # --- ทำการ Query โหลดค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time 100% ---
+        nutrient_targets = fetch_nutrition_standards(selected_breed_id, phase_query_name)
 
-            st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+        if nutrient_targets:
+            # ตรวจสอบและตั้งค่า Default ลงใน session_state หากยังไม่มีข้อมูล
+            if "base_req_protein" not in st.session_state or st.get_option("browser.gatherUsageStats") == False: 
+                st.session_state["base_req_protein"] = nutrient_targets["min_protein"]
+                st.session_state["base_req_me"] = nutrient_targets["min_me"]
+                st.session_state["base_req_calcium"] = nutrient_targets["min_calcium"]
+                st.session_state["base_req_phos"] = nutrient_targets["min_phosphorus"]
+
+            # สร้างฟอร์มให้ผู้ใช้สามารถปรับแต่งค่าเป้าหมายได้เองโดยอิงค่าเริ่มต้นจาก Supabase
+            col_inp1, col_inp2, col_inp3, col_inp4 = st.columns(4)
+            with col_inp1:
+                edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state["base_req_protein"]), step=0.1)
+            with col_inp2:
+                edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state["base_req_me"]), step=25.0)
+            with col_inp3:
+                edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state["base_req_calcium"]), step=0.05)
+            with col_inp4:
+                edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state["base_req_phos"]), step=0.02)
+
+            st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
             if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
                 with st.spinner("AI กำลังจัดสูตร..."):
-                    st.session_state.current_weights = run_ai_solver(
-                        edit_p,
-                        edit_m,
-                        edit_c,
-                        edit_ph,
-                        float(base_req["lysine"]),
-                        float(base_req["methionine"]),
-                    )
+                    # ปรับชุดเป้าหมายสารอาหารส่งเข้า Solver
+                    custom_targets = nutrient_targets.copy()
+                    custom_targets["min_protein"] = edit_p
+                    custom_targets["min_me"] = edit_m
+                    custom_targets["min_calcium"] = edit_c
+                    custom_targets["min_phosphorus"] = edit_ph
+                    
+                    st.session_state.current_weights = run_ai_solver(custom_targets)
                     st.rerun()
+        else:
+            st.error(f"❌ ไม่พบเกณฑ์มาตรฐานโภชนาการสำหรับสายพันธุ์ {selected_b_name} ระยะ {phase_query_name} บนฐานข้อมูล")
         st.markdown("</div>", unsafe_allow_html=True)
 
         # --- ส่วนที่ 3: ปุ่มลัดตามสถานการณ์ราคาตลาด ---
@@ -1240,37 +1263,16 @@ else:
         st.markdown("### ⚡ [กดด่วน] ปุ่มลัดสลับสูตรอาหารตามสถานการณ์ราคาตลาด")
         sc_col1, sc_col2, sc_col3 = st.columns(3)
 
-        if not st.session_state.current_weights:
-            st.session_state.current_weights = run_ai_solver(
-                base_req["protein"],
-                base_req["me"],
-                base_req["calcium"],
-                base_req["phos"],
-                base_req["lysine"],
-                base_req["methionine"],
-            )
+        if not st.session_state.current_weights and nutrient_targets:
+            st.session_state.current_weights = run_ai_solver(nutrient_targets)
 
         with sc_col1:
-            if st.button("🟢 โหมดปกติ / เน้นถูกสุด", use_container_width=True):
-                st.session_state.current_weights = run_ai_solver(
-                    base_req["protein"],
-                    base_req["me"],
-                    base_req["calcium"],
-                    base_req["phos"],
-                    base_req["lysine"],
-                    base_req["methionine"],
-                )
+            if st.button("🟢 โหมดปกติ / เน้นถูกสุด", use_container_width=True) and nutrient_targets:
+                st.session_state.current_weights = run_ai_solver(nutrient_targets)
                 st.rerun()
         with sc_col2:
-            if st.button("🌾 โหมดข้าวโพด / รำข้าวแพง", use_container_width=True):
-                raw_weights = run_ai_solver(
-                    base_req["protein"],
-                    base_req["me"],
-                    base_req["calcium"],
-                    base_req["phos"],
-                    base_req["lysine"],
-                    base_req["methionine"],
-                )
+            if st.button("🌾 โหมดข้าวโพด / รำข้าวแพง", use_container_width=True) and nutrient_targets:
+                raw_weights = run_ai_solver(nutrient_targets)
                 if "ข้าวโพด" in raw_weights:
                     raw_weights["ข้าวโพด"] = max(0.0, raw_weights["ข้าวโพด"] - 20.0)
                 if "รำข้าวละเอียด" in raw_weights:
@@ -1282,15 +1284,12 @@ else:
                 st.session_state.current_weights = raw_weights
                 st.rerun()
         with sc_col3:
-            if st.button("🥚 โหมดเร่งไข่ใหญ่ / เปลือกหนา", use_container_width=True):
-                raw_weights = run_ai_solver(
-                    base_req["protein"] + 0.5,
-                    base_req["me"],
-                    base_req["calcium"] + 0.3,
-                    base_req["phos"],
-                    base_req["lysine"],
-                    base_req["methionine"],
-                )
+            if st.button("🥚 โหมดเร่งไข่ใหญ่ / เปลือกหนา", use_container_width=True) and nutrient_targets:
+                # ปรับเพิ่มเกณฑ์โปรตีนและแคลเซียมชั่วคราวสำหรับโหมดเร่งไข่
+                boosted_targets = nutrient_targets.copy()
+                boosted_targets["min_protein"] += 0.5
+                boosted_targets["min_calcium"] += 0.3
+                raw_weights = run_ai_solver(boosted_targets)
                 if "น้ำมันปาล์ม" in raw_weights:
                     raw_weights["น้ำมันปาล์ม"] = max(2.0, raw_weights["น้ำมันปาล์ม"])
                 if "เปลือกหอยบด" in raw_weights:
@@ -1323,15 +1322,8 @@ else:
             with cl_title:
                 st.markdown("### 🥣 แถบปรับสัดส่วนวัตถุดิบ (%)")
             with cl_reset:
-                if st.button("🔄 รีเซ็ตค่าใหม่ทั้งหมด", use_container_width=True):
-                    st.session_state.current_weights = run_ai_solver(
-                        base_req["protein"],
-                        base_req["me"],
-                        base_req["calcium"],
-                        base_req["phos"],
-                        base_req["lysine"],
-                        base_req["methionine"],
-                    )
+                if st.button("🔄 รีเซ็ตค่าใหม่ทั้งหมด", use_container_width=True) and nutrient_targets:
+                    st.session_state.current_weights = run_ai_solver(nutrient_targets)
                     st.rerun()
 
             temp_weights = {}
@@ -1346,7 +1338,7 @@ else:
                 "DDGS": 15.0,
             }
 
-            # ปรับแบ่งตัว Slider วัตถุดิบออกเป็น 2 คอลัมน์ย่อย เพื่อหน้าจอที่กระชับ ไม่ยาวเกินไป
+            # ปรับแบ่งตัว Slider วัตถุดิบออกเป็น 2 คอลัมน์ย่อย
             ing_keys = list(st.session_state.db_ingredients.keys())
             ing_col1, ing_col2 = st.columns(2)
 
@@ -1393,25 +1385,29 @@ else:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
             st.markdown("### 🧪 ผลลัพธ์โภชนาการจริงในสูตร")
 
+            # แสดงเปรียบเทียบค่าเป้าหมายที่ดึงมาจากชุดข้อมูล Supabase จริง
+            target_p_val = edit_p if nutrient_targets else 16.5
+            target_m_val = edit_m if nutrient_targets else 2750
+
             comparison_table = [
                 {
                     "โภชนาการสำคัญ": "โปรตีนดิบ (% CP)",
-                    "เป้าหมาย": f"{edit_p:.2f} %",
+                    "เป้าหมาย": f"{target_p_val:.2f} %",
                     "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %",
                 },
                 {
                     "โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)",
-                    "เป้าหมาย": f"{edit_m:.0f}",
+                    "เป้าหมาย": f"{target_m_val:.0f}",
                     "ได้จริงในสูตร": f"{act_nut['me']:.0f}",
                 },
                 {
                     "โภชนาการสำคัญ": "แคลเซียม (% Ca)",
-                    "เป้าหมาย": f"{edit_c:.2f} %",
+                    "เป้าหมาย": f"{edit_c:.2f} %" if nutrient_targets else "3.80 %",
                     "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %",
                 },
                 {
                     "โภชนาการสำคัญ": "ฟอสฟอรัส (% P)",
-                    "เป้าหมาย": f"{edit_ph:.2f} %",
+                    "เป้าหมาย": f"{edit_ph:.2f} %" if nutrient_targets else "0.45 %",
                     "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %",
                 },
             ]
@@ -1425,7 +1421,7 @@ else:
             )
 
             breed_display_name = (
-                selected_b_name.split()[-2]
+                selected_b_name.split()[-1]
                 if len(selected_b_name.split()) > 1
                 else selected_b_name
             )
@@ -1465,7 +1461,6 @@ else:
             unsafe_allow_html=True,
         )
 
-        # ปุ่มทางลัด: ดึงข้อมูลเมื่อวานมาเติมอัตโนมัติ เพื่อลดเวลาพิมพ์เอกสารหน้าฟาร์ม
         if st.session_state.daily_logs:
             if st.button(
                 "📋 ดึงข้อมูลจากประวัติล่าสุด (ไม่ต้องพิมพ์ใหม่หมด)", use_container_width=True
@@ -1489,7 +1484,7 @@ else:
                 "🐣 อายุฝูงไก่ปัจจุบัน (สัปดาห์):", min_value=1, max_value=100, value=25, step=1
             )
 
-            default_birds = st.session_state.get("shortcut_birds", 5000)
+            default_birds = st.session_state.get("shortcut_birds", 1000)
             bird_count = st.number_input(
                 "จำนวนไก่ไข่ทั้งหมดในเล้าวันนี้ (ตัว):",
                 min_value=1,
@@ -1505,11 +1500,11 @@ else:
                 key="temp_slider",
             )
 
-            # เรียกใช้ค่าแนะนำจากที่เราเซฟลง session_state ไว้เพื่อความปลอดภัย
+            # ดึงค่าแนะนำปริมาณอาหารจริงแบบ Dynamic จากรายสายพันธุ์ที่เลือกไว้ในตาราง Supabase (ตาราง db_breeds)
             breed_default_feed = st.session_state.get("current_breed_default_feed", 114.0)
             recommended_feed = float(bird_count * breed_default_feed / 1000.0)
             st.markdown(
-                f"<p style='color:#6366f1; font-size:16px; font-weight:bold; margin-bottom:-5px;'>💡 ปริมาณอาหารแนะนำตามสายพันธุ์: {recommended_feed:,.1f} กก.</p>",
+                f"<p style='color:#6366f1; font-size:16px; font-weight:bold; margin-bottom:-5px;'>💡 ปริมาณอาหารแนะนำตามสายพันธุ์ {selected_b_name}: {recommended_feed:,.1f} กก. ({breed_default_feed} กรัม/ตัว/วัน)</p>",
                 unsafe_allow_html=True,
             )
             actual_feed_given_kg = st.number_input(
@@ -1522,7 +1517,7 @@ else:
         with log_col2:
             st.markdown("#### 💰 ส่วนที่ 2: จำนวนไข่และราคาส่งวันนี้")
             collected_eggs = st.number_input(
-                "จำนวนฟองไข่ที่เก็บได้จริงวันนี้ (ฟอง):", min_value=0, value=4200
+                "จำนวนฟองไข่ที่เก็บได้จริงวันนี้ (ฟอง):", min_value=0, value=850
             )
 
             default_price = st.session_state.get("shortcut_price", 4.10)
@@ -1533,7 +1528,7 @@ else:
                 step=0.1,
             )
             dead_birds = st.number_input(
-                "จำนวนไก่ตาย/คัดทิ้งวันนี้ (ตัว):", min_value=0, value=2
+                "จำนวนไก่ตาย/คัดทิ้งวันนี้ (ตัว):", min_value=0, value=1
             )
             avg_egg_weight_g = st.number_input(
                 "⚖️ น้ำหนักไข่เฉลี่ยวันนี้ (กรัม/ฟอง):",
@@ -1541,6 +1536,7 @@ else:
                 max_value=80.0,
                 value=62.0,
                 step=0.5,
+                key="avg_egg_weight_g_input"
             )
 
             if env_temp <= 20.0:
@@ -1553,7 +1549,7 @@ else:
                 water_per_bird_ml = 320.0 + (env_temp - 32.0) * 25.0
             total_water_needed_liters = (water_per_bird_ml * bird_count) / 1000.0
 
-        # 🚨 ระบบปฏิทินเตือนความจำวัคซีนและงานรูทีนตามช่วงอายุไก่
+        # 📋 ระบบปฏิทินเตือนความจำวัคซีนและงานรูทีนตามช่วงอายุไก่
         st.markdown(
             "<div style='background-color:#1e1b4b; padding:20px; border-radius:12px; border:2px solid #6366f1; margin: 20px 0;'>",
             unsafe_allow_html=True,
@@ -1562,35 +1558,17 @@ else:
             f"### 📋 ปฏิทินเตือนงานสำคัญสำหรับไก่อายุ {flock_age_weeks} สัปดาห์:"
         )
         if flock_age_weeks <= 3:
-            st.markdown(
-                "<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องทำวัคซีนนิวคาสเซิล + หลอดลมอักเสบ และตรวจเช็กระบบไฟกก</p>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องทำวัคซีนนิวคาสเซิล + หลอดลมอักเสบ และตรวจเช็กระบบไฟกก</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 8:
-            st.markdown(
-                "<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องทำวัคซีนฝีดาษ และทำวัคซีนอหิวาต์ไก่รอบที่ 1</p>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องทำวัคซีนฝีดาษ และทำวัคซีนอหิวาต์ไก่รอบที่ 1</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 16:
-            st.markdown(
-                "<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องถ่ายพยาธิไก่ก่อนย้ายเข้ากรงตับ และทำวัคซีนรวมก่อนเริ่มไข่</p>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องถ่ายพยาธิไก่ก่อนย้ายเข้ากรงตับ และทำวัคซีนรวมก่อนเริ่มไข่</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 24:
-            st.markdown(
-                "<p style='color:#fbbf24; font-size:22px; font-weight:bold;'>• ไก่เริ่มไข่แล้ว: [ระวัง] ห้ามลดแสงสว่างในเล้าเด็ดขาด! แสงต้องสม่ำเสมอ</p>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<p style='color:#fbbf24; font-size:22px; font-weight:bold;'>• ไก่เริ่มไข่แล้ว: [ระวัง] ห้ามลดแสงสว่างในเล้าเด็ดขาด! แสงต้องสม่ำเสมอ</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 60:
-            st.markdown(
-                "<p style='color:#10b981; font-size:22px; font-weight:bold;'>• ช่วงไข่ดก: สุ่มเช็กความหนาเปลือกไข่ และล้างทำความสะอาดหัวนิปเปิ้ลน้ำทุกสัปดาห์</p>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<p style='color:#10b981; font-size:22px; font-weight:bold;'>• ช่วงไข่ดก: สุ่มเช็กความหนาเปลือกไข่ และล้างทำความสะอาดหัวนิปเปิ้ลน้ำทุกสัปดาห์</p>", unsafe_allow_html=True)
         else:
-            st.markdown(
-                "<p style='color:#f87171; font-size:22px; font-weight:bold;'>• ไก่แก่ท้ายชุด: ให้คนงานเสริมเปลือกหอยบดในรางช่วงเย็น ป้องกันไข่เปลือกบางแตกหัก</p>",
-                unsafe_allow_html=True,
-            )
+            st.markdown("<p style='color:#f87171; font-size:22px; font-weight:bold;'>• ไก่แก่ท้ายชุด: ให้คนงานเสริมเปลือกหอยบดในรางช่วงเย็น ป้องกันไข่เปลือกบางแตกหัก</p>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown(
@@ -1623,7 +1601,7 @@ else:
             )
         if env_temp >= 32.0:
             st.error(
-                f"🚨 เล้าร้อนจัด ({env_temp}°C) ไก่เสี่ยงช็อกตาย! คนงานต้องเปิดระบบพ่นหมอกและเร่งพัดลมทันที"
+                f"🚨 เล้าร้อนจัด ({env_temp}°C) ไก่เสี่ยงช็อกตาย! คนงานต้องเปิดระบบพ่นหมอกและเร่งพัดลมทันที (ปริมาณน้ำที่ฝูงไก่ต้องกินขั้นต่ำ: {total_water_needed_liters:,.1f} ลิตร)"
             )
 
         st.markdown("### 📊 สรุปผลกำไรสุทธิและตัวชี้วัดวันนี้")
@@ -1720,7 +1698,6 @@ else:
                     bags = int(weight_kg // 50)
                     rem_kg = weight_kg % 50
 
-                    # ปรับสัญลักษณ์ให้คนงานในโรงเรือนอ่านง่าย ไม่ตักสัดส่วนผิดพลาด
                     bag_txt = (
                         f"🟢 ยก {bags} กระสอบ + ⚖️ ตักเศษ {rem_kg:.1f} กก."
                         if bags > 0
@@ -1746,7 +1723,7 @@ else:
                 unsafe_allow_html=True,
             )
 
-            # --- ฟีเจอร์ใหม่: ปุ่มด่วนสำหรับก๊อปปี้ข้อความภาษาไทยส่งเข้ากลุ่ม LINE ---
+            # --- ฟีเจอร์: ปุ่มด่วนสำหรับก๊อปปี้ข้อความภาษาไทยส่งเข้ากลุ่ม LINE ---
             line_text = f"📋 *ใบสั่งผสมอาหารสัตว์รวม: {total_tonnage:,} กก.*\n"
             line_text += f"สูตรสำหรับ: {selected_b_name} ({selected_stage_label})\n"
             line_text += "--------------------------------------\n"
@@ -1756,9 +1733,9 @@ else:
             line_text += f"💰 งบประมาณรวมรอบนี้: {total_po_cost:,.0f} บาท"
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
-            st.code(line_text, language="text")
+            st.code(line_text, language=\"text\")
 
-            # ดาวน์โหลดแบบไฟล์ดั้งเดิม
+            # ดาวน์โหลดแบบไฟล์ CSV
             csv_s = io.StringIO()
             df_po.to_csv(csv_s, index=False, encoding="utf-8-sig")
             st.download_button(
