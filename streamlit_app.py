@@ -53,6 +53,51 @@ def calculate_current_feed_cost():
 
     return round(feed_cost, 2)
 
+def build_daily_logs_display(logs):
+    if not logs:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(logs).copy()
+    display_columns = {
+        "date": "วันที่",
+        "flock_age_weeks": "อายุฝูง (สัปดาห์)",
+        "bird_count": "จำนวนไก่",
+        "env_temp": "อุณหภูมิ (°C)",
+        "actual_feed_given_kg": "อาหารที่ให้ (กก.)",
+        "collected_eggs": "ไข่ที่เก็บได้",
+        "egg_sale_price": "ราคาไข่/ฟอง",
+        "dead_birds": "ไก่ตาย/คัดทิ้ง",
+        "total_revenue": "รายได้",
+        "total_feed_cost": "ต้นทุนอาหาร",
+        "net_profit_day": "กำไรสุทธิ",
+        "henday_pct": "อัตราไข่ (%)",
+        "fcr_ratio": "FCR",
+    }
+
+    for source_col in display_columns:
+        if source_col not in df.columns:
+            df[source_col] = None
+
+    df = df[list(display_columns.keys())].rename(columns=display_columns)
+
+    numeric_cols = [
+        "อาหารที่ให้ (กก.)",
+        "ราคาไข่/ฟอง",
+        "รายได้",
+        "ต้นทุนอาหาร",
+        "กำไรสุทธิ",
+        "อัตราไข่ (%)",
+        "FCR",
+    ]
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce").round(2)
+
+    for col in ["จำนวนไก่", "ไข่ที่เก็บได้", "ไก่ตาย/คัดทิ้ง"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+
+    df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce").dt.strftime("%Y-%m-%d")
+    return df.sort_values("วันที่", ascending=False, na_position="last")
+
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
@@ -2163,10 +2208,28 @@ else:
         if not st.session_state.daily_logs:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
+            display_logs_df = build_daily_logs_display(st.session_state.daily_logs)
+            latest_log = display_logs_df.iloc[0] if not display_logs_df.empty else None
+            if latest_log is not None:
+                kpi1, kpi2, kpi3 = st.columns(3)
+                with kpi1:
+                    st.metric("ไข่ล่าสุด", f"{int(latest_log['ไข่ที่เก็บได้']):,} ฟอง")
+                with kpi2:
+                    st.metric("รายได้ล่าสุด", f"{float(latest_log['รายได้'] or 0):,.2f} บาท")
+                with kpi3:
+                    st.metric("กำไรสุทธิล่าสุด", f"{float(latest_log['กำไรสุทธิ'] or 0):,.2f} บาท")
             st.dataframe(
-                pd.DataFrame(st.session_state.daily_logs),
+                display_logs_df,
                 use_container_width=True,
                 hide_index=True,
+                column_config={
+                    "รายได้": st.column_config.NumberColumn(format="%.2f บาท"),
+                    "ต้นทุนอาหาร": st.column_config.NumberColumn(format="%.2f บาท"),
+                    "กำไรสุทธิ": st.column_config.NumberColumn(format="%.2f บาท"),
+                    "ราคาไข่/ฟอง": st.column_config.NumberColumn(format="%.2f บาท"),
+                    "อัตราไข่ (%)": st.column_config.NumberColumn(format="%.1f %%"),
+                    "FCR": st.column_config.NumberColumn(format="%.2f"),
+                },
             )
         st.markdown("</div>", unsafe_allow_html=True)
 
