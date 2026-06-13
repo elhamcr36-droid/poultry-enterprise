@@ -36,6 +36,23 @@ def render_big_menu(state_key, options, columns_per_row=3):
 
     return st.session_state[state_key]
 
+def calculate_current_feed_cost():
+    weights = st.session_state.get("current_weights", {})
+    ingredients = st.session_state.get("db_ingredients", {})
+    if not weights or not ingredients:
+        return 0.0
+
+    total_w = sum(float(value or 0.0) for value in weights.values())
+    divisor = total_w if total_w > 0 else 1.0
+    feed_cost = 0.0
+
+    for name, weight_pct in weights.items():
+        if name in ingredients:
+            ratio = float(weight_pct or 0.0) / divisor
+            feed_cost += ratio * float(ingredients[name].get("price", 0.0))
+
+    return round(feed_cost, 2)
+
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
@@ -1655,6 +1672,7 @@ else:
                     st.session_state.current_weights = normalize_formula_weights(target_f.get("weights", {}))
                     st.session_state["selected_b_name"] = target_f.get("breed", st.session_state.get("selected_b_name", "สูตรอาหารปัจจุบัน"))
                     st.session_state["selected_stage_label"] = target_f.get("stage", st.session_state.get("selected_stage_label", "ยังไม่ได้เลือกช่วงอายุ"))
+                    st.session_state["current_net_cost"] = float(target_f.get("cost") or calculate_current_feed_cost())
                     st.success(f"ดึงข้อมูล '{selected_f_name}' มาใช้งานแล้ว!")
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1799,6 +1817,7 @@ else:
                     act_nut[k] += ratio * float(
                         st.session_state.db_ingredients[name].get(k, 0.0)
                     )
+        st.session_state["current_net_cost"] = round(net_cost, 2)
 
         with col_left:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
@@ -2059,6 +2078,13 @@ else:
         )
 
         # 💰 เมทริกซ์คำนวณต้นทุนการเงินหน้าฟาร์มสุทธิ
+        net_cost = float(st.session_state.get("current_net_cost", 0.0) or 0.0)
+        if net_cost <= 0:
+            net_cost = calculate_current_feed_cost()
+            st.session_state["current_net_cost"] = net_cost
+        if net_cost <= 0:
+            st.warning("ยังไม่มีต้นทุนสูตรอาหาร กรุณาไปหน้า 'คำนวณสูตรอาหาร' แล้วคำนวณหรือดึงสูตรที่บันทึกไว้ก่อน")
+
         total_revenue = collected_eggs * egg_sale_price
         total_feed_cost = actual_feed_given_kg * net_cost
         net_profit_day = total_revenue - total_feed_cost
