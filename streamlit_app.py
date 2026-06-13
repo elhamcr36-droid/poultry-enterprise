@@ -295,28 +295,53 @@ def normalize_phase_name(value):
     text = text.replace("ระยะลูกไก่ไข่", "ระยะลูกไก่")
     return text
 
-def fetch_nutrition_standards(breed_id, phase_name):
+PHASE_NAME_BY_STAGE_KEY = {
+    "starter": "ระยะลูกไก่",
+    "grower": "ระยะไก่รุ่น",
+    "developer": "ระยะไก่สาวพัฒนาโครงสร้าง",
+    "prelay": "ระยะก่อนให้ไข่",
+    "layer_phase_1": "ระยะไข่พีค",
+    "layer_phase_2": "ระยะไข่คงตัว",
+    "late_layer": "ระยะท้ายรุ่น/เปลือกบาง",
+}
+
+def fetch_nutrition_standards(breed_id, stage_key, phase_name=None):
     """ 
     ดึงมาตรฐานโภชนาการไก่ไข่รายสายพันธุ์ตรงจากฐานข้อมูล 100%
     เพื่อนำไปป้อนเป็น Constraints ให้กับตัว Solver
     """
     try:
-        # ดึงด้วยคอลัมน์อังกฤษก่อน แล้วค่อยกรองชื่อระยะภาษาไทยใน Python
-        # เพื่อเลี่ยงปัญหา Supabase/PostgREST บางชุดที่อ้างอิงคอลัมน์ภาษาไทยใน .eq() ไม่ได้
+        # ดึงด้วย breed_id ซึ่งเป็นคอลัมน์อังกฤษ แล้วเลือกแถวด้วย stage_key ใน Python
+        # เพื่อไม่ต้องพึ่งการค้นหาข้อความภาษาไทยที่อาจมีรูปแบบต่างกัน
         res = supabase.table("มาตรฐานโภชนาการไก่ไข่") \
             .select("*") \
             .eq("breed_id", int(breed_id)) \
             .execute()
             
         if res.data:
-            expected_phase = normalize_phase_name(phase_name)
-            data = next(
-                (
-                    row for row in res.data
-                    if normalize_phase_name(row.get("ช่วงอายุการเลี้ยง_phase_name")) == expected_phase
-                ),
-                None,
+            expected_stage_key = str(stage_key or "").strip()
+            expected_phase = normalize_phase_name(
+                phase_name or PHASE_NAME_BY_STAGE_KEY.get(expected_stage_key, "")
             )
+
+            data = None
+            if expected_stage_key:
+                data = next(
+                    (
+                        row for row in res.data
+                        if str(row.get("stage_key") or "").strip() == expected_stage_key
+                    ),
+                    None,
+                )
+
+            if not data and expected_phase:
+                data = next(
+                    (
+                        row for row in res.data
+                        if normalize_phase_name(row.get("ช่วงอายุการเลี้ยง_phase_name")) == expected_phase
+                    ),
+                    None,
+                )
 
             if not data:
                 return None
@@ -1246,19 +1271,14 @@ else:
             )
             
             selected_stage_key = stage_options.get(selected_stage_label, "")
-            phase_name_by_stage_key = {
-                "starter": "ระยะลูกไก่",
-                "grower": "ระยะไก่รุ่น",
-                "layer_phase_1": "ระยะไข่พีค",
-            }
-            phase_query_name = phase_name_by_stage_key.get(
+            phase_query_name = PHASE_NAME_BY_STAGE_KEY.get(
                 selected_stage_key,
                 selected_stage_label.split("(")[0].strip().replace("ระยะลูกไก่ไข่", "ระยะลูกไก่"),
             )
 
         # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time ---
         # 💡 ฟังก์ชันด้านในได้รับการแก้ไขสลับตำแหน่ง .eq("ช่วงระยะการให้ไข่", selected_stage) เรียบร้อยแล้ว
-        nutrient_targets = fetch_nutrition_standards(selected_breed_id, phase_query_name)
+        nutrient_targets = fetch_nutrition_standards(selected_breed_id, selected_stage_key, phase_query_name)
 
         if nutrient_targets:
             # ตรวจสอบและตั้งค่า Default ลงใน session_state หากยังไม่มีข้อมูล
