@@ -1153,6 +1153,7 @@ else:
     )
 
 # ------------------------------------------
+# ------------------------------------------
     # TAB 1: MANAGEMENT & FORMULA MATRIX
     # ------------------------------------------
     with page_tabs[0]:
@@ -1218,10 +1219,11 @@ else:
                 "📋 เลือกช่วงระยะการให้ไข่:", list(stage_options.keys())
             )
             
-            # ตัดคำเพื่อเอาคำหลัก (เช่น "ระยะลูกไก่") ไปค้นหาในตารางมาตรฐานโภชนาการบน Supabase
+            # ดึงคำหลักเฉพาะส่วนหน้า (เช่น "ระยะลูกไก่") เพื่อใช้จับคู่กับข้อมูลในฟังก์ชันค้นหาโภชนาการเป้าหมาย
             phase_query_name = selected_stage_label.split(" ")[0]
 
-        # --- ทำการ Query โหลดค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time 100% ---
+        # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time ---
+        # 💡 ฟังก์ชันด้านในได้รับการแก้ไขสลับตำแหน่ง .eq("ช่วงระยะการให้ไข่", selected_stage) เรียบร้อยแล้ว
         nutrient_targets = fetch_nutrition_standards(selected_breed_id, phase_query_name)
 
         if nutrient_targets:
@@ -1246,7 +1248,7 @@ else:
             st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
             if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
                 with st.spinner("AI กำลังจัดสูตร..."):
-                    # ปรับชุดเป้าหมายสารอาหารส่งเข้า Solver
+                    # ปรับชุดเป้าหมายสารอาหารส่งเข้า Solver ตามที่ผู้ใช้แก้ไขเพิ่มเติม
                     custom_targets = nutrient_targets.copy()
                     custom_targets["min_protein"] = edit_p
                     custom_targets["min_me"] = edit_m
@@ -1501,7 +1503,7 @@ else:
                 key="temp_slider",
             )
 
-            # ดึงค่าแนะนำปริมาณอาหารจริงแบบ Dynamic จากรายสายพันธุ์ที่เลือกไว้ในตาราง Supabase (ตาราง db_breeds)
+            # ดึงค่าแนะนำปริมาณอาหารจริงแบบ Dynamic จากรายสายพันธุ์ที่เลือกไว้ในตาราง Supabase
             breed_default_feed = st.session_state.get("current_breed_default_feed", 114.0)
             recommended_feed = float(bird_count * breed_default_feed / 1000.0)
             st.markdown(
@@ -1565,7 +1567,7 @@ else:
         elif flock_age_weeks <= 16:
             st.markdown("<p style='color:#38bdf8; font-size:22px; font-weight:bold;'>• ต้องถ่ายพยาธิไก่ก่อนย้ายเข้ากรงตับ และทำวัคซีนรวมก่อนเริ่มไข่</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 24:
-            st.markdown("<p style='color:#fbbf24; font-size:22px; font-weight:bold;'>• ไก่เริ่มไข่แล้ว: [ระวัง] ห้ามลดแสงสว่างในเล้าเด็ดขาด! แสงต้องสม่ำเสมอ</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color:#fbbf24; font-size:22px; font-weight:bold;'>• ไก่เริ่มไข่แล้ว: [ระวัง] ห้ามลดแสงสว่างในเล้าเด็ดขาด! แวนแสงต้องสม่ำเสมอ</p>", unsafe_allow_html=True)
         elif flock_age_weeks <= 60:
             st.markdown("<p style='color:#10b981; font-size:22px; font-weight:bold;'>• ช่วงไข่ดก: สุ่มเช็กความหนาเปลือกไข่ และล้างทำความสะอาดหัวนิปเปิ้ลน้ำทุกสัปดาห์</p>", unsafe_allow_html=True)
         else:
@@ -1724,7 +1726,7 @@ else:
                 unsafe_allow_html=True,
             )
 
-# --- ฟีเจอร์: ปุ่มด่วนสำหรับก๊อปปี้ข้อความภาษาไทยส่งเข้ากลุ่ม LINE ---
+            # --- ฟีเจอร์: ปุ่มด่วนสำหรับก๊อปปี้ข้อความภาษาไทยส่งเข้ากลุ่ม LINE ---
             line_text = f"📋 *ใบสั่งผสมอาหารสัตว์รวม: {total_tonnage:,} กก.*\n"
             line_text += f"สูตรสำหรับ: {selected_b_name} ({selected_stage_label})\n"
             line_text += "--------------------------------------\n"
@@ -1734,7 +1736,7 @@ else:
             line_text += f"💰 งบประมาณรวมรอบนี้: {total_po_cost:,.0f} บาท"
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
-            # แก้ไขตรงนี้: ลบ \ ออกจากหน้า "text"
+            # [แก้ไขแล้ว] ลบอักขระ Escape Backslash (\) หน้า "text" ออกเพื่อความถูกต้องในการ Syntax Highlight
             st.code(line_text, language="text")
 
             # ดาวน์โหลดแบบไฟล์ CSV
