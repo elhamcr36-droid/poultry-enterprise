@@ -165,23 +165,34 @@ def reset_password_with_email_and_phone(email, phone, new_password):
         raise Exception(result.get("error", "ไม่สามารถรีเซ็ตรหัสผ่านได้"))
     return result
 
+# --- [แก้ไขข้อที่ 4] อัปเดตกลุ่มสายพันธุ์เพิ่มกลุ่มไก่พื้นเมืองตามไฟล์ db_groups_rows.csv ---
 if "db_groups" not in st.session_state:
     st.session_state.db_groups = [
         {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7"}
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7"},
+        {"group_name": "กลุ่มไก่ไข่พันธุ์พื้นเมืองและลูกผสม (Heritage & Dual-Purpose)", "bg_color": "#15803d"}
     ]
 
+# --- [แก้ไขข้อที่ 3] ลบคำว่า "สายพันธุ์ " ข้างหน้าออก และเพิ่มข้อมูลให้ครบถ้วนตามไฟล์ db_breeds_rows.csv ---
 if "db_breeds" not in st.session_state:
     st.session_state.db_breeds = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "สายพันธุ์ โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "สายพันธุ์ ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0}
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "ไฮ-ไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "สีน้ำตาลเข้มจัด", "default_feed": 112.0},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0},
+        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "โลห์แมน แอลเอสแอล (Lohmann LSL)", "egg_color": "สีขาวชอล์ก", "default_feed": 103.0},
+        {"group_name": "กลุ่มไก่ไข่พันธุ์พื้นเมืองและลูกผสม (Heritage & Dual-Purpose)", "breed_name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "สีน้ำตาล", "default_feed": 120.0}
     ]
 
+# --- [แก้ไขข้อที่ 2] เพิ่มช่วงอายุโภชนาการให้ครบถ้วน 6 ระยะตามไฟล์ db_targets_rows.csv ---
 if "db_targets" not in st.session_state:
     st.session_state.db_targets = {
-        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะผลิตไข่พีค ช่วงที่ 1 อายุ 19-45 สัปดาห์", "protein": 17.5, "me": 2750.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 4.5},
-        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะกลาง ช่วงที่ 2 อายุ 46-65 สัปดาห์", "protein": 16.5, "me": 2725.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.82, "methionine": 0.39, "fiber_max": 5.0}
+        "layer_starter": {"stage_key": "layer_starter", "stage_name": "ระยะลูกไก่ไข่ (Starter) อายุ 0-6 สัปดาห์", "protein": 20.00, "me": 2850.0, "calcium": 1.00, "phos": 0.45, "lysine": 1.00, "methionine": 0.44, "fiber_max": 4.00},
+        "layer_grower": {"stage_key": "layer_grower", "stage_name": "ระยะไก่รุ่นเจริญเติบโต (Grower) อายุ 7-12 สัปดาห์", "protein": 16.00, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "lysine": 0.75, "methionine": 0.32, "fiber_max": 5.00},
+        "layer_developer": {"stage_key": "layer_developer", "stage_name": "ระยะไก่สาวก่อนไข่ (Developer) อายุ 13-16 สัปดาห์", "protein": 14.50, "me": 2725.0, "calcium": 0.90, "phos": 0.38, "lysine": 0.65, "methionine": 0.28, "fiber_max": 5.50},
+        "layer_pre_lay": {"stage_key": "layer_pre_lay", "stage_name": "ระยะเตรียมไข่ (Pre-Lay) อายุ 17-18 สัปดาห์", "protein": 16.50, "me": 2750.0, "calcium": 2.50, "phos": 0.45, "lysine": 0.85, "methionine": 0.36, "fiber_max": 5.00},
+        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะไก่ไข่ให้ผลผลิตสูงสุด (Phase 1) อายุ 19-45 สัปดาห์", "protein": 17.50, "me": 2800.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 5.00},
+        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะไก่ไข่ระยะที่ 2 (Phase 2) อายุ 46 สัปดาห์ขึ้นไป", "protein": 16.50, "me": 2750.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.80, "methionine": 0.38, "fiber_max": 6.00}
     }
 
 if "db_nutrient_keys" not in st.session_state:
@@ -196,11 +207,14 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-FALLBACK_INGREDIENTS = {
-    "ข้าวโพดบด": {"name": "ข้าวโพดบด", "price": 12.5, "protein": 8.0, "me": 3370, "calcium": 0.02, "phos": 0.08, "lysine": 0.24, "methionine": 0.18, "fiber": 2.0},
-    "กากถั่วเหลือง (44%)": {"name": "กากถั่วเหลือง (44%)", "price": 22.0, "protein": 44.0, "me": 2230, "calcium": 0.29, "phos": 0.20, "lysine": 2.69, "methionine": 0.62, "fiber": 6.0},
-    "เปลือกหอยบด": {"name": "เปลือกหอยบด", "price": 5.0, "protein": 0.0, "me": 0, "calcium": 38.0, "phos": 0.0, "lysine": 0.0, "methionine": 0.0, "fiber": 0.0}
-}
+# --- [แก้ไขข้อที่ 1] แก้ไขคีย์วัตถุดิบอาหารสัตว์ให้มีวงเล็บภาษาอังกฤษตรงกับไฟล์ ingredients_rows.csv ---
+FALLBACK_INGREDIENTS = [
+    {"id": 5, "name": "ข้าวโพดบด (Yellow Corn)", "price": 12.50, "protein": 8.00, "me": 3370.0, "calcium": 0.02, "phos": 0.08, "owner_email": "system_default", "lysine": 0.24, "methionine": 0.18, "fiber": 2.00, "min_limit": 30.0, "max_limit": 70.0},
+    {"id": 6, "name": "กากถั่วเหลือง (Soybean Meal 44%)", "price": 22.00, "protein": 44.00, "me": 2230.0, "calcium": 0.29, "phos": 0.20, "owner_email": "system_default", "lysine": 2.69, "methionine": 0.62, "fiber": 6.00, "min_limit": 10.0, "max_limit": 35.0},
+    {"id": 7, "name": "รำละเอียด (Rice Bran)", "price": 10.50, "protein": 12.00, "me": 2860.0, "calcium": 0.05, "phos": 0.15, "owner_email": "system_default", "lysine": 0.54, "methionine": 0.24, "fiber": 6.50, "min_limit": 0.0, "max_limit": 20.0},
+    {"id": 8, "name": "ปลายข้าว (Broken Rice)", "price": 14.00, "protein": 7.50, "me": 3400.0, "calcium": 0.03, "phos": 0.04, "owner_email": "system_default", "lysine": 0.20, "methionine": 0.15, "fiber": 1.00, "min_limit": 0.0, "max_limit": 30.0},
+    {"id": 9, "name": "ปลาป่น (Fish Meal 60%)", "price": 35.00, "protein": 60.00, "me": 2900.0, "calcium": 5.00, "phos": 2.80, "owner_email": "system_default", "lysine": 4.50, "methionine": 1.60, "fiber": 1.00, "min_limit": 2.0, "max_limit": 8.0}
+]
 
 DEFAULT_INGREDIENT_OWNER = "system_default"
 MASTER_TABLE_CANDIDATES = {
@@ -322,12 +336,16 @@ def fetch_ingredients_from_supabase():
             st.session_state.db_ingredients = ingredients_dict
             return ingredients_dict
         else:
-            st.session_state.db_ingredients = FALLBACK_INGREDIENTS
-            return FALLBACK_INGREDIENTS
+            # --- [ปรับปรุงข้อที่ 1 และโครงสร้างข้อมูลเพิ่มเติม] ---
+            # แปลง FALLBACK_INGREDIENTS จาก List ให้เป็น Dictionary ป้องกันโปรแกรมแครชกรณีระบบคลาวด์ออฟไลน์
+            fallback_dict = {item["name"]: item for item in FALLBACK_INGREDIENTS}
+            st.session_state.db_ingredients = fallback_dict
+            return fallback_dict
     except Exception as e:
         st.warning(f"⚠️ ดึงข้อมูลจากคลาวด์ไม่สำเร็จ (กำลังใช้ข้อมูลสำรองในระบบแทน): {e}")
-        st.session_state.db_ingredients = FALLBACK_INGREDIENTS
-        return FALLBACK_INGREDIENTS
+        fallback_dict = {item["name"]: item for item in FALLBACK_INGREDIENTS}
+        st.session_state.db_ingredients = fallback_dict
+        return fallback_dict
 
 # =========================================================================
 # 🔄 FUNCTIONS: จัดการข้อมูลสูตรอาหาร และบันทึกฟาร์มรายวันตัวใครตัวมัน
