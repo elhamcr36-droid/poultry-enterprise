@@ -165,35 +165,15 @@ def reset_password_with_email_and_phone(email, phone, new_password):
         raise Exception(result.get("error", "ไม่สามารถรีเซ็ตรหัสผ่านได้"))
     return result
 
-# --- [แก้ไขข้อที่ 4] อัปเดตกลุ่มสายพันธุ์เพิ่มกลุ่มไก่พื้นเมืองตามไฟล์ db_groups_rows.csv ---
+# --- กำหนดค่าเริ่มต้นเป็น List/Dict ว่าง เพื่อรอการโหลดจาก Database 100% ---
 if "db_groups" not in st.session_state:
-    st.session_state.db_groups = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "bg_color": "#b45309"},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "bg_color": "#0284c7"},
-        {"group_name": "กลุ่มไก่ไข่พันธุ์พื้นเมืองและลูกผสม (Heritage & Dual-Purpose)", "bg_color": "#15803d"}
-    ]
+    st.session_state.db_groups = []
 
-# --- [แก้ไขข้อที่ 3] ลบคำว่า "สายพันธุ์ " ข้างหน้าออก และเพิ่มข้อมูลให้ครบถ้วนตามไฟล์ db_breeds_rows.csv ---
 if "db_breeds" not in st.session_state:
-    st.session_state.db_breeds = [
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "ไอซ่า บราวน์ (Isa Brown)", "egg_color": "สีน้ำตาลเข้ม", "default_feed": 114.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "โลห์แมน บราวน์ (Lohmann Brown)", "egg_color": "สีน้ำตาลเงางาม", "default_feed": 116.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีน้ำตาล (Commercial Brown Layers)", "breed_name": "ไฮ-ไลน์ บราวน์ (Hy-Line Brown)", "egg_color": "สีน้ำตาลเข้มจัด", "default_feed": 112.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "ไฮ-ไลน์ ขาว ดับบลิว-36 (Hy-Line W-36)", "egg_color": "สีขาวสะอาดตา", "default_feed": 101.0},
-        {"group_name": "กลุ่มไก่ไข่เปลือกสีขาว (Commercial White Layers)", "breed_name": "โลห์แมน แอลเอสแอล (Lohmann LSL)", "egg_color": "สีขาวชอล์ก", "default_feed": 103.0},
-        {"group_name": "กลุ่มไก่ไข่พันธุ์พื้นเมืองและลูกผสม (Heritage & Dual-Purpose)", "breed_name": "โรดไอแลนด์เรด (Rhode Island Red)", "egg_color": "สีน้ำตาล", "default_feed": 120.0}
-    ]
+    st.session_state.db_breeds = []
 
-# --- [แก้ไขข้อที่ 2] เพิ่มช่วงอายุโภชนาการให้ครบถ้วน 6 ระยะตามไฟล์ db_targets_rows.csv ---
 if "db_targets" not in st.session_state:
-    st.session_state.db_targets = {
-        "layer_starter": {"stage_key": "layer_starter", "stage_name": "ระยะลูกไก่ไข่ (Starter) อายุ 0-6 สัปดาห์", "protein": 20.00, "me": 2850.0, "calcium": 1.00, "phos": 0.45, "lysine": 1.00, "methionine": 0.44, "fiber_max": 4.00},
-        "layer_grower": {"stage_key": "layer_grower", "stage_name": "ระยะไก่รุ่นเจริญเติบโต (Grower) อายุ 7-12 สัปดาห์", "protein": 16.00, "me": 2750.0, "calcium": 0.90, "phos": 0.40, "lysine": 0.75, "methionine": 0.32, "fiber_max": 5.00},
-        "layer_developer": {"stage_key": "layer_developer", "stage_name": "ระยะไก่สาวก่อนไข่ (Developer) อายุ 13-16 สัปดาห์", "protein": 14.50, "me": 2725.0, "calcium": 0.90, "phos": 0.38, "lysine": 0.65, "methionine": 0.28, "fiber_max": 5.50},
-        "layer_pre_lay": {"stage_key": "layer_pre_lay", "stage_name": "ระยะเตรียมไข่ (Pre-Lay) อายุ 17-18 สัปดาห์", "protein": 16.50, "me": 2750.0, "calcium": 2.50, "phos": 0.45, "lysine": 0.85, "methionine": 0.36, "fiber_max": 5.00},
-        "layer_phase_1": {"stage_key": "layer_phase_1", "stage_name": "ระยะไก่ไข่ให้ผลผลิตสูงสุด (Phase 1) อายุ 19-45 สัปดาห์", "protein": 17.50, "me": 2800.0, "calcium": 4.10, "phos": 0.42, "lysine": 0.88, "methionine": 0.42, "fiber_max": 5.00},
-        "layer_phase_2": {"stage_key": "layer_phase_2", "stage_name": "ระยะไก่ไข่ระยะที่ 2 (Phase 2) อายุ 46 สัปดาห์ขึ้นไป", "protein": 16.50, "me": 2750.0, "calcium": 4.30, "phos": 0.38, "lysine": 0.80, "methionine": 0.38, "fiber_max": 6.00}
-    }
+    st.session_state.db_targets = {}
 
 if "db_nutrient_keys" not in st.session_state:
     st.session_state.db_nutrient_keys = {
@@ -207,7 +187,6 @@ if "db_nutrient_keys" not in st.session_state:
         "fiber": {"label": "เยื่อใย (% Fiber)", "step": 0.1, "default": 0.0},
     }
 
-# --- [แก้ไขข้อที่ 1] แก้ไขคีย์วัตถุดิบอาหารสัตว์ให้มีวงเล็บภาษาอังกฤษตรงกับไฟล์ ingredients_rows.csv ---
 FALLBACK_INGREDIENTS = [
     {"id": 5, "name": "ข้าวโพดบด (Yellow Corn)", "price": 12.50, "protein": 8.00, "me": 3370.0, "calcium": 0.02, "phos": 0.08, "owner_email": "system_default", "lysine": 0.24, "methionine": 0.18, "fiber": 2.00, "min_limit": 30.0, "max_limit": 70.0},
     {"id": 6, "name": "กากถั่วเหลือง (Soybean Meal 44%)", "price": 22.00, "protein": 44.00, "me": 2230.0, "calcium": 0.29, "phos": 0.20, "owner_email": "system_default", "lysine": 2.69, "methionine": 0.62, "fiber": 6.00, "min_limit": 10.0, "max_limit": 35.0},
@@ -218,10 +197,9 @@ FALLBACK_INGREDIENTS = [
 
 DEFAULT_INGREDIENT_OWNER = "system_default"
 MASTER_TABLE_CANDIDATES = {
-    "groups": ["db_groups", "breed_groups", "groups"],
+    "groups": ["db_groups", "groups"],
     "breeds": ["db_breeds", "breeds"],
-    "targets": ["db_targets", "nutrition_targets", "targets"],
-    "nutrient_keys": ["db_nutrient_keys", "nutrient_keys"],
+    "targets": ["db_targets", "targets"],
 }
 
 def get_ingredient_owner_for_write(existing_ingredient=None):
@@ -247,9 +225,6 @@ def fetch_first_available_table(table_key):
                     {"table_key": table_key, "table_name": table_name, "status": "loaded", "rows": len(response.data)}
                 )
                 return response.data
-            st.session_state.master_load_debug.append(
-                {"table_key": table_key, "table_name": table_name, "status": "empty", "rows": 0}
-            )
         except Exception as table_err:
             st.session_state.master_load_debug.append(
                 {"table_key": table_key, "table_name": table_name, "status": "error", "rows": 0, "error": str(table_err)}
@@ -259,64 +234,73 @@ def fetch_first_available_table(table_key):
     return []
 
 def fetch_master_data_from_supabase():
+    """ ดึงข้อมูลจาก Database 100% สอดคล้องตามชื่อคอลัมน์จริงใน Supabase """
     try:
         st.session_state.master_load_debug = []
+        
+        # 1. ดึงข้อมูลกลุ่มสายพันธุ์ (db_groups)
         groups = fetch_first_available_table("groups")
         if groups:
             st.session_state.db_groups = [
                 {
-                    "group_name": item.get("group_name") or item.get("name"),
+                    "id": item.get("id"),
+                    "group_name": item.get("group_name"),
                     "bg_color": item.get("bg_color", "#0284c7"),
                 }
-                for item in groups
-                if item.get("group_name") or item.get("name")
+                for item in groups if item.get("group_name")
             ]
 
+        # 2. ดึงข้อมูลสายพันธุ์ (db_breeds)
         breeds = fetch_first_available_table("breeds")
         if breeds:
             st.session_state.db_breeds = [
                 {
+                    "id": item.get("id"),
                     "group_name": item.get("group_name", ""),
-                    "breed_name": item.get("breed_name") or item.get("name"),
+                    "breed_name": item.get("breed_name"),
                     "egg_color": item.get("egg_color", ""),
                     "default_feed": float(item.get("default_feed", 114.0)),
                 }
-                for item in breeds
-                if item.get("breed_name") or item.get("name")
+                for item in breeds if item.get("breed_name")
             ]
-            breed_group_names = sorted({item["group_name"] for item in st.session_state.db_breeds if item.get("group_name")})
-            current_group_names = {item.get("group_name") for item in st.session_state.db_groups}
-            if breed_group_names and not current_group_names.intersection(breed_group_names):
-                st.session_state.db_groups = [
-                    {"group_name": group_name, "bg_color": "#0284c7"}
-                    for group_name in breed_group_names
-                ]
 
+        # 3. ดึงข้อมูลช่วงอายุ/ระยะการเจริญเติบโต (db_targets)
         targets = fetch_first_available_table("targets")
         if targets:
             normalized_targets = {}
             for item in targets:
-                stage_key = item.get("stage_key") or item.get("key") or item.get("id")
+                stage_key = item.get("stage_key")
                 if stage_key:
                     normalized_item = item.copy()
                     normalized_item["stage_key"] = stage_key
-                    normalized_item["stage_name"] = item.get("stage_name") or item.get("name") or str(stage_key)
+                    normalized_item["stage_name"] = item.get("stage_name")
                     normalized_targets[stage_key] = normalized_item
             st.session_state.db_targets = normalized_targets
 
-        nutrient_keys = fetch_first_available_table("nutrient_keys")
-        if nutrient_keys:
-            st.session_state.db_nutrient_keys = {
-                item.get("nutrient_key") or item.get("key") or item.get("name"): {
-                    "label": item.get("label") or item.get("nutrient_label") or item.get("name"),
-                    "step": float(item.get("step", 0.1)),
-                    "default": float(item.get("default", 0.0)),
-                }
-                for item in nutrient_keys
-                if item.get("nutrient_key") or item.get("key") or item.get("name")
-            }
     except Exception as e:
-        st.warning(f"โหลดข้อมูลตั้งต้นจากฐานข้อมูลไม่สำเร็จ กำลังใช้ข้อมูลสำรองในระบบแทน: {e}")
+        st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Database: {e}")
+
+def fetch_nutrition_standards(breed_id, phase_name):
+    """ 
+    ฟีเจอร์พิเศษ: ดึงมาตรฐานโภชนาการไก่ไข่รายสายพันธุ์ตรงจากฐานข้อมูล 100% 
+    แก้ปัญหาข้อมูลในตาราง db_targets ไม่มีค่าสารอาหาร
+    """
+    try:
+        res = supabase.table("มาตรฐานโภชนาการไก่ไข่").select("*").eq("breed_id", breed_id).eq("ช่วงอายุการเลี้ยง_phase_name", phase_name).execute()
+        if res.data:
+            data = res.data[0]
+            return {
+                "protein": float(data.get("โปรตีนต่ำสุด_min_protein", 0.0)),
+                "me": float(data.get("พลังงานต่ำสุด_min_me", 0.0)),
+                "calcium": float(data.get("แคลเซียมต่ำสุด_min_calcium", 0.0)),
+                "phos": float(data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", 0.0)),
+                "lysine": float(data.get("ไลซีนต่ำสุด_min_lysine", 0.0)),
+                "methionine": float(data.get("เมทิโอนีนต่ำสุด_min_methionine", 0.0)),
+                "fiber_max": 5.0 # ค่าเริ่มต้นเยื่อใยสูงสุดกรณีไม่มีในตาราง
+            }
+    except Exception:
+        pass
+    return None
 
 def fetch_ingredients_from_supabase():
     try:
@@ -336,13 +320,10 @@ def fetch_ingredients_from_supabase():
             st.session_state.db_ingredients = ingredients_dict
             return ingredients_dict
         else:
-            # --- [ปรับปรุงข้อที่ 1 และโครงสร้างข้อมูลเพิ่มเติม] ---
-            # แปลง FALLBACK_INGREDIENTS จาก List ให้เป็น Dictionary ป้องกันโปรแกรมแครชกรณีระบบคลาวด์ออฟไลน์
             fallback_dict = {item["name"]: item for item in FALLBACK_INGREDIENTS}
             st.session_state.db_ingredients = fallback_dict
             return fallback_dict
     except Exception as e:
-        st.warning(f"⚠️ ดึงข้อมูลจากคลาวด์ไม่สำเร็จ (กำลังใช้ข้อมูลสำรองในระบบแทน): {e}")
         fallback_dict = {item["name"]: item for item in FALLBACK_INGREDIENTS}
         st.session_state.db_ingredients = fallback_dict
         return fallback_dict
