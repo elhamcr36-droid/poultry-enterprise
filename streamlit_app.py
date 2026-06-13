@@ -14,10 +14,10 @@ from supabase import create_client, Client
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
-# ดึงค่าจาก st.secrets บน Streamlit Cloud เป็นหลัก
-SUPABASE_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54eW5jeHFidG50bHB6cWVzc291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDQ2MjYsImV4cCI6MjA5NjUyMDYyNn0.JI4UcB-iVVsD4QLWC0IvOijApWG5A7q3hv6ORxtcXtI"
-APP_URL = "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app"
+# ล้างช่องว่างซ้าย-ขวาออกด้วย .strip() ป้องกันข้อผิดพลาดเน็ตเวิร์กหาเส้นทางไม่เจอ (Name or service not known)
+SUPABASE_URL = "https://nxyncxqbtntlpzqessou.supabase.co".strip()
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54eW5jeHFidG50bHB6cWVzc291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDQ2MjYsImV4cCI6MjA5NjUyMDYyNn0.JI4UcB-iVVsD4QLWC0IvOijApWG5A7q3hv6ORxtcXtI".strip()
+APP_URL = "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app".strip()
 
 PASSWORD_RESET_REDIRECT_URL = st.secrets.get("PASSWORD_RESET_REDIRECT_URL", f"{APP_URL}?auth_action=reset_password")
 
@@ -29,13 +29,17 @@ else:
 @st.cache_resource
 def init_supabase() -> Client:
     if not SUPABASE_URL or not SUPABASE_KEY:
-        raise ValueError("❌ ตรวจพบข้อผิดพลาด: กรุณากรอก SUPABASE_KEY ตัวจริงในหน้า Streamlit Secrets")
+        raise ValueError("❌ ตรวจพบข้อผิดพลาด: กรุณากรอก SUPABASE_URL และ SUPABASE_KEY ให้ถูกต้องสมบูรณ์")
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 try:
     supabase = init_supabase()
 except Exception as e:
-    st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้: {e}")
+    error_msg = str(e).lower()
+    if "name or service not known" in error_msg or "temporary failure in name resolution" in error_msg:
+        st.error("🌐 [ข้อผิดพลาดระบบเครือข่าย]: ไม่สามารถค้นหาที่อยู่ของเซิร์ฟเวอร์ฐานข้อมูลได้ (Name or service not known) กรุณาตรวจสอบอินเทอร์เน็ตของเครื่อง หรือ Reboot App บนระบบคลาวด์")
+    else:
+        st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้ตั้งแต่เริ่มต้น: {e}")
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
