@@ -891,20 +891,47 @@ if not st.session_state.is_authenticated:
             error_description = recovery_error.get("description", "")
             if error_code == "otp_expired" or "expired" in error_description.lower() or "invalid" in error_description.lower():
                 st.error("ลิงก์ตั้งรหัสผ่านหมดอายุหรือถูกใช้ไปแล้ว")
-                st.info("กรุณากดส่งลิงก์ใหม่ ระบบจะส่งอีเมลรีเซ็ตรหัสผ่านให้ใหม่อีกครั้ง")
+                st.info("คุณสามารถตั้งรหัสผ่านใหม่จากหน้านี้ได้เลย โดยกรอกอีเมลและเบอร์โทรที่ใช้สมัครไว้")
             elif recovery_error:
                 st.error(f"ไม่สามารถใช้ลิงก์ตั้งรหัสผ่านนี้ได้: {error_description or error_code}")
-                st.info("กรุณาขอลิงก์ใหม่จากหน้าลืมรหัสผ่าน")
+                st.info("คุณสามารถตั้งรหัสผ่านใหม่จากหน้านี้ได้เลย โดยกรอกอีเมลและเบอร์โทรที่ใช้สมัครไว้")
             else:
                 st.warning("หน้านี้ใช้สำหรับตั้งรหัสผ่านใหม่หลังจากกดลิงก์ในอีเมลเท่านั้น")
-                st.info("ถ้าคุณต้องการกู้คืนรหัสผ่าน ให้กลับไปหน้าเข้าสู่ระบบแล้วกดปุ่มลืมรหัสผ่าน ระบบจะส่งลิงก์มายังอีเมลของคุณ")
+                st.info("ถ้าลิงก์หมดอายุหรือเข้าอีเมลไม่ได้ ให้กรอกข้อมูลด้านล่างเพื่อเปลี่ยนรหัสผ่านโดยยืนยันกับฐานข้อมูล")
 
-            if st.button("📩 ส่งลิงก์ใหม่อีกครั้ง", type="primary", use_container_width=True):
-                st.session_state.auth_page_mode = "forgot"
-                st.session_state.password_recovery_error = None
-                st.query_params.clear()
-                st.query_params["auth_action"] = "forgot_password"
-                st.rerun()
+            direct_reset_email = st.text_input("📧 อีเมลบัญชีผู้ใช้:", key="reset_direct_email").strip().lower()
+            direct_reset_phone = st.text_input("📞 เบอร์โทรศัพท์ที่ใช้สมัคร:", key="reset_direct_phone")
+            direct_new_pass = st.text_input("🔑 รหัสผ่านใหม่:", type="password", key="reset_direct_new_pass")
+            direct_new_pass_conf = st.text_input("🔄 ยืนยันรหัสผ่านใหม่:", type="password", key="reset_direct_new_pass_conf")
+            is_direct_reset_strong, direct_reset_msg = check_password_strength(direct_new_pass) if direct_new_pass else (False, "")
+
+            if direct_new_pass:
+                if is_direct_reset_strong:
+                    st.success(direct_reset_msg)
+                else:
+                    st.warning(direct_reset_msg)
+
+            if st.button("💾 เปลี่ยนรหัสผ่านใหม่ทันที", type="primary", use_container_width=True):
+                if not direct_reset_email or not direct_reset_phone or not direct_new_pass or not direct_new_pass_conf:
+                    st.warning("กรุณากรอกอีเมล เบอร์โทร รหัสผ่านใหม่ และยืนยันรหัสผ่านให้ครบ")
+                elif direct_new_pass != direct_new_pass_conf:
+                    st.error("รหัสผ่านใหม่และยืนยันรหัสผ่านใหม่ไม่ตรงกัน")
+                elif not is_direct_reset_strong:
+                    st.error("รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไขความปลอดภัย")
+                elif not PASSWORD_RESET_FUNCTION_URL:
+                    st.error("ยังไม่ได้ตั้งค่า PASSWORD_RESET_FUNCTION_URL สำหรับเชื่อมระบบเปลี่ยนรหัสผ่าน")
+                else:
+                    try:
+                        reset_password_with_email_and_phone(direct_reset_email, direct_reset_phone, direct_new_pass)
+                        st.success("เปลี่ยนรหัสผ่านสำเร็จแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่")
+                        st.session_state.auth_page_mode = "login"
+                        st.session_state.password_recovery_error = None
+                        st.query_params.clear()
+                        st.rerun()
+                    except Exception as error:
+                        st.error(f"เปลี่ยนรหัสผ่านไม่สำเร็จ: {error}")
+
+            st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
             if st.button("กลับไปหน้าเข้าสู่ระบบ", use_container_width=True):
                 st.session_state.auth_page_mode = "login"
                 st.session_state.password_recovery_error = None
@@ -959,68 +986,39 @@ if not st.session_state.is_authenticated:
         st.session_state.is_authenticated = False
         st.markdown("<div class='content-card' style='max-width: 620px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>❓ ลืมรหัสผ่าน</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; color:#cbd5e1 !important;'>กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่ หรือยืนยันด้วยเบอร์โทรที่เคยสมัครไว้</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#cbd5e1 !important;'>กรอกอีเมล เบอร์โทร และรหัสผ่านใหม่ ระบบจะเปลี่ยนรหัสผ่านให้ทันที</p>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
 
-        forgot_mode = st.radio(
-            "เลือกวิธีรีเซ็ตรหัสผ่าน:",
-            ["ส่งลิงก์ไปอีเมล", "ยืนยันด้วยอีเมล + เบอร์โทร"],
-            horizontal=True,
-            key="forgot_mode_select",
-        )
-
         forgot_email = st.text_input("📧 อีเมลบัญชีผู้ใช้:", key="forgot_email_input").strip().lower()
+        forgot_phone = st.text_input("📞 เบอร์โทรศัพท์ที่ใช้สมัคร:", key="forgot_phone_input")
+        new_direct_pass = st.text_input("🔑 รหัสผ่านใหม่:", type="password", key="forgot_direct_new_pass")
+        new_direct_pass_conf = st.text_input("🔄 ยืนยันรหัสผ่านใหม่:", type="password", key="forgot_direct_new_pass_conf")
+        is_direct_strong, direct_pass_msg = check_password_strength(new_direct_pass) if new_direct_pass else (False, "")
 
-        if forgot_mode == "ส่งลิงก์ไปอีเมล":
-            st.info("ระบบจะส่งลิงก์ไปยังอีเมลของคุณ เมื่อกดลิงก์แล้วจะกลับมาที่หน้าตั้งรหัสผ่านใหม่ของแอปนี้")
-            if st.button("📩 ส่งลิงก์ตั้งรหัสผ่านใหม่", type="primary", use_container_width=True):
-                if not forgot_email:
-                    st.warning("กรุณากรอกอีเมลก่อน")
-                else:
-                    try:
-                        try:
-                            supabase.auth.reset_password_for_email(
-                                forgot_email,
-                                {"redirect_to": PASSWORD_RESET_REDIRECT_URL},
-                            )
-                        except TypeError:
-                            supabase.auth.reset_password_for_email(
-                                forgot_email,
-                                redirect_to=PASSWORD_RESET_REDIRECT_URL,
-                            )
-                        st.success("ส่งลิงก์ตั้งรหัสผ่านใหม่แล้ว กรุณาเปิดอีเมลและกดลิงก์ที่ได้รับ")
-                    except Exception as error:
-                        st.error(f"ส่งลิงก์ตั้งรหัสผ่านใหม่ไม่สำเร็จ: {error}")
-        else:
-            forgot_phone = st.text_input("📞 เบอร์โทรศัพท์ที่ใช้สมัคร:", key="forgot_phone_input")
-            new_direct_pass = st.text_input("🔑 รหัสผ่านใหม่:", type="password", key="forgot_direct_new_pass")
-            new_direct_pass_conf = st.text_input("🔄 ยืนยันรหัสผ่านใหม่:", type="password", key="forgot_direct_new_pass_conf")
-            is_direct_strong, direct_pass_msg = check_password_strength(new_direct_pass) if new_direct_pass else (False, "")
+        if new_direct_pass:
+            if is_direct_strong:
+                st.success(direct_pass_msg)
+            else:
+                st.warning(direct_pass_msg)
 
-            if new_direct_pass:
-                if is_direct_strong:
-                    st.success(direct_pass_msg)
-                else:
-                    st.warning(direct_pass_msg)
-
-            if st.button("💾 ยืนยันและเปลี่ยนรหัสผ่าน", type="primary", use_container_width=True):
-                if not forgot_email or not forgot_phone or not new_direct_pass or not new_direct_pass_conf:
-                    st.warning("กรุณากรอกอีเมล เบอร์โทร และรหัสผ่านใหม่ให้ครบ")
-                elif new_direct_pass != new_direct_pass_conf:
-                    st.error("รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน")
-                elif not is_direct_strong:
-                    st.error("รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไขความปลอดภัย")
-                elif not PASSWORD_RESET_FUNCTION_URL:
-                    st.error("ยังไม่ได้ตั้งค่า PASSWORD_RESET_FUNCTION_URL สำหรับรีเซ็ตด้วยเบอร์โทร")
-                else:
-                    try:
-                        reset_password_with_email_and_phone(forgot_email, forgot_phone, new_direct_pass)
-                        st.success("เปลี่ยนรหัสผ่านสำเร็จ กรุณากลับไปเข้าสู่ระบบด้วยรหัสผ่านใหม่")
-                        st.session_state.auth_page_mode = "login"
-                        st.query_params.clear()
-                        st.rerun()
-                    except Exception as error:
-                        st.error(f"เปลี่ยนรหัสผ่านไม่สำเร็จ: {error}")
+        if st.button("💾 ยืนยันและเปลี่ยนรหัสผ่าน", type="primary", use_container_width=True):
+            if not forgot_email or not forgot_phone or not new_direct_pass or not new_direct_pass_conf:
+                st.warning("กรุณากรอกอีเมล เบอร์โทร และรหัสผ่านใหม่ให้ครบ")
+            elif new_direct_pass != new_direct_pass_conf:
+                st.error("รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน")
+            elif not is_direct_strong:
+                st.error("รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไขความปลอดภัย")
+            elif not PASSWORD_RESET_FUNCTION_URL:
+                st.error("ยังไม่ได้ตั้งค่า PASSWORD_RESET_FUNCTION_URL สำหรับรีเซ็ตด้วยเบอร์โทร")
+            else:
+                try:
+                    reset_password_with_email_and_phone(forgot_email, forgot_phone, new_direct_pass)
+                    st.success("เปลี่ยนรหัสผ่านสำเร็จ กรุณากลับไปเข้าสู่ระบบด้วยรหัสผ่านใหม่")
+                    st.session_state.auth_page_mode = "login"
+                    st.query_params.clear()
+                    st.rerun()
+                except Exception as error:
+                    st.error(f"เปลี่ยนรหัสผ่านไม่สำเร็จ: {error}")
 
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
         if st.button("⬅️ กลับไปหน้าเข้าสู่ระบบ", use_container_width=True):
@@ -2004,6 +2002,7 @@ else:
             # ดึงค่าแนะนำปริมาณอาหารจริงแบบ Dynamic จากรายสายพันธุ์ที่เลือกไว้ในตาราง Supabase
             breed_default_feed = st.session_state.get("current_breed_default_feed", 114.0)
             recommended_feed = float(bird_count * breed_default_feed / 1000.0)
+            feed_input_value = max(10.0, recommended_feed)
             st.markdown(
                 f"<p style='color:#6366f1; font-size:16px; font-weight:bold; margin-bottom:-5px;'>💡 ปริมาณอาหารแนะนำตามสายพันธุ์ {selected_b_name}: {recommended_feed:,.1f} กก. ({breed_default_feed} กรัม/ตัว/วัน)</p>",
                 unsafe_allow_html=True,
@@ -2011,7 +2010,7 @@ else:
             actual_feed_given_kg = st.number_input(
                 "🍽️ น้ำหนักอาหารที่ให้ไก่กินรวมวันนี้ (กิโลกรัม):",
                 min_value=10.0,
-                value=recommended_feed,
+                value=feed_input_value,
                 step=10.0,
             )
 
@@ -2021,11 +2020,12 @@ else:
                 "จำนวนฟองไข่ที่เก็บได้จริงวันนี้ (ฟอง):", min_value=0, value=850
             )
 
-            default_price = st.session_state.get("shortcut_price", 4.10)
+            default_price = float(st.session_state.get("shortcut_price", 4.10) or 4.10)
+            default_price = max(1.0, default_price)
             egg_sale_price = st.number_input(
                 "💵 ราคารับซื้อไข่หน้าฟาร์มวันนี้ (บาท/ฟอง):",
                 min_value=1.0,
-                value=float(default_price),
+                value=default_price,
                 step=0.1,
             )
             dead_birds = st.number_input(
@@ -2241,4 +2241,19 @@ else:
             line_text += f"💰 งบประมาณรวมรอบนี้: {total_po_cost:,.0f} บาท"
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
-            # [แก้ไขแล้ว] ลบอักขระ Escape Backslimport streamlit as st
+            st.text_area(
+                "คัดลอกข้อความนี้ไปส่ง LINE:",
+                value=line_text,
+                height=260,
+                key="line_copy_text",
+            )
+            st.download_button(
+                "⬇️ ดาวน์โหลดข้อความใบสั่งผสม",
+                data=line_text,
+                file_name=f"mixing_order_{datetime.date.today()}.txt",
+                mime="text/plain",
+                use_container_width=True,
+            )
+        else:
+            st.info("ยังไม่มีสูตรอาหารสำหรับทำใบสั่งผสม กรุณาไปหน้า 'คำนวณสูตรอาหาร' แล้วคำนวณหรือดึงสูตรที่บันทึกไว้ก่อน")
+        st.markdown("</div>", unsafe_allow_html=True)
