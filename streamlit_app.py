@@ -11,6 +11,11 @@ import urllib.request
 import streamlit.components.v1 as components
 from supabase import create_client, Client
 
+def get_log_value(log_data, key, default=None):
+    if isinstance(log_data, dict):
+        return log_data.get(key, default)
+    return default
+
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
@@ -197,6 +202,8 @@ FALLBACK_INGREDIENTS = [
 
 DEFAULT_INGREDIENT_OWNER = "system_default"
 SAVED_FORMULAS_TABLE = "saved_formulas"
+DAILY_LOGS_TABLE = "daily_logs"
+DAILY_LOG_USER_COLUMN = "user_id"
 MASTER_TABLE_CANDIDATES = {
     "groups": ["db_groups", "groups"],
     "breeds": ["db_breeds", "breeds"],
@@ -513,7 +520,7 @@ def fetch_daily_logs_from_supabase():
     try:
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             user_email = st.session_state.current_user_key
-            response = supabase.table("daily_logs").select("*").eq("owner_email", user_email).order("date").execute()
+            response = supabase.table(DAILY_LOGS_TABLE).select("*").eq(DAILY_LOG_USER_COLUMN, user_email).order("date").execute()
             if response.data:
                 st.session_state.daily_logs = response.data
                 return response.data
@@ -527,8 +534,8 @@ def save_daily_log_to_supabase(log_data):
     """บันทึกข้อมูลกิจกรรมฟาร์มประจำวัน ผูกเข้ากับระบบบัญชีผู้ใช้จริง"""
     try:
         if st.session_state.is_authenticated and st.session_state.current_user_key:
-            log_data["owner_email"] = st.session_state.current_user_key
-            supabase.table("daily_logs").insert(log_data).execute()
+            log_data[DAILY_LOG_USER_COLUMN] = st.session_state.current_user_key
+            supabase.table(DAILY_LOGS_TABLE).insert(log_data).execute()
             st.success("🎉 บันทึกประวัติกิจกรรมฟาร์มประจำวันสำเร็จ!")
             fetch_daily_logs_from_supabase()
             return True
@@ -1606,12 +1613,10 @@ else:
                 "📋 ดึงข้อมูลจากประวัติล่าสุด (ไม่ต้องพิมพ์ใหม่หมด)", use_container_width=True
             ):
                 last_log = st.session_state.daily_logs[-1]
-                st.session_state["shortcut_birds"] = last_log["จำนวนไก่ (ตัว)"]
-                st.session_state["shortcut_price"] = (
-                    last_log["รายได้ขายไข่ (บาท)"] / last_log["ไข่ที่เก็บได้ (ฟอง)"]
-                    if last_log["ไข่ที่เก็บได้ (ฟอง)"] > 0
-                    else 4.10
-                )
+                st.session_state["shortcut_birds"] = int(get_log_value(last_log, "bird_count", 1000) or 1000)
+                last_eggs = float(get_log_value(last_log, "collected_eggs", 0) or 0)
+                last_revenue = float(get_log_value(last_log, "total_revenue", 0) or 0)
+                st.session_state["shortcut_price"] = (last_revenue / last_eggs) if last_eggs > 0 else 4.10
                 st.success("ดึงข้อมูลเดิมเรียบร้อย! กรุณาตรวจสอบและอัปเดตจำนวนไข่ประจำวันนี้")
 
         log_col1, log_col2 = st.columns(2)
@@ -1771,23 +1776,21 @@ else:
         st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
 
         if st.button("💾 กดปุ่มนี้เพื่อบันทึกประวัติประจำวัน", use_container_width=True):
-            st.session_state.daily_logs.append(
-                {
-                    "วันที่": str(log_date),
-                    "อายุฝูง (สัปดาห์)": flock_age_weeks,
-                    "จำนวนไก่ (ตัว)": bird_count,
-                    "อุณหภูมิ (°C)": env_temp,
-                    "อาหารที่กิน (KG)": actual_feed_given_kg,
-                    "ไข่ที่เก็บได้ (ฟอง)": collected_eggs,
-                    "รายได้ขายไข่ (บาท)": round(total_revenue, 2),
-                    "ต้นทุนอาหาร (บาท)": round(total_feed_cost, 2),
-                    "กำไรสุทธิ (บาท)": round(net_profit_day, 2),
-                    "อัตราไข่ (%)": round(henday_pct, 1),
-                    "FCR": round(fcr_ratio, 2),
-                }
-            )
-            st.success("บันทึกข้อมูลเรียบร้อย!")
-            st.rerun()
+            log_data = {
+                "date": str(log_date),
+                "flock_age_weeks": int(flock_age_weeks),
+                "bird_count": int(bird_count),
+                "env_temp": float(env_temp),
+                "actual_feed_given_kg": round(float(actual_feed_given_kg), 2),
+                "collected_eggs": int(collected_eggs),
+                "total_revenue": round(float(total_revenue), 2),
+                "total_feed_cost": round(float(total_feed_cost), 2),
+                "net_profit_day": round(float(net_profit_day), 2),
+                "henday_pct": round(float(henday_pct), 1),
+                "fcr_ratio": round(float(fcr_ratio), 2),
+            }
+            if save_daily_log_to_supabase(log_data):
+                st.rerun()
 
         st.markdown(
             "<div style='border-bottom: 2px dashed #475569; margin:25px 0;'></div>",
