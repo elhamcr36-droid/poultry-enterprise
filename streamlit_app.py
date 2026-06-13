@@ -15,9 +15,9 @@ from supabase import create_client, Client
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
 # ดึงค่าจาก st.secrets บน Streamlit Cloud เป็นหลัก
-SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://nxyncxqbtntlpzqessou.supabase.co")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")  # ลบค่าตัวอย่าง 'sb_publishable...' ออกแล้ว
-APP_URL = st.secrets.get("APP_URL", "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
+SUPABASE_URL = "https://nxyncxqbtntlpzqessou.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54eW5jeHFidG50bHB6cWVzc291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDQ2MjYsImV4cCI6MjA5NjUyMDYyNn0.JI4UcB-iVVsD4QLWC0IvOijApWG5A7q3hv6ORxtcXtI"
+APP_URL = "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app"
 
 PASSWORD_RESET_REDIRECT_URL = st.secrets.get("PASSWORD_RESET_REDIRECT_URL", f"{APP_URL}?auth_action=reset_password")
 
