@@ -16,6 +16,26 @@ def get_log_value(log_data, key, default=None):
         return log_data.get(key, default)
     return default
 
+def render_big_menu(state_key, options, columns_per_row=3):
+    if state_key not in st.session_state:
+        st.session_state[state_key] = options[0]["id"]
+
+    for row_start in range(0, len(options), columns_per_row):
+        cols = st.columns(columns_per_row)
+        for col, option in zip(cols, options[row_start:row_start + columns_per_row]):
+            selected = st.session_state[state_key] == option["id"]
+            with col:
+                if st.button(
+                    option["label"],
+                    key=f"{state_key}_{option['id']}",
+                    type="primary" if selected else "secondary",
+                    use_container_width=True,
+                ):
+                    st.session_state[state_key] = option["id"]
+                    st.rerun()
+
+    return st.session_state[state_key]
+
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
@@ -1011,16 +1031,21 @@ if st.session_state.user_role == "admin":
     st.title("💻 Admin Master Data Control")
     st.caption("ระบบจัดการโครงสร้างสารอาหาร วัตถุดิบ สายพันธุ์ และผู้ใช้งานแบบ Dynamic ร่วมกับคลาวด์")
     
-    admin_tabs = st.tabs([
-        "⚙️ ตั้งค่าหัวข้อสารอาหาร",
-        "🌽 คลังวัตถุดิบ & สารอาหาร", 
-        "🐓 ทำเนียบสายพันธุ์ไก่ไข่", 
-        "🧬 เกณฑ์โภชนาการตามช่วงอายุ", 
-        "👤 การจัดการสิทธิ์ผู้ใช้งาน"
-    ])
+    selected_admin_page = render_big_menu(
+        "selected_admin_page",
+        [
+            {"id": "nutrients", "label": "⚙️ สารอาหาร"},
+            {"id": "ingredients", "label": "🌽 วัตถุดิบ"},
+            {"id": "breeds", "label": "🐓 สายพันธุ์"},
+            {"id": "targets", "label": "🧬 เกณฑ์อาหาร"},
+            {"id": "users", "label": "👤 ผู้ใช้งาน"},
+        ],
+        columns_per_row=3,
+    )
+    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
     
     # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง ---
-    with admin_tabs[0]:
+    if selected_admin_page == "nutrients":
         st.subheader("⚙️ สารอาหารที่มีในระบบปัจจุบัน")
         
         with st.expander("📊 ดูโครงสร้างสารอาหารที่ใช้งานอยู่ทั้งหมด", expanded=True):
@@ -1082,7 +1107,7 @@ if st.session_state.user_role == "admin":
                     st.warning("⚠️ ไม่มีสารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
 
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
-    with admin_tabs[1]:
+    if selected_admin_page == "ingredients":
         with st.expander("📊 เปิดดูคลังวัตถุดิบและราคาปัจจุบันในระบบ", expanded=False):
             if st.session_state.db_ingredients:
                 st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
@@ -1193,7 +1218,7 @@ if st.session_state.user_role == "admin":
                 st.rerun()
 
     # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ ---
-    with admin_tabs[2]:
+    if selected_admin_page == "breeds":
         with st.expander("📊 เปิดดูทำเนียบสายพันธุ์ไก่ไข่ในระบบทั้งหมด", expanded=True):
             st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True, hide_index=True)
             
@@ -1235,7 +1260,7 @@ if st.session_state.user_role == "admin":
                 else: st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
 
     # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการสัตว์แยกตามอายุ ---
-    with admin_tabs[3]:
+    if selected_admin_page == "targets":
         with st.expander("📊 เปิดดูค่าเกณฑ์มาตรฐานโภชนาการสัตว์ ณ ปัจจุบัน", expanded=False):
             st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
         
@@ -1267,7 +1292,7 @@ if st.session_state.user_role == "admin":
                 st.rerun()
 
     # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
-    with admin_tabs[4]:
+    if selected_admin_page == "users":
         st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
         if st.button("🔄 โหลดรายชื่อผู้ใช้จาก Supabase", use_container_width=True):
             fetch_user_profiles_from_supabase()
@@ -1391,19 +1416,22 @@ else:
     # ==========================================
     # 👑 USER ROUTE: ACCESSIBLE INTERFACE
     # ==========================================
-    page_tabs = st.tabs(
+    selected_user_page = render_big_menu(
+        "selected_user_page",
         [
-            "🥣 1. สูตรอาหาร & คลังสูตรเก่า",
-            "💰 2. บันทึกรายวัน & บัญชีฟาร์ม",
-            "📊 3. ใบสั่งผสมอาหาร (สำหรับคนงาน)",
-        ]
+            {"id": "formula", "label": "🥣 คำนวณสูตรอาหาร"},
+            {"id": "daily", "label": "📝 บันทึกประจำวัน"},
+            {"id": "mixing", "label": "📋 ใบสั่งผสมอาหาร"},
+        ],
+        columns_per_row=3,
     )
+    st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
 
 # ------------------------------------------
 # ------------------------------------------
     # TAB 1: MANAGEMENT & FORMULA MATRIX
     # ------------------------------------------
-    with page_tabs[0]:
+    if selected_user_page == "formula":
         # --- ส่วนที่ 1: ดึงสูตรเก่า ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("### 📂 [ปุ่มทางลัด] เรียกใช้สูตรเก่าที่เคยเซฟไว้")
@@ -1699,7 +1727,7 @@ else:
     # ------------------------------------------
     # TAB 2: DAILY LOG & CASHFLOW
     # ------------------------------------------
-    with page_tabs[1]:
+    if selected_user_page == "daily":
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown(
             "<h2>☀️ บันทึกตัวชี้วัดฟาร์ม & รายรับ-รายจ่ายประจำวัน</h2>",
@@ -1912,7 +1940,7 @@ else:
     # ------------------------------------------
     # TAB 3: PROCUREMENT & WORKER SHEET
     # ------------------------------------------
-    with page_tabs[2]:
+    if selected_user_page == "mixing":
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown(
             "<h2>📊 ใบสั่งงานผสมอาหารสัตว์ (สำหรับยื่นให้คนงานตักของ)</h2>",
