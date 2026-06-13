@@ -280,31 +280,105 @@ def fetch_master_data_from_supabase():
     except Exception as e:
         st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Database: {e}")
 
-def fetch_nutrition_standards(breed_id, phase_name):
+NUTRITION_STANDARD_COLUMNS = {
+    "min_protein": ["min_protein", "โปรตีนต่ำสุด_min_protein"],
+    "min_me": ["min_me", "พลังงานต่ำสุด_min_me"],
+    "min_calcium": ["min_calcium", "แคลเซียมต่ำสุด_min_calcium"],
+    "max_calcium": ["max_calcium", "แคลเซียมสูงสุด_max_calcium"],
+    "min_phosphorus": ["min_phosphorus", "ฟอสฟอรัสต่ำสุด_min_phosphorus"],
+    "min_lysine": ["min_lysine", "ไลซีนต่ำสุด_min_lysine"],
+    "min_methionine": ["min_methionine", "เมทิโอนีนต่ำสุด_min_methionine"],
+    "max_fiber": ["max_fiber"],
+}
+
+PHASE_NAME_ALIASES = {
+    "chick": ["Chick", "Starter", "Chick Starter", "ระยะลูกไก่"],
+    "starter": ["Starter", "Chick", "Chick Starter", "ระยะลูกไก่"],
+    "grower": ["Grower", "Pullet Grower", "ระยะรุ่น"],
+    "developer": ["Developer", "Pullet Developer", "ระยะไก่รุ่น"],
+    "pullet": ["Pullet", "Developer", "Grower", "ระยะไก่สาว"],
+    "prelay": ["Pre-Lay", "Pre Lay", "Prelay", "ระยะก่อนให้ไข่"],
+    "pre_lay": ["Pre-Lay", "Pre Lay", "Prelay", "ระยะก่อนให้ไข่"],
+    "layer": ["Layer", "Laying", "Production", "ระยะให้ไข่"],
+    "peak": ["Peak", "Peak Production", "ระยะพีค"],
+    "post_peak": ["Post Peak", "Post-Peak", "Late Layer", "ระยะหลังพีค"],
+}
+
+def unique_values(values):
+    seen = set()
+    result = []
+    for value in values:
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text and text.lower() not in seen:
+            result.append(text)
+            seen.add(text.lower())
+    return result
+
+def build_phase_candidates(phase_name, phase_key=None):
+    raw_values = [phase_name, phase_key]
+    for value in [phase_name, phase_key]:
+        if not value:
+            continue
+        normalized = str(value).strip().lower().replace(" ", "_").replace("-", "_")
+        raw_values.append(normalized)
+        raw_values.append(normalized.replace("_", " ").title())
+        raw_values.extend(PHASE_NAME_ALIASES.get(normalized, []))
+    return unique_values(raw_values)
+
+def read_first_available_float(data, column_names, default=0.0):
+    for column_name in column_names:
+        value = data.get(column_name)
+        if value is not None:
+            return float(value)
+    return float(default)
+
+def format_nutrition_standard_row(data):
+    return {
+        "min_protein": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_protein"]),
+        "min_me": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_me"]),
+        "min_calcium": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_calcium"]),
+        "max_calcium": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["max_calcium"], 5.5),
+        "min_phosphorus": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_phosphorus"]),
+        "min_lysine": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_lysine"]),
+        "min_methionine": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["min_methionine"]),
+        "max_fiber": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["max_fiber"], 5.0),
+    }
+
+def fetch_nutrition_standards(breed_id, phase_name, phase_key=None):
     """ 
-    ดึงมาตรฐานโภชนาการไก่ไข่รายสายพันธุ์ตรงจากฐานข้อมูล 100%
-    เพื่อนำไปป้อนเป็น Constraints ให้กับตัว Solver
+    Load breed nutrition standards from the English Supabase view first.
+    Falls back to the old Thai table/columns while the database migration is being applied.
     """
+    phase_candidates = build_phase_candidates(phase_name, phase_key)
+    table_candidates = [
+        {
+            "table": "nutrition_standards",
+            "phase_column": "phase_name",
+        },
+        {
+            "table": "มาตรฐานโภชนาการไก่ไข่",
+            "phase_column": "ช่วงอายุการเลี้ยง_phase_name",
+        },
+    ]
+
     try:
-        # ดึงแถวข้อมูลสารอาหารที่ตรงกับ breed_id และ ชื่อระยะการเลี้ยง
-        res = supabase.table("มาตรฐานโภชนาการไก่ไข่") \
-            .select("*") \
-            .eq("breed_id", int(breed_id)) \
-            .eq("ช่วงอายุการเลี้ยง_phase_name", phase_name) \
-            .execute()
-            
-        if res.data:
-            data = res.data[0]
-            return {
-                "min_protein": float(data.get("โปรตีนต่ำสุด_min_protein", 0.0)),
-                "min_me": float(data.get("พลังงานต่ำสุด_min_me", 0.0)),
-                "min_calcium": float(data.get("แคลเซียมต่ำสุด_min_calcium", 0.0)),
-                "max_calcium": float(data.get("แคลเซียมสูงสุด_max_calcium", 5.5)),
-                "min_phosphorus": float(data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", 0.0)),
-                "min_lysine": float(data.get("ไลซีนต่ำสุด_min_lysine", 0.0)),
-                "min_methionine": float(data.get("เมทิโอนีนต่ำสุด_min_methionine", 0.0)),
-                "max_fiber": 5.0 # ค่าตั้งต้นสำหรับเยื่อใยสูงสุด
-            }
+        for table_info in table_candidates:
+            for phase_candidate in phase_candidates:
+                try:
+                    res = (
+                        supabase.table(table_info["table"])
+                        .select("*")
+                        .eq("breed_id", int(breed_id))
+                        .eq(table_info["phase_column"], phase_candidate)
+                        .execute()
+                    )
+                except Exception:
+                    continue
+
+                if res.data:
+                    return format_nutrition_standard_row(res.data[0])
     except Exception as e:
         st.error(f"⚠️ เกิดข้อผิดพลาดในการดึงมาตรฐานโภชนาการจาก Supabase: {e}")
     return None
@@ -1218,13 +1292,11 @@ else:
             selected_stage_label = st.selectbox(
                 "📋 เลือกช่วงระยะการให้ไข่:", list(stage_options.keys())
             )
-            
-            # ดึงคำหลักเฉพาะส่วนหน้า (เช่น "ระยะลูกไก่") เพื่อใช้จับคู่กับข้อมูลในฟังก์ชันค้นหาโภชนาการเป้าหมาย
-            phase_query_name = selected_stage_label.split(" ")[0]
+            selected_stage_key = stage_options[selected_stage_label]
+            phase_query_name = selected_stage_key
 
         # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time ---
-        # 💡 ฟังก์ชันด้านในได้รับการแก้ไขสลับตำแหน่ง .eq("ช่วงระยะการให้ไข่", selected_stage) เรียบร้อยแล้ว
-        nutrient_targets = fetch_nutrition_standards(selected_breed_id, phase_query_name)
+        nutrient_targets = fetch_nutrition_standards(selected_breed_id, selected_stage_label, selected_stage_key)
 
         if nutrient_targets:
             # ตรวจสอบและตั้งค่า Default ลงใน session_state หากยังไม่มีข้อมูล
@@ -1258,7 +1330,7 @@ else:
                     st.session_state.current_weights = run_ai_solver(custom_targets)
                     st.rerun()
         else:
-            st.error(f"❌ ไม่พบเกณฑ์มาตรฐานโภชนาการสำหรับสายพันธุ์ {selected_b_name} ระยะ {phase_query_name} บนฐานข้อมูล")
+            st.error(f"❌ ไม่พบเกณฑ์มาตรฐานโภชนาการสำหรับสายพันธุ์ {selected_b_name} ระยะ {selected_stage_label} ({selected_stage_key}) บนฐานข้อมูล")
         st.markdown("</div>", unsafe_allow_html=True)
 
         # --- ส่วนที่ 3: ปุ่มลัดตามสถานการณ์ราคาตลาด ---
@@ -1735,4 +1807,3 @@ else:
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
             # [แก้ไขแล้ว] ลบอักขระ Escape Backslimport streamlit as st
-
