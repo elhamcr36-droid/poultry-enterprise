@@ -98,6 +98,97 @@ def build_daily_logs_display(logs):
     df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce").dt.strftime("%Y-%m-%d")
     return df.sort_values("วันที่", ascending=False, na_position="last")
 
+def render_readable_table(data, *, column_order=None, column_labels=None, column_config=None, height=None):
+    """Show tables with farmer-friendly Thai column names instead of database field names."""
+    if isinstance(data, pd.DataFrame):
+        df = data.copy()
+    else:
+        df = pd.DataFrame(data)
+
+    if df.empty:
+        st.info("ยังไม่มีข้อมูลในตารางนี้")
+        return df
+
+    column_labels = column_labels or {}
+    if column_order:
+        visible_cols = [col for col in column_order if col in df.columns]
+        df = df[visible_cols]
+
+    df = df.rename(columns=column_labels)
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config=column_config,
+        height=height,
+    )
+    return df
+
+def build_ingredients_display():
+    rows = []
+    for name, data in st.session_state.get("db_ingredients", {}).items():
+        rows.append({
+            "วัตถุดิบ": name,
+            "ราคา/กก.": float(data.get("price", 0) or 0),
+            "โปรตีน (%)": float(data.get("protein", 0) or 0),
+            "พลังงาน ME": float(data.get("me", 0) or 0),
+            "แคลเซียม (%)": float(data.get("calcium", 0) or 0),
+            "ฟอสฟอรัส (%)": float(data.get("phos", 0) or 0),
+            "ใช้ขั้นต่ำ (%)": float(data.get("min_limit", 0) or 0),
+            "ใช้สูงสุด (%)": float(data.get("max_limit", 100) or 100),
+        })
+    return pd.DataFrame(rows).sort_values("วัตถุดิบ") if rows else pd.DataFrame()
+
+def build_targets_display():
+    rows = []
+    for stage_key, data in st.session_state.get("db_targets", {}).items():
+        rows.append({
+            "ช่วงอายุ/ระยะผลิต": data.get("stage_name", stage_key),
+            "โปรตีนขั้นต่ำ (%)": data.get("protein", 0),
+            "พลังงานขั้นต่ำ ME": data.get("me", 0),
+            "แคลเซียมขั้นต่ำ (%)": data.get("calcium", 0),
+            "ฟอสฟอรัสขั้นต่ำ (%)": data.get("phos", 0),
+        })
+    return pd.DataFrame(rows)
+
+def build_breeds_display():
+    df = pd.DataFrame(st.session_state.get("db_breeds", []))
+    if df.empty:
+        return df
+    return df.rename(columns={
+        "group_name": "กลุ่มสายพันธุ์",
+        "breed_name": "ชื่อสายพันธุ์",
+        "egg_color": "ลักษณะไข่",
+        "default_feed": "อาหารแนะนำ (กรัม/ตัว/วัน)",
+    })
+
+def update_daily_log_in_supabase(log_id, log_data):
+    try:
+        if not log_id:
+            st.error("ไม่พบรหัสรายการที่จะบันทึก")
+            return False
+        log_data[DAILY_LOG_USER_COLUMN] = st.session_state.current_user_key
+        supabase.table(DAILY_LOGS_TABLE).update(log_data).eq("id", log_id).eq(DAILY_LOG_USER_COLUMN, st.session_state.current_user_key).execute()
+        st.success("บันทึกการแก้ไขประวัติฟาร์มเรียบร้อยแล้ว")
+        fetch_daily_logs_from_supabase()
+        return True
+    except Exception as e:
+        st.error(f"แก้ไขประวัติฟาร์มไม่สำเร็จ: {e}")
+        return False
+
+def delete_daily_log_from_supabase(log_id):
+    try:
+        if not log_id:
+            st.error("ไม่พบรหัสรายการที่จะลบ")
+            return False
+        supabase.table(DAILY_LOGS_TABLE).delete().eq("id", log_id).eq(DAILY_LOG_USER_COLUMN, st.session_state.current_user_key).execute()
+        st.success("ลบประวัติฟาร์มรายการนี้แล้ว")
+        fetch_daily_logs_from_supabase()
+        return True
+    except Exception as e:
+        st.error(f"ลบประวัติฟาร์มไม่สำเร็จ: {e}")
+        return False
+
 # ==========================================
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
@@ -186,7 +277,16 @@ st.markdown(
     div[data-testid="stMetricValue"] {
         font-size: 2.2rem !important; color: #ffb703 !important;
     }
-    [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.95) !important; border-radius: 8px; padding: 5px; }
+    [data-testid="stDataFrame"] {
+        background-color: rgba(15, 23, 42, 0.94) !important;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 10px;
+        padding: 8px;
+        overflow: hidden;
+    }
+    [data-testid="stDataFrame"] * {
+        font-size: 1rem !important;
+    }
     .block-container {
         max-width: 1220px;
         padding-top: 2rem;
@@ -1303,7 +1403,7 @@ if st.session_state.user_role == "admin":
                 {"รหัสระบบ (Key)": k, "ชื่อตัวชี้วัด (Label)": v["label"], "ความละเอียด (Step)": v["step"]} 
                 for k, v in st.session_state.db_nutrient_keys.items()
             ])
-            st.dataframe(df_nutrients, use_container_width=True, hide_index=True)
+            render_readable_table(df_nutrients)
         
         st.markdown("---")
         n_col1, n_col2 = st.columns(2, gap="large")
@@ -1360,7 +1460,17 @@ if st.session_state.user_role == "admin":
     if selected_admin_page == "ingredients":
         with st.expander("📊 เปิดดูคลังวัตถุดิบและราคาปัจจุบันในระบบ", expanded=False):
             if st.session_state.db_ingredients:
-                st.dataframe(pd.DataFrame.from_dict(st.session_state.db_ingredients, orient='index'), use_container_width=True)
+                render_readable_table(
+                    build_ingredients_display(),
+                    column_config={
+                        "ราคา/กก.": st.column_config.NumberColumn(format="%.2f บาท"),
+                        "โปรตีน (%)": st.column_config.NumberColumn(format="%.2f %%"),
+                        "แคลเซียม (%)": st.column_config.NumberColumn(format="%.2f %%"),
+                        "ฟอสฟอรัส (%)": st.column_config.NumberColumn(format="%.2f %%"),
+                        "ใช้ขั้นต่ำ (%)": st.column_config.NumberColumn(format="%.1f %%"),
+                        "ใช้สูงสุด (%)": st.column_config.NumberColumn(format="%.1f %%"),
+                    },
+                )
             else:
                 st.info("คลังวัตถุดิบว่างเปล่า")
         
@@ -1470,7 +1580,7 @@ if st.session_state.user_role == "admin":
     # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ ---
     if selected_admin_page == "breeds":
         with st.expander("📊 เปิดดูทำเนียบสายพันธุ์ไก่ไข่ในระบบทั้งหมด", expanded=True):
-            st.dataframe(pd.DataFrame(st.session_state.db_breeds), use_container_width=True, hide_index=True)
+            render_readable_table(build_breeds_display())
             
         st.markdown("---")
         bc1, bc2 = st.columns(2, gap="large")
@@ -1512,7 +1622,7 @@ if st.session_state.user_role == "admin":
     # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการสัตว์แยกตามอายุ ---
     if selected_admin_page == "targets":
         with st.expander("📊 เปิดดูค่าเกณฑ์มาตรฐานโภชนาการสัตว์ ณ ปัจจุบัน", expanded=False):
-            st.dataframe(pd.DataFrame.from_dict(st.session_state.db_targets, orient='index'), use_container_width=True)
+            render_readable_table(build_targets_display())
         
         st.markdown("### ✏️ ปรับเปลี่ยนเกณฑ์ข้อกำหนดสารอาหารขั้นต่ำประจำช่วงอายุ")
         select_stage_crud = st.selectbox("เลือกช่วงระยะผลิตของไก่ไข่ที่ต้องการแก้ไขเกณฑ์:", list(st.session_state.db_targets.keys()), format_func=lambda x: st.session_state.db_targets[x]["stage_name"])
@@ -1563,7 +1673,7 @@ if st.session_state.user_role == "admin":
             })
             
         if users_list:
-            st.dataframe(pd.DataFrame(users_list), use_container_width=True, hide_index=True)
+            render_readable_table(pd.DataFrame(users_list))
         else:
             st.info("ℹ️ ยังไม่มีข้อมูลในตาราง user_profiles กรุณารัน SQL sync_user_profiles.sql ใน Supabase ก่อน")
             
@@ -1925,6 +2035,18 @@ else:
                 )
 
             st.session_state.current_weights = temp_weights
+
+            net_cost = 0.0
+            act_nut = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0}
+            adjusted_total_w = sum(st.session_state.current_weights.values())
+            adjusted_divisor = adjusted_total_w if adjusted_total_w > 0 else 1.0
+            for name, w in st.session_state.current_weights.items():
+                if name in st.session_state.db_ingredients:
+                    ratio = w / adjusted_divisor
+                    net_cost += ratio * float(st.session_state.db_ingredients[name].get("price", 0.0))
+                    for k in act_nut.keys():
+                        act_nut[k] += ratio * float(st.session_state.db_ingredients[name].get(k, 0.0))
+            st.session_state["current_net_cost"] = round(net_cost, 2)
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_right:
@@ -1934,32 +2056,52 @@ else:
             # แสดงเปรียบเทียบค่าเป้าหมายที่ดึงมาจากชุดข้อมูล Supabase จริง
             target_p_val = edit_p if nutrient_targets else 16.5
             target_m_val = edit_m if nutrient_targets else 2750
+            target_c_val = edit_c if nutrient_targets else 3.80
+            target_ph_val = edit_ph if nutrient_targets else 0.45
+            max_c_val = float(nutrient_targets.get("max_calcium", 99.0)) if nutrient_targets else 99.0
+
+            nutrition_alerts = []
+
+            def nutrition_status(actual, minimum, unit="", maximum=None):
+                if actual < minimum:
+                    nutrition_alerts.append(f"{unit}ต่ำกว่าเป้าหมาย")
+                    return "⚠️ ต่ำ"
+                if maximum is not None and actual > maximum:
+                    nutrition_alerts.append(f"{unit}สูงเกินเป้าหมาย")
+                    return "⚠️ สูง"
+                return "✅ ผ่าน"
 
             comparison_table = [
                 {
                     "โภชนาการสำคัญ": "โปรตีนดิบ (% CP)",
                     "เป้าหมาย": f"{target_p_val:.2f} %",
                     "ได้จริงในสูตร": f"{act_nut['protein']:.2f} %",
+                    "สถานะ": nutrition_status(act_nut["protein"], target_p_val, "โปรตีน"),
                 },
                 {
                     "โภชนาการสำคัญ": "พลังงานใช้ประโยชน์ (ME)",
                     "เป้าหมาย": f"{target_m_val:.0f}",
                     "ได้จริงในสูตร": f"{act_nut['me']:.0f}",
+                    "สถานะ": nutrition_status(act_nut["me"], target_m_val, "พลังงาน"),
                 },
                 {
                     "โภชนาการสำคัญ": "แคลเซียม (% Ca)",
-                    "เป้าหมาย": f"{edit_c:.2f} %" if nutrient_targets else "3.80 %",
+                    "เป้าหมาย": f"{target_c_val:.2f} %",
                     "ได้จริงในสูตร": f"{act_nut['calcium']:.2f} %",
+                    "สถานะ": nutrition_status(act_nut["calcium"], target_c_val, "แคลเซียม", max_c_val),
                 },
                 {
                     "โภชนาการสำคัญ": "ฟอสฟอรัส (% P)",
-                    "เป้าหมาย": f"{edit_ph:.2f} %" if nutrient_targets else "0.45 %",
+                    "เป้าหมาย": f"{target_ph_val:.2f} %",
                     "ได้จริงในสูตร": f"{act_nut['phos']:.2f} %",
+                    "สถานะ": nutrition_status(act_nut["phos"], target_ph_val, "ฟอสฟอรัส"),
                 },
             ]
-            st.dataframe(
-                pd.DataFrame(comparison_table), use_container_width=True, hide_index=True
-            )
+            render_readable_table(pd.DataFrame(comparison_table))
+            if nutrition_alerts:
+                st.warning("สูตรนี้ยังไม่ผ่านเกณฑ์: " + ", ".join(nutrition_alerts))
+            else:
+                st.success("สูตรนี้ผ่านเกณฑ์โภชนาการหลักแล้ว")
 
             st.markdown(
                 f"<div style='background-color:#1e293b; padding:15px; border-radius:10px; border:2px solid #38bdf8; text-align:center; font-size:24px; font-weight:bold; margin: 15px 0;'>💰 ต้นทุนค่าอาหารสูตรนี้: {net_cost:.2f} บาท/กก.</div>",
@@ -2191,6 +2333,9 @@ else:
                 "env_temp": float(env_temp),
                 "actual_feed_given_kg": round(float(actual_feed_given_kg), 2),
                 "collected_eggs": int(collected_eggs),
+                "egg_sale_price": round(float(egg_sale_price), 2),
+                "dead_birds": int(dead_birds),
+                "avg_egg_weight_g": round(float(avg_egg_weight_g), 2),
                 "total_revenue": round(float(total_revenue), 2),
                 "total_feed_cost": round(float(total_feed_cost), 2),
                 "net_profit_day": round(float(net_profit_day), 2),
@@ -2218,10 +2363,8 @@ else:
                     st.metric("รายได้ล่าสุด", f"{float(latest_log['รายได้'] or 0):,.2f} บาท")
                 with kpi3:
                     st.metric("กำไรสุทธิล่าสุด", f"{float(latest_log['กำไรสุทธิ'] or 0):,.2f} บาท")
-            st.dataframe(
+            render_readable_table(
                 display_logs_df,
-                use_container_width=True,
-                hide_index=True,
                 column_config={
                     "รายได้": st.column_config.NumberColumn(format="%.2f บาท"),
                     "ต้นทุนอาหาร": st.column_config.NumberColumn(format="%.2f บาท"),
@@ -2231,6 +2374,74 @@ else:
                     "FCR": st.column_config.NumberColumn(format="%.2f"),
                 },
             )
+            st.markdown("#### แก้ไขหรือลบประวัติย้อนหลัง")
+            log_options = {
+                f"{item.get('date', '-')}: ไก่ {int(item.get('bird_count') or 0):,} ตัว, ไข่ {int(item.get('collected_eggs') or 0):,} ฟอง": item
+                for item in sorted(
+                    st.session_state.daily_logs,
+                    key=lambda row: str(row.get("date", "")),
+                    reverse=True,
+                )
+            }
+            selected_log_label = st.selectbox("เลือกรายการที่ต้องการจัดการ:", list(log_options.keys()))
+            selected_log = log_options[selected_log_label]
+            selected_log_id = selected_log.get("id")
+
+            try:
+                selected_date = datetime.date.fromisoformat(str(selected_log.get("date")))
+            except Exception:
+                selected_date = datetime.date.today()
+
+            with st.form(key=f"edit_daily_log_{selected_log_id}"):
+                edit_col1, edit_col2, edit_col3 = st.columns(3)
+                with edit_col1:
+                    edit_date = st.date_input("วันที่", value=selected_date)
+                    edit_age = st.number_input("อายุฝูง (สัปดาห์)", min_value=1, max_value=120, value=int(selected_log.get("flock_age_weeks") or 25), step=1)
+                    edit_birds = st.number_input("จำนวนไก่ (ตัว)", min_value=1, value=int(selected_log.get("bird_count") or 1), step=50)
+                with edit_col2:
+                    edit_temp = st.number_input("อุณหภูมิ (°C)", min_value=0.0, max_value=60.0, value=float(selected_log.get("env_temp") or 28.0), step=0.5)
+                    edit_feed = st.number_input("อาหารที่ให้ (กก.)", min_value=0.0, value=float(selected_log.get("actual_feed_given_kg") or 0.0), step=1.0)
+                    edit_eggs = st.number_input("ไข่ที่เก็บได้ (ฟอง)", min_value=0, value=int(selected_log.get("collected_eggs") or 0), step=10)
+                with edit_col3:
+                    edit_price = st.number_input("ราคาไข่/ฟอง (บาท)", min_value=0.0, value=float(selected_log.get("egg_sale_price") or 0.0), step=0.1)
+                    edit_dead = st.number_input("ไก่ตาย/คัดทิ้ง (ตัว)", min_value=0, value=int(selected_log.get("dead_birds") or 0), step=1)
+                    edit_egg_weight = st.number_input("น้ำหนักไข่เฉลี่ย (กรัม)", min_value=0.0, value=float(selected_log.get("avg_egg_weight_g") or 62.0), step=0.5)
+
+                edit_net_cost = float(st.session_state.get("current_net_cost", 0.0) or 0.0)
+                edit_total_revenue = float(edit_eggs) * float(edit_price)
+                edit_total_feed_cost = float(edit_feed) * edit_net_cost
+                edit_net_profit = edit_total_revenue - edit_total_feed_cost
+                edit_henday = (float(edit_eggs) / float(edit_birds)) * 100.0 if edit_birds > 0 else 0.0
+                edit_egg_mass_kg = (float(edit_eggs) * float(edit_egg_weight)) / 1000.0
+                edit_fcr = float(edit_feed) / edit_egg_mass_kg if edit_egg_mass_kg > 0 else 0.0
+
+                st.caption(f"ระบบจะคำนวณใหม่ให้: รายได้ {edit_total_revenue:,.2f} บาท | ต้นทุนอาหาร {edit_total_feed_cost:,.2f} บาท | กำไร {edit_net_profit:,.2f} บาท")
+                save_edit = st.form_submit_button("บันทึกการแก้ไขรายการนี้", type="primary", use_container_width=True)
+
+            if save_edit:
+                updated_log = {
+                    "date": str(edit_date),
+                    "flock_age_weeks": int(edit_age),
+                    "bird_count": int(edit_birds),
+                    "env_temp": round(float(edit_temp), 2),
+                    "actual_feed_given_kg": round(float(edit_feed), 2),
+                    "collected_eggs": int(edit_eggs),
+                    "egg_sale_price": round(float(edit_price), 2),
+                    "dead_birds": int(edit_dead),
+                    "avg_egg_weight_g": round(float(edit_egg_weight), 2),
+                    "total_revenue": round(float(edit_total_revenue), 2),
+                    "total_feed_cost": round(float(edit_total_feed_cost), 2),
+                    "net_profit_day": round(float(edit_net_profit), 2),
+                    "henday_pct": round(float(edit_henday), 1),
+                    "fcr_ratio": round(float(edit_fcr), 2),
+                }
+                if update_daily_log_in_supabase(selected_log_id, updated_log):
+                    st.rerun()
+
+            delete_confirm = st.checkbox("ยืนยันว่าต้องการลบรายการที่เลือก", key=f"delete_daily_log_confirm_{selected_log_id}")
+            if st.button("ลบรายการประวัตินี้", type="secondary", use_container_width=True, disabled=not delete_confirm):
+                if delete_daily_log_from_supabase(selected_log_id):
+                    st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ------------------------------------------
@@ -2287,7 +2498,14 @@ else:
 
         if po_buffer:
             df_po = pd.DataFrame(po_buffer)
-            st.dataframe(df_po, use_container_width=True, hide_index=True)
+            render_readable_table(
+                df_po,
+                column_config={
+                    "สัดส่วนผสม (%)": st.column_config.NumberColumn(format="%.1f %%"),
+                    "น้ำหนักรวมที่ต้องใช้ (KG)": st.column_config.NumberColumn(format="%.1f กก."),
+                    "ราคาทุน (บาท)": st.column_config.NumberColumn(format="%.0f บาท"),
+                },
+            )
 
             st.markdown(
                 f"<div style='background-color:#1e293b; padding:15px; border-radius:10px; border:2px dashed #10b981; font-size:24px; font-weight:bold; text-align:center; margin:15px 0;'>💵 งบประมาณค่าวัตถุดิบรวมรอบนี้: {total_po_cost:,.2f} บาท</div>",
