@@ -307,7 +307,7 @@ def fetch_master_data_from_supabase():
 def fetch_ingredients_from_supabase():
     try:
         rows = []
-        # 🔥 แก้ไข: ตรวจสอบและดึงข้อมูลแยกตามเจ้าของ (owner_email) ตัวใครตัวมันอย่างแท้จริง
+        # 🔥 ดึงข้อมูลแยกตามเจ้าของ (owner_email) ตัวใครตัวมันอย่างแท้จริง
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             user_email = st.session_state.current_user_key
             default_response = supabase.table("ingredients").select("*").eq("owner_email", DEFAULT_INGREDIENT_OWNER).execute()
@@ -329,6 +329,72 @@ def fetch_ingredients_from_supabase():
         st.warning(f"⚠️ ดึงข้อมูลจากคลาวด์ไม่สำเร็จ (กำลังใช้ข้อมูลสำรองในระบบแทน): {e}")
         st.session_state.db_ingredients = FALLBACK_INGREDIENTS
         return FALLBACK_INGREDIENTS
+
+# =========================================================================
+# 🔄 บล็อกฟังก์ชันเพิ่มเติม: จัดการข้อมูลสูตรอาหาร และบันทึกฟาร์มรายวันตัวใครตัวมัน
+# =========================================================================
+
+def fetch_saved_formulas_from_supabase():
+    """ดึงสูตรอาหารเฉพาะของผู้ใช้งานที่ล็อกอินอยู่ปัจจุบัน"""
+    try:
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            user_email = st.session_state.current_user_key
+            response = supabase.table("saved_formulas").select("*").eq("owner_email", user_email).execute()
+            if response.data:
+                st.session_state.saved_formulas = response.data
+                return response.data
+        st.session_state.saved_formulas = []
+        return []
+    except Exception as e:
+        st.warning(f"⚠️ ไม่สามารถดึงสูตรอาหารส่วนตัวจากคลาวด์ได้: {e}")
+        return []
+
+def save_formula_to_supabase(formula_data):
+    """บันทึกสูตรอาหารใหม่ โดยทำการผูก owner_email ของผู้ใช้งานไปด้วยทุกครั้ง"""
+    try:
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            formula_data["owner_email"] = st.session_state.current_user_key
+            supabase.table("saved_formulas").insert(formula_data).execute()
+            st.success("🎉 บันทึกสูตรอาหารลงพื้นที่ส่วนตัวของคุณเรียบร้อยแล้ว!")
+            fetch_saved_formulas_from_supabase()  # รีโหลดสูตรอาหารล่าสุดเข้ามาในแอปฯ
+            return True
+        else:
+            st.error("❌ กรุณาเข้าสู่ระบบก่อนทำการบันทึกข้อมูล")
+            return False
+    except Exception as e:
+        st.error(f"❌ ไม่สามารถบันทึกสูตรลงคลาวด์ได้: {e}")
+        return False
+
+def fetch_daily_logs_from_supabase():
+    """ดึงสมุดบันทึกกิจกรรมฟาร์มรายวันเฉพาะของตนเอง"""
+    try:
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            user_email = st.session_state.current_user_key
+            response = supabase.table("daily_logs").select("*").eq("owner_email", user_email).order("date").execute()
+            if response.data:
+                st.session_state.daily_logs = response.data
+                return response.data
+        st.session_state.daily_logs = []
+        return []
+    except Exception as e:
+        st.warning(f"⚠️ ไม่สามารถดึงบันทึกกิจกรรมฟาร์มจากคลาวด์ได้: {e}")
+        return []
+
+def save_daily_log_to_supabase(log_data):
+    """บันทึกข้อมูลกิจกรรมฟาร์มประจำวัน ผูกเข้ากับระบบบัญชีผู้ใช้จริง"""
+    try:
+        if st.session_state.is_authenticated and st.session_state.current_user_key:
+            log_data["owner_email"] = st.session_state.current_user_key
+            supabase.table("daily_logs").insert(log_data).execute()
+            st.success("🎉 บันทึกประวัติกิจกรรมฟาร์มประจำวันสำเร็จ!")
+            fetch_daily_logs_from_supabase()  # รีโหลดประวัติล่าสุดเข้ามาในแอปฯ
+            return True
+        else:
+            st.error("❌ กรุณาเข้าสู่ระบบก่อนทำการบันทึกข้อมูล")
+            return False
+    except Exception as e:
+        st.error(f"❌ ไม่สามารถบันทึกข้อมูลฟาร์มรายวันได้: {e}")
+        return False
 
 
 # ==========================================
