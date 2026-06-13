@@ -280,29 +280,55 @@ def fetch_master_data_from_supabase():
     except Exception as e:
         st.error(f"เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Database: {e}")
 
+def safe_float(value, default=0.0):
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+def normalize_phase_name(value):
+    text = str(value or "").strip()
+    text = text.split("(")[0].strip()
+    text = re.sub(r"\s+", "", text)
+    text = text.replace("ระยะลูกไก่ไข่", "ระยะลูกไก่")
+    return text
+
 def fetch_nutrition_standards(breed_id, phase_name):
     """ 
     ดึงมาตรฐานโภชนาการไก่ไข่รายสายพันธุ์ตรงจากฐานข้อมูล 100%
     เพื่อนำไปป้อนเป็น Constraints ให้กับตัว Solver
     """
     try:
-        # ดึงแถวข้อมูลสารอาหารที่ตรงกับ breed_id และ ชื่อระยะการเลี้ยง
+        # ดึงด้วยคอลัมน์อังกฤษก่อน แล้วค่อยกรองชื่อระยะภาษาไทยใน Python
+        # เพื่อเลี่ยงปัญหา Supabase/PostgREST บางชุดที่อ้างอิงคอลัมน์ภาษาไทยใน .eq() ไม่ได้
         res = supabase.table("มาตรฐานโภชนาการไก่ไข่") \
             .select("*") \
             .eq("breed_id", int(breed_id)) \
-            .eq("ช่วงอายุการเลี้ยง_phase_name", phase_name) \
             .execute()
             
         if res.data:
-            data = res.data[0]
+            expected_phase = normalize_phase_name(phase_name)
+            data = next(
+                (
+                    row for row in res.data
+                    if normalize_phase_name(row.get("ช่วงอายุการเลี้ยง_phase_name")) == expected_phase
+                ),
+                None,
+            )
+
+            if not data:
+                return None
+
             return {
-                "min_protein": float(data.get("โปรตีนต่ำสุด_min_protein", 0.0)),
-                "min_me": float(data.get("พลังงานต่ำสุด_min_me", 0.0)),
-                "min_calcium": float(data.get("แคลเซียมต่ำสุด_min_calcium", 0.0)),
-                "max_calcium": float(data.get("แคลเซียมสูงสุด_max_calcium", 5.5)),
-                "min_phosphorus": float(data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus", 0.0)),
-                "min_lysine": float(data.get("ไลซีนต่ำสุด_min_lysine", 0.0)),
-                "min_methionine": float(data.get("เมทิโอนีนต่ำสุด_min_methionine", 0.0)),
+                "min_protein": safe_float(data.get("โปรตีนต่ำสุด_min_protein"), 0.0),
+                "min_me": safe_float(data.get("พลังงานต่ำสุด_min_me"), 0.0),
+                "min_calcium": safe_float(data.get("แคลเซียมต่ำสุด_min_calcium"), 0.0),
+                "max_calcium": safe_float(data.get("แคลเซียมสูงสุด_max_calcium"), 5.5),
+                "min_phosphorus": safe_float(data.get("ฟอสฟอรัสต่ำสุด_min_phosphorus"), 0.0),
+                "min_lysine": safe_float(data.get("ไลซีนต่ำสุด_min_lysine"), 0.0),
+                "min_methionine": safe_float(data.get("เมทิโอนีนต่ำสุด_min_methionine"), 0.0),
                 "max_fiber": 5.0 # ค่าตั้งต้นสำหรับเยื่อใยสูงสุด
             }
     except Exception as e:
@@ -1219,8 +1245,16 @@ else:
                 "📋 เลือกช่วงระยะการให้ไข่:", list(stage_options.keys())
             )
             
-            # ดึงคำหลักเฉพาะส่วนหน้า (เช่น "ระยะลูกไก่") เพื่อใช้จับคู่กับข้อมูลในฟังก์ชันค้นหาโภชนาการเป้าหมาย
-            phase_query_name = selected_stage_label.split(" ")[0]
+            selected_stage_key = stage_options.get(selected_stage_label, "")
+            phase_name_by_stage_key = {
+                "starter": "ระยะลูกไก่",
+                "grower": "ระยะไก่รุ่น",
+                "layer_phase_1": "ระยะไข่พีค",
+            }
+            phase_query_name = phase_name_by_stage_key.get(
+                selected_stage_key,
+                selected_stage_label.split("(")[0].strip().replace("ระยะลูกไก่ไข่", "ระยะลูกไก่"),
+            )
 
         # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time ---
         # 💡 ฟังก์ชันด้านในได้รับการแก้ไขสลับตำแหน่ง .eq("ช่วงระยะการให้ไข่", selected_stage) เรียบร้อยแล้ว
@@ -1737,4 +1771,3 @@ else:
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
             # [แก้ไขแล้ว] ลบอักขระ Escape Backslimport streamlit as st
-
