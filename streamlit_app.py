@@ -794,7 +794,7 @@ def normalize_recovery_link_params():
         <script>
         const hash = window.location.hash;
         const search = window.location.search;
-        if (hash && hash.includes('access_token') && !search.includes('access_token')) {
+        if (hash && (hash.includes('access_token') || hash.includes('error')) && !search.includes('access_token') && !search.includes('error')) {
             const params = new URLSearchParams(hash.substring(1));
             const target = new URL(window.location.href);
             params.forEach((value, key) => target.searchParams.set(key, value));
@@ -812,17 +812,29 @@ def detect_password_recovery_session():
     recovery_type = get_query_param("type")
     recovery_code = get_query_param("code")
     auth_action = get_query_param("auth_action")
+    recovery_error = get_query_param("error")
+    recovery_error_code = get_query_param("error_code")
+    recovery_error_description = get_query_param("error_description")
 
     if auth_action == "forgot_password":
         st.session_state.auth_page_mode = "forgot"
     elif auth_action == "reset_password":
         st.session_state.auth_page_mode = "reset_password"
 
-    if access_token and refresh_token and recovery_type == "recovery":
+    if recovery_error or recovery_error_code:
+        st.session_state.auth_page_mode = "reset_password"
+        st.session_state.password_recovery_ready = False
+        st.session_state.password_recovery_error = {
+            "error": recovery_error or "",
+            "code": recovery_error_code or "",
+            "description": recovery_error_description or "",
+        }
+    elif access_token and refresh_token and recovery_type == "recovery":
         try:
             supabase.auth.set_session(access_token, refresh_token)
             st.session_state.auth_page_mode = "reset_password"
             st.session_state.password_recovery_ready = True
+            st.session_state.password_recovery_error = None
         except Exception as error:
             st.error(f"ไม่สามารถเปิดหน้าตั้งรหัสผ่านใหม่ได้: {error}")
     elif recovery_code and not st.session_state.get("password_recovery_ready"):
@@ -830,7 +842,13 @@ def detect_password_recovery_session():
             supabase.auth.exchange_code_for_session(recovery_code)
             st.session_state.auth_page_mode = "reset_password"
             st.session_state.password_recovery_ready = True
+            st.session_state.password_recovery_error = None
         except Exception as error:
+            st.session_state.password_recovery_error = {
+                "error": "access_denied",
+                "code": "invalid_or_expired_link",
+                "description": str(error),
+            }
             st.error(f"ไม่สามารถยืนยันลิงก์ตั้งรหัสผ่านใหม่ได้: {error}")
 
 normalize_recovery_link_params()
@@ -851,10 +869,28 @@ if not st.session_state.is_authenticated:
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
 
         if not st.session_state.get("password_recovery_ready"):
-            st.warning("หน้านี้ใช้สำหรับตั้งรหัสผ่านใหม่หลังจากกดลิงก์ในอีเมลเท่านั้น")
-            st.info("ถ้าคุณต้องการกู้คืนรหัสผ่าน ให้กลับไปหน้าเข้าสู่ระบบแล้วกดปุ่มลืมรหัสผ่าน ระบบจะส่งลิงก์มายังอีเมลของคุณ")
+            recovery_error = st.session_state.get("password_recovery_error") or {}
+            error_code = recovery_error.get("code", "")
+            error_description = recovery_error.get("description", "")
+            if error_code == "otp_expired" or "expired" in error_description.lower() or "invalid" in error_description.lower():
+                st.error("ลิงก์ตั้งรหัสผ่านหมดอายุหรือถูกใช้ไปแล้ว")
+                st.info("กรุณากดส่งลิงก์ใหม่ ระบบจะส่งอีเมลรีเซ็ตรหัสผ่านให้ใหม่อีกครั้ง")
+            elif recovery_error:
+                st.error(f"ไม่สามารถใช้ลิงก์ตั้งรหัสผ่านนี้ได้: {error_description or error_code}")
+                st.info("กรุณาขอลิงก์ใหม่จากหน้าลืมรหัสผ่าน")
+            else:
+                st.warning("หน้านี้ใช้สำหรับตั้งรหัสผ่านใหม่หลังจากกดลิงก์ในอีเมลเท่านั้น")
+                st.info("ถ้าคุณต้องการกู้คืนรหัสผ่าน ให้กลับไปหน้าเข้าสู่ระบบแล้วกดปุ่มลืมรหัสผ่าน ระบบจะส่งลิงก์มายังอีเมลของคุณ")
+
+            if st.button("📩 ส่งลิงก์ใหม่อีกครั้ง", type="primary", use_container_width=True):
+                st.session_state.auth_page_mode = "forgot"
+                st.session_state.password_recovery_error = None
+                st.query_params.clear()
+                st.query_params["auth_action"] = "forgot_password"
+                st.rerun()
             if st.button("กลับไปหน้าเข้าสู่ระบบ", use_container_width=True):
                 st.session_state.auth_page_mode = "login"
+                st.session_state.password_recovery_error = None
                 st.query_params.clear()
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
