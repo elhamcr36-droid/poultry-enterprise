@@ -196,6 +196,7 @@ FALLBACK_INGREDIENTS = [
 ]
 
 DEFAULT_INGREDIENT_OWNER = "system_default"
+SAVED_FORMULAS_TABLE = "saved_formulas"
 MASTER_TABLE_CANDIDATES = {
     "groups": ["db_groups", "groups"],
     "breeds": ["db_breeds", "breeds"],
@@ -469,7 +470,7 @@ def fetch_saved_formulas_from_supabase():
     try:
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             user_email = st.session_state.current_user_key
-            response = supabase.table("saved_formulas").select("*").eq("owner_email", user_email).execute()
+            response = supabase.table(SAVED_FORMULAS_TABLE).select("*").eq("owner_email", user_email).execute()
             if response.data:
                 st.session_state.saved_formulas = response.data
                 return response.data
@@ -479,12 +480,24 @@ def fetch_saved_formulas_from_supabase():
         st.warning(f"⚠️ ไม่สามารถดึงสูตรอาหารส่วนตัวจากคลาวด์ได้: {e}")
         return []
 
+def normalize_formula_weights(weights):
+    if isinstance(weights, dict):
+        return weights.copy()
+    if isinstance(weights, str):
+        try:
+            parsed_weights = json.loads(weights)
+            if isinstance(parsed_weights, dict):
+                return parsed_weights
+        except Exception:
+            pass
+    return {}
+
 def save_formula_to_supabase(formula_data):
     """บันทึกสูตรอาหารใหม่ ผูกเจ้าของด้วย owner_email ทุกครั้ง"""
     try:
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             formula_data["owner_email"] = st.session_state.current_user_key
-            supabase.table("saved_formulas").insert(formula_data).execute()
+            supabase.table(SAVED_FORMULAS_TABLE).insert(formula_data).execute()
             st.success("🎉 บันทึกสูตรอาหารลงพื้นที่ส่วนตัวของคุณเรียบร้อยแล้ว!")
             fetch_saved_formulas_from_supabase()
             return True
@@ -1302,7 +1315,7 @@ else:
                         for f in st.session_state.saved_formulas
                         if f["name"] == selected_f_name
                     )
-                    st.session_state.current_weights = target_f["weights"].copy()
+                    st.session_state.current_weights = normalize_formula_weights(target_f.get("weights", {}))
                     st.success(f"ดึงข้อมูล '{selected_f_name}' มาใช้งานแล้ว!")
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
