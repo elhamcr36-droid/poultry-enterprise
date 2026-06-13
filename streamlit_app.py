@@ -26,9 +26,9 @@ def render_big_menu(state_key, options, columns_per_row=3):
             selected = st.session_state[state_key] == option["id"]
             with col:
                 if st.button(
-                    option["label"],
+                    f"✅ {option['label']}" if selected else option["label"],
                     key=f"{state_key}_{option['id']}",
-                    type="primary" if selected else "secondary",
+                    type="secondary",
                     use_container_width=True,
                 ):
                     st.session_state[state_key] = option["id"]
@@ -125,6 +125,66 @@ st.markdown(
         font-size: 2.2rem !important; color: #ffb703 !important;
     }
     [data-testid="stDataFrame"] { background-color: rgba(255,255,255,0.95) !important; border-radius: 8px; padding: 5px; }
+    .block-container {
+        max-width: 1220px;
+        padding-top: 2rem;
+        padding-bottom: 4rem;
+    }
+    div[data-testid="stButton"] > button {
+        min-height: 58px;
+        border-radius: 10px !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        background: rgba(15, 23, 42, 0.92) !important;
+        color: #ffffff !important;
+        font-size: 1.05rem !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+    }
+    div[data-testid="stButton"] > button:hover {
+        border-color: #fbbf24 !important;
+        background: rgba(30, 41, 59, 0.98) !important;
+        transform: translateY(-1px);
+    }
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input,
+    div[data-testid="stDateInput"] input {
+        min-height: 50px !important;
+        font-size: 1.05rem !important;
+        border-radius: 8px !important;
+    }
+    .farm-page-card {
+        background: rgba(2, 6, 23, 0.76);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-left: 5px solid #fbbf24;
+        border-radius: 10px;
+        padding: 18px 20px;
+        margin: 16px 0 20px 0;
+    }
+    .farm-page-card h2 {
+        margin: 0 0 6px 0 !important;
+        font-size: 1.55rem !important;
+    }
+    .farm-page-card p {
+        margin: 0 !important;
+        color: #cbd5e1 !important;
+        font-size: 1.02rem;
+    }
+    .farmer-card {
+        background-color: rgba(2, 6, 23, 0.82) !important;
+        padding: 22px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        margin-bottom: 18px;
+    }
+    @media (max-width: 760px) {
+        .block-container { padding-left: 0.8rem; padding-right: 0.8rem; }
+        div[data-testid="stButton"] > button {
+            min-height: 64px;
+            font-size: 1rem !important;
+        }
+        h1 { font-size: 2rem !important; }
+        .farm-page-card { padding: 14px 16px; }
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -776,6 +836,9 @@ def detect_password_recovery_session():
 normalize_recovery_link_params()
 detect_password_recovery_session()
 
+if st.session_state.get("auth_page_mode") in ["forgot", "reset_password"]:
+    st.session_state.is_authenticated = False
+
 if "user_database" not in st.session_state:
     st.session_state.user_database = {}
 
@@ -831,6 +894,83 @@ if not st.session_state.is_authenticated:
                     st.error(f"ไม่สามารถเปลี่ยนรหัสผ่านได้: {error}")
 
         if st.button("กลับไปหน้าเข้าสู่ระบบ", use_container_width=True):
+            st.session_state.auth_page_mode = "login"
+            st.query_params.clear()
+            st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
+
+    # --- 4.0.5 หน้า FORGOT PASSWORD แยกจากหน้าหลัก ---
+    if st.session_state.auth_page_mode == "forgot":
+        st.session_state.is_authenticated = False
+        st.markdown("<div class='content-card' style='max-width: 620px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>❓ ลืมรหัสผ่าน</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#cbd5e1 !important;'>กรอกอีเมลเพื่อรับลิงก์ตั้งรหัสผ่านใหม่ หรือยืนยันด้วยเบอร์โทรที่เคยสมัครไว้</p>", unsafe_allow_html=True)
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+
+        forgot_mode = st.radio(
+            "เลือกวิธีรีเซ็ตรหัสผ่าน:",
+            ["ส่งลิงก์ไปอีเมล", "ยืนยันด้วยอีเมล + เบอร์โทร"],
+            horizontal=True,
+            key="forgot_mode_select",
+        )
+
+        forgot_email = st.text_input("📧 อีเมลบัญชีผู้ใช้:", key="forgot_email_input").strip().lower()
+
+        if forgot_mode == "ส่งลิงก์ไปอีเมล":
+            st.info("ระบบจะส่งลิงก์ไปยังอีเมลของคุณ เมื่อกดลิงก์แล้วจะกลับมาที่หน้าตั้งรหัสผ่านใหม่ของแอปนี้")
+            if st.button("📩 ส่งลิงก์ตั้งรหัสผ่านใหม่", type="primary", use_container_width=True):
+                if not forgot_email:
+                    st.warning("กรุณากรอกอีเมลก่อน")
+                else:
+                    try:
+                        try:
+                            supabase.auth.reset_password_for_email(
+                                forgot_email,
+                                {"redirect_to": PASSWORD_RESET_REDIRECT_URL},
+                            )
+                        except TypeError:
+                            supabase.auth.reset_password_for_email(
+                                forgot_email,
+                                redirect_to=PASSWORD_RESET_REDIRECT_URL,
+                            )
+                        st.success("ส่งลิงก์ตั้งรหัสผ่านใหม่แล้ว กรุณาเปิดอีเมลและกดลิงก์ที่ได้รับ")
+                    except Exception as error:
+                        st.error(f"ส่งลิงก์ตั้งรหัสผ่านใหม่ไม่สำเร็จ: {error}")
+        else:
+            forgot_phone = st.text_input("📞 เบอร์โทรศัพท์ที่ใช้สมัคร:", key="forgot_phone_input")
+            new_direct_pass = st.text_input("🔑 รหัสผ่านใหม่:", type="password", key="forgot_direct_new_pass")
+            new_direct_pass_conf = st.text_input("🔄 ยืนยันรหัสผ่านใหม่:", type="password", key="forgot_direct_new_pass_conf")
+            is_direct_strong, direct_pass_msg = check_password_strength(new_direct_pass) if new_direct_pass else (False, "")
+
+            if new_direct_pass:
+                if is_direct_strong:
+                    st.success(direct_pass_msg)
+                else:
+                    st.warning(direct_pass_msg)
+
+            if st.button("💾 ยืนยันและเปลี่ยนรหัสผ่าน", type="primary", use_container_width=True):
+                if not forgot_email or not forgot_phone or not new_direct_pass or not new_direct_pass_conf:
+                    st.warning("กรุณากรอกอีเมล เบอร์โทร และรหัสผ่านใหม่ให้ครบ")
+                elif new_direct_pass != new_direct_pass_conf:
+                    st.error("รหัสผ่านใหม่และช่องยืนยันไม่ตรงกัน")
+                elif not is_direct_strong:
+                    st.error("รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไขความปลอดภัย")
+                elif not PASSWORD_RESET_FUNCTION_URL:
+                    st.error("ยังไม่ได้ตั้งค่า PASSWORD_RESET_FUNCTION_URL สำหรับรีเซ็ตด้วยเบอร์โทร")
+                else:
+                    try:
+                        reset_password_with_email_and_phone(forgot_email, forgot_phone, new_direct_pass)
+                        st.success("เปลี่ยนรหัสผ่านสำเร็จ กรุณากลับไปเข้าสู่ระบบด้วยรหัสผ่านใหม่")
+                        st.session_state.auth_page_mode = "login"
+                        st.query_params.clear()
+                        st.rerun()
+                    except Exception as error:
+                        st.error(f"เปลี่ยนรหัสผ่านไม่สำเร็จ: {error}")
+
+        st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+        if st.button("⬅️ กลับไปหน้าเข้าสู่ระบบ", use_container_width=True):
             st.session_state.auth_page_mode = "login"
             st.query_params.clear()
             st.rerun()
@@ -901,8 +1041,10 @@ if not st.session_state.is_authenticated:
 
         st.markdown("<div style='text-align: center; margin-top: 15px;'>", unsafe_allow_html=True)
         if st.button("❓ ลืมรหัสผ่านใช่หรือไม่?", type="secondary"):
-            st.query_params["auth_action"] = "forgot_password"
+            st.session_state.is_authenticated = False
             st.session_state.auth_page_mode = "forgot"
+            st.query_params.clear()
+            st.query_params["auth_action"] = "forgot_password"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1043,6 +1185,18 @@ if st.session_state.user_role == "admin":
         columns_per_row=3,
     )
     st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+    admin_page_info = {
+        "nutrients": ("⚙️ สารอาหาร", "เพิ่ม ลบ หรือดูหัวข้อสารอาหารที่ใช้ในสูตรอาหาร"),
+        "ingredients": ("🌽 วัตถุดิบ", "จัดการวัตถุดิบ ราคา และค่าทางโภชนาการ"),
+        "breeds": ("🐓 สายพันธุ์", "เพิ่มหรือแก้ไขข้อมูลสายพันธุ์ไก่ไข่"),
+        "targets": ("🧬 เกณฑ์อาหาร", "ตั้งค่าเกณฑ์โภชนาการตามช่วงอายุ"),
+        "users": ("👤 ผู้ใช้งาน", "ดูรายชื่อ เปลี่ยนสิทธิ์ และระงับบัญชี"),
+    }
+    admin_title, admin_subtitle = admin_page_info[selected_admin_page]
+    st.markdown(
+        f"<div class='farm-page-card'><h2>{admin_title}</h2><p>{admin_subtitle}</p></div>",
+        unsafe_allow_html=True,
+    )
     
     # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง ---
     if selected_admin_page == "nutrients":
@@ -1426,6 +1580,16 @@ else:
         columns_per_row=3,
     )
     st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
+    user_page_info = {
+        "formula": ("🥣 คำนวณสูตรอาหาร", "เลือกสายพันธุ์ ปรับวัตถุดิบ และคำนวณต้นทุนอาหาร"),
+        "daily": ("📝 บันทึกประจำวัน", "กรอกจำนวนไก่ ไข่ อาหาร และดูผลกำไรประจำวัน"),
+        "mixing": ("📋 ใบสั่งผสมอาหาร", "สรุปวัตถุดิบที่ต้องตักให้คนงานใช้ผสมอาหาร"),
+    }
+    user_title, user_subtitle = user_page_info[selected_user_page]
+    st.markdown(
+        f"<div class='farm-page-card'><h2>{user_title}</h2><p>{user_subtitle}</p></div>",
+        unsafe_allow_html=True,
+    )
 
 # ------------------------------------------
 # ------------------------------------------
@@ -1453,6 +1617,8 @@ else:
                         if f["name"] == selected_f_name
                     )
                     st.session_state.current_weights = normalize_formula_weights(target_f.get("weights", {}))
+                    st.session_state["selected_b_name"] = target_f.get("breed", st.session_state.get("selected_b_name", "สูตรอาหารปัจจุบัน"))
+                    st.session_state["selected_stage_label"] = target_f.get("stage", st.session_state.get("selected_stage_label", "ยังไม่ได้เลือกช่วงอายุ"))
                     st.success(f"ดึงข้อมูล '{selected_f_name}' มาใช้งานแล้ว!")
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1476,6 +1642,7 @@ else:
 
         with col_br2:
             selected_b_name = st.selectbox("🐔 เลือกสายพันธุ์ไก่ไข่:", breed_names)
+            st.session_state["selected_b_name"] = selected_b_name
 
             # ดึงข้อมูลสายพันธุ์และเซฟเข้า session_state เพื่อใช้งานข้ามแท็บ
             current_breed_data = next(
@@ -1495,6 +1662,8 @@ else:
             )
             selected_stage_key = selected_stage_label["phase_key"]
             selected_stage_label = selected_stage_label["phase_name"]
+            st.session_state["selected_stage_key"] = selected_stage_key
+            st.session_state["selected_stage_label"] = selected_stage_label
             phase_query_name = selected_stage_key
 
         # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time ---
@@ -1728,6 +1897,8 @@ else:
     # TAB 2: DAILY LOG & CASHFLOW
     # ------------------------------------------
     if selected_user_page == "daily":
+        selected_b_name = st.session_state.get("selected_b_name", "สายพันธุ์ที่เลือก")
+        selected_stage_label = st.session_state.get("selected_stage_label", "ช่วงอายุที่เลือก")
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown(
             "<h2>☀️ บันทึกตัวชี้วัดฟาร์ม & รายรับ-รายจ่ายประจำวัน</h2>",
@@ -1941,6 +2112,8 @@ else:
     # TAB 3: PROCUREMENT & WORKER SHEET
     # ------------------------------------------
     if selected_user_page == "mixing":
+        selected_b_name = st.session_state.get("selected_b_name", "สูตรอาหารปัจจุบัน")
+        selected_stage_label = st.session_state.get("selected_stage_label", "ยังไม่ได้เลือกช่วงอายุ")
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown(
             "<h2>📊 ใบสั่งงานผสมอาหารสัตว์ (สำหรับยื่นให้คนงานตักของ)</h2>",
