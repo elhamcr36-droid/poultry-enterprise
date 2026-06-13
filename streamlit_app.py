@@ -1723,7 +1723,7 @@ else:
                 unsafe_allow_html=True,
             )
 
-            # --- ฟีเจอร์: ปุ่มด่วนสำหรับก๊อปปี้ข้อความภาษาไทยส่งเข้ากลุ่ม LINE ---
+# --- ฟีเจอร์: ปุ่มด่วนสำหรับก๊อปปี้ข้อความภาษาไทยส่งเข้ากลุ่ม LINE ---
             line_text = f"📋 *ใบสั่งผสมอาหารสัตว์รวม: {total_tonnage:,} กก.*\n"
             line_text += f"สูตรสำหรับ: {selected_b_name} ({selected_stage_label})\n"
             line_text += "--------------------------------------\n"
@@ -1733,7 +1733,8 @@ else:
             line_text += f"💰 งบประมาณรวมรอบนี้: {total_po_cost:,.0f} บาท"
 
             st.markdown("### 📱 ข้อความด่วนสำหรับก๊อปปี้ส่ง LINE (คนงานเปิดอ่านง่าย)")
-            st.code(line_text, language=\"text\")
+            # แก้ไขตรงนี้: ลบ \ ออกจากหน้า "text"
+            st.code(line_text, language="text")
 
             # ดาวน์โหลดแบบไฟล์ CSV
             csv_s = io.StringIO()
