@@ -489,7 +489,7 @@ if not st.session_state.is_authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
-    # --- 4.1 หน้า LOGIN ---
+# --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
         st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
@@ -502,32 +502,42 @@ if not st.session_state.is_authenticated:
 
         with col_btn1:
             if st.button("เข้าสู่ระบบ (Log In)", type="primary", use_container_width=True):
-                try:
-                    auth_res = supabase.auth.sign_in_with_password({
-                        "email": email_login,
-                        "password": pass_login
-                    })
+                # ตรวจสอบค่าว่างก่อนส่งไปตรวจสอบกับฐานข้อมูล
+                if not email_login.strip() or not pass_login:
+                    st.warning("⚠️ กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน")
+                else:
+                    try:
+                        # 1. ส่งคำขอตรวจสอบสิทธิ์ไปยัง Supabase Auth
+                        auth_res = supabase.auth.sign_in_with_password({
+                            "email": email_login.strip(),
+                            "password": pass_login
+                        })
 
-                    if auth_res.user:
-                        st.session_state.is_authenticated = True
-                        st.session_state.current_user_key = email_login
+                        # 2. หากยืนยันตัวตนผ่านและมีข้อมูลผู้ใช้กลับมา
+                        if auth_res.user:
+                            st.session_state.is_authenticated = True
+                            st.session_state.current_user_key = email_login.strip()
 
-                        if email_login.lower() == "222@gmail.com":
-                            st.session_state.user_role = "admin"
+                            # ตรวจสอบสิทธิ์และแบ่งแยกสถานะผู้ใช้งาน
+                            if email_login.strip().lower() == "222@gmail.com":
+                                st.session_state.user_role = "admin"
+                            else:
+                                st.session_state.user_role = "user"
+
+                            st.session_state.user_email = f"{email_login.strip().split('@')[0]} [{st.session_state.user_role.upper()}]"
+                            
+                            st.success("🎉 เข้าสู่ระบบสำเร็จ ระบบกำลังนำคุณเข้าสู่หน้าหลัก...")
+                            
+                            # 3. สั่ง Rerun ทันทีเพื่ออัปเดต Token สิทธิ์ใน Supabase Client ให้เรียบร้อย
+                            st.rerun()
+
+                    except Exception as error:
+                        # แปลงข้อความ error เป็นตัวพิมพ์เล็กเพื่อตรวจสอบสาเหตุที่แท้จริง
+                        error_msg = str(error).lower()
+                        if "invalid login credentials" in error_msg or "bad credentials" in error_msg:
+                            st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบข้อมูลอีกครั้ง")
                         else:
-                            st.session_state.user_role = "user"
-
-                        st.session_state.user_email = f"{email_login.split('@')[0]} [{st.session_state.user_role.upper()}]"
-                        
-                        # 🔥 ปรับปรุง: โหลดข้อมูลวัตถุดิบของยูสเซอร์ทันทีที่ผ่านสิทธิ์สำเร็จก่อนทำการเรนเดอร์ UI หลัก
-                        fetch_master_data_from_supabase()
-                        fetch_ingredients_from_supabase()
-                        
-                        st.success("🎉 เข้าสู่ระบบสำเร็จ")
-                        st.rerun()
-
-                except Exception as error:
-                    st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบข้อมูลอีกครั้ง")
+                            st.error(f"❌ ไม่สามารถเข้าสู่ระบบได้เนื่องจากเกิดข้อผิดพลาด: {error}")
 
         with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
