@@ -346,6 +346,12 @@ def format_nutrition_standard_row(data):
         "max_fiber": read_first_available_float(data, NUTRITION_STANDARD_COLUMNS["max_fiber"], 5.0),
     }
 
+def query_nutrition_standard(table_name, breed_id, phase_column, phase_value):
+    query = supabase.table(table_name).select("*").eq(phase_column, phase_value)
+    if breed_id is not None:
+        query = query.eq("breed_id", int(breed_id))
+    return query.execute()
+
 def fetch_nutrition_standards(breed_id, phase_name, phase_key=None):
     """ 
     Load breed nutrition standards from the English Supabase view first.
@@ -355,30 +361,37 @@ def fetch_nutrition_standards(breed_id, phase_name, phase_key=None):
     table_candidates = [
         {
             "table": "nutrition_standards",
-            "phase_column": "phase_name",
+            "phase_columns": ["phase_key", "phase_name"],
         },
         {
             "table": "มาตรฐานโภชนาการไก่ไข่",
-            "phase_column": "ช่วงอายุการเลี้ยง_phase_name",
+            "phase_columns": ["ช่วงอายุการเลี้ยง_phase_name"],
         },
     ]
 
     try:
         for table_info in table_candidates:
-            for phase_candidate in phase_candidates:
-                try:
-                    res = (
-                        supabase.table(table_info["table"])
-                        .select("*")
-                        .eq("breed_id", int(breed_id))
-                        .eq(table_info["phase_column"], phase_candidate)
-                        .execute()
-                    )
-                except Exception:
-                    continue
+            for phase_column in table_info["phase_columns"]:
+                for phase_candidate in phase_candidates:
+                    try:
+                        res = query_nutrition_standard(table_info["table"], breed_id, phase_column, phase_candidate)
+                    except Exception:
+                        continue
 
-                if res.data:
-                    return format_nutrition_standard_row(res.data[0])
+                    if res.data:
+                        return format_nutrition_standard_row(res.data[0])
+
+        for table_info in table_candidates:
+            for phase_column in table_info["phase_columns"]:
+                for phase_candidate in phase_candidates:
+                    try:
+                        res = query_nutrition_standard(table_info["table"], None, phase_column, phase_candidate)
+                    except Exception:
+                        continue
+
+                    if res.data:
+                        st.warning("ใช้เกณฑ์โภชนาการกลางของระยะนี้ชั่วคราว เพราะสายพันธุ์ที่เลือกยังไม่มีเกณฑ์เฉพาะในฐานข้อมูล")
+                        return format_nutrition_standard_row(res.data[0])
     except Exception as e:
         st.error(f"⚠️ เกิดข้อผิดพลาดในการดึงมาตรฐานโภชนาการจาก Supabase: {e}")
     return None
@@ -1300,7 +1313,9 @@ else:
 
         if nutrient_targets:
             # ตรวจสอบและตั้งค่า Default ลงใน session_state หากยังไม่มีข้อมูล
-            if "base_req_protein" not in st.session_state or st.get_option("browser.gatherUsageStats") == False: 
+            target_context = f"{selected_breed_id}:{selected_stage_key}"
+            if st.session_state.get("nutrition_target_context") != target_context:
+                st.session_state["nutrition_target_context"] = target_context
                 st.session_state["base_req_protein"] = nutrient_targets["min_protein"]
                 st.session_state["base_req_me"] = nutrient_targets["min_me"]
                 st.session_state["base_req_calcium"] = nutrient_targets["min_calcium"]
