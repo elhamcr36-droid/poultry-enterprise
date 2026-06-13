@@ -15,8 +15,8 @@ from supabase import create_client, Client
 # 🔌 SUPABASE CONNECTION INITIALIZATION
 # ==========================================
 # ดึงค่าจาก st.secrets โดยตรง (แนะนำให้ใส่ค่าจริงในหน้า Dashboard ของ Streamlit Cloud)
-SUPABASE_URL = st.secrets.get("SUPABASE_URL")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY")
+SUPABASE_URL = st.secrets.get("https://nxyncxqbtntlpzqessou.supabase.co")
+SUPABASE_KEY = st.secrets.get("sb_publishable_m411zYbsazCAsmmUMIuMkA_ypb1BYPr")
 APP_URL = st.secrets.get("APP_URL", "https://poultry-enterprise-zgl4fdafvrzk6rmgmearig.streamlit.app")
 
 # ตั้งค่า URL สำหรับการรีเซ็ตรหัสผ่านและการเรียก Edge Function
