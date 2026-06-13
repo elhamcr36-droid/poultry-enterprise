@@ -534,11 +534,14 @@ if not st.session_state.is_authenticated:
                     except Exception as error:
                         # แปลงข้อความ error เป็นตัวพิมพ์เล็กเพื่อตรวจสอบสาเหตุที่แท้จริง
                         error_msg = str(error).lower()
-                        if "invalid login credentials" in error_msg or "bad credentials" in error_msg:
+                        
+                        # ดักจับข้อผิดพลาดเรื่องการเชื่อมต่อเครือข่าย/DNS ล่ม
+                        if "name or service not known" in error_msg or "temporary failure in name resolution" in error_msg:
+                            st.error("🌐 ไม่สามารถเชื่อมต่ออินเทอร์เน็ตหรือเซิร์ฟเวอร์ฐานข้อมูลได้ (Name or service not known) กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณ หรือตรวจสอบว่า SUPABASE_URL ในโค้ดถูกต้องหรือไม่")
+                        elif "invalid login credentials" in error_msg or "bad credentials" in error_msg:
                             st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบข้อมูลอีกครั้ง")
                         else:
                             st.error(f"❌ ไม่สามารถเข้าสู่ระบบได้เนื่องจากเกิดข้อผิดพลาด: {error}")
-
         with col_btn2:
             if st.button("🆕 สมัครสมาชิกใหม่ที่นี่", use_container_width=True):
                 st.session_state.auth_page_mode = "signup"
