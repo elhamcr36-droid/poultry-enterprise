@@ -578,6 +578,8 @@ def fetch_nutrient_definitions_from_supabase():
     try:
         response = supabase.table(NUTRIENT_DEFINITIONS_TABLE).select("*").eq("is_active", True).order("display_order").execute()
         rows = response.data or []
+        st.session_state.nutrient_definitions_loaded_from_db = True
+        st.session_state.nutrient_definitions_error = ""
         if rows:
             st.session_state.db_nutrient_keys = {
                 row["nutrient_key"]: {
@@ -592,6 +594,7 @@ def fetch_nutrient_definitions_from_supabase():
             }
         return rows
     except Exception as e:
+        st.session_state.nutrient_definitions_loaded_from_db = False
         st.session_state.nutrient_definitions_error = str(e)
         return []
 
@@ -611,8 +614,6 @@ def add_nutrient_definition_to_supabase(nutrient_key, label, step, default_value
 
 def delete_nutrient_definition_from_supabase(nutrient_key):
     data = st.session_state.db_nutrient_keys.get(nutrient_key, {})
-    if data.get("is_core"):
-        raise ValueError("สารอาหารหลักของระบบไม่สามารถลบได้")
     filters = {"id": data.get("id")} if data.get("id") else {"nutrient_key": nutrient_key}
     table_mutation(NUTRIENT_DEFINITIONS_TABLE, "delete", filters=filters)
     fetch_nutrient_definitions_from_supabase()
@@ -1604,6 +1605,8 @@ if st.session_state.user_role == "admin":
         nutrient_error = st.session_state.get("nutrient_definitions_error")
         if nutrient_error:
             st.warning(f"ยังเชื่อมตารางสารอาหารไม่ได้: {nutrient_error}")
+        elif st.session_state.get("nutrient_definitions_loaded_from_db"):
+            st.success("เชื่อมต่อรายการสารอาหารจาก Supabase แล้ว")
 
         df_nutrients = pd.DataFrame([
             {
@@ -1645,7 +1648,7 @@ if st.session_state.user_role == "admin":
             st.markdown("### ลบสารอาหาร")
             removable_nutrients = [
                 key for key, data in st.session_state.db_nutrient_keys.items()
-                if not data.get("is_core") and key != "price"
+                if key
             ]
             if removable_nutrients:
                 nutrient_to_delete = st.selectbox(
@@ -1663,7 +1666,7 @@ if st.session_state.user_role == "admin":
                     except Exception as e:
                         st.error(f"ลบสารอาหารไม่สำเร็จ: {e}")
             else:
-                st.info("ยังไม่มีสารอาหารที่เพิ่มเองให้ลบ")
+                st.info("ยังไม่มีรายการสารอาหารให้ลบ")
 
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
     if selected_admin_page == "ingredients":
@@ -2755,59 +2758,107 @@ else:
                 st.warning("ไม่พบข้อมูลในช่วงวันที่ที่เลือก")
                 display_logs_df = pd.DataFrame()
             else:
+                daily_summary = (
+                    filtered_df.assign(day=filtered_df["date"].dt.date)
+                    .groupby("day", as_index=False)
+                    .agg({
+                        "collected_eggs": "sum",
+                        "total_revenue": "sum",
+                        "net_profit_day": "sum",
+                        "henday_pct": "mean",
+                        "fcr_ratio": "mean",
+                    })
+                    .sort_values("day")
+                )
+                daily_summary["day_label"] = pd.to_datetime(daily_summary["day"]).dt.strftime("%d/%m")
+
+                summary_cards = [
+                    ("จำนวนวัน", f"{len(daily_summary):,}", "วัน"),
+                    ("ไข่รวม", f"{daily_summary['collected_eggs'].sum():,.0f}", "ฟอง"),
+                    ("รายได้รวม", f"{daily_summary['total_revenue'].sum():,.0f}", "บาท"),
+                    ("กำไรรวม", f"{daily_summary['net_profit_day'].sum():,.0f}", "บาท"),
+                    ("Hen-day เฉลี่ย", f"{daily_summary['henday_pct'].mean():,.1f}", "%"),
+                ]
                 summary_cols = st.columns(5)
-                with summary_cols[0]:
-                    st.metric("จำนวนวัน", f"{len(filtered_df):,} วัน")
-                with summary_cols[1]:
-                    st.metric("ไข่รวม", f"{filtered_df['collected_eggs'].sum():,.0f} ฟอง")
-                with summary_cols[2]:
-                    st.metric("รายได้รวม", f"{filtered_df['total_revenue'].sum():,.2f} บาท")
-                with summary_cols[3]:
-                    st.metric("กำไรรวม", f"{filtered_df['net_profit_day'].sum():,.2f} บาท")
-                with summary_cols[4]:
-                    st.metric("Hen-day เฉลี่ย", f"{filtered_df['henday_pct'].mean():,.1f}%")
+                for idx, (label, value, unit) in enumerate(summary_cards):
+                    with summary_cols[idx]:
+                        st.markdown(
+                            f"""
+                            <div class="ops-kpi" style="min-height:104px; padding:14px;">
+                                <p class="label">{label}</p>
+                                <p class="value" style="font-size:1.55rem;">{value}</p>
+                                <p class="note">{unit}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
                 history_fig = go.Figure()
                 history_fig.add_trace(go.Scatter(
-                    x=filtered_df["date"],
-                    y=filtered_df["collected_eggs"],
+                    x=daily_summary["day_label"],
+                    y=daily_summary["collected_eggs"],
                     mode="lines+markers",
-                    name="ไข่ (ฟอง)",
-                    line=dict(color="#38bdf8", width=3, shape="spline"),
-                    marker=dict(size=8),
+                    name="ไข่รวม (ฟอง)",
+                    line=dict(color="#38bdf8", width=3),
+                    marker=dict(size=9),
+                    hovertemplate="วันที่ %{x}<br>ไข่ %{y:,.0f} ฟอง<extra></extra>",
                 ))
                 history_fig.add_trace(go.Scatter(
-                    x=filtered_df["date"],
-                    y=filtered_df["net_profit_day"],
+                    x=daily_summary["day_label"],
+                    y=daily_summary["net_profit_day"],
                     mode="lines+markers",
                     name="กำไรสุทธิ (บาท)",
-                    line=dict(color="#22c55e", width=3, shape="spline"),
-                    marker=dict(size=8),
+                    line=dict(color="#22c55e", width=3),
+                    marker=dict(size=9),
                     yaxis="y2",
-                ))
-                history_fig.add_trace(go.Scatter(
-                    x=filtered_df["date"],
-                    y=filtered_df["fcr_ratio"],
-                    mode="lines+markers",
-                    name="FCR",
-                    line=dict(color="#f97316", width=2, dash="dot"),
-                    marker=dict(size=7),
-                    yaxis="y3",
+                    hovertemplate="วันที่ %{x}<br>กำไร %{y:,.0f} บาท<extra></extra>",
                 ))
                 history_fig.update_layout(
-                    height=380,
+                    height=340,
                     margin=dict(l=10, r=10, t=10, b=10),
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(15,23,42,0.35)",
                     font=dict(color="#e2e8f0"),
-                    legend=dict(orientation="h", y=1.08),
+                    legend=dict(orientation="h", y=1.10),
                     hovermode="x unified",
-                    xaxis=dict(title="วันที่", gridcolor="rgba(148,163,184,0.12)"),
-                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)"),
-                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", showgrid=False),
-                    yaxis3=dict(title="FCR", overlaying="y", side="right", position=0.94, visible=False, showgrid=False),
+                    xaxis=dict(title="วันที่", type="category", gridcolor="rgba(148,163,184,0.12)"),
+                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)", rangemode="tozero"),
+                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", showgrid=False, zeroline=True, zerolinecolor="rgba(248,250,252,0.35)"),
                 )
                 st.plotly_chart(history_fig, use_container_width=True)
+
+                health_fig = go.Figure()
+                health_fig.add_trace(go.Scatter(
+                    x=daily_summary["day_label"],
+                    y=daily_summary["henday_pct"],
+                    mode="lines+markers",
+                    name="Hen-day (%)",
+                    line=dict(color="#fbbf24", width=3),
+                    marker=dict(size=8),
+                ))
+                health_fig.add_trace(go.Scatter(
+                    x=daily_summary["day_label"],
+                    y=daily_summary["fcr_ratio"],
+                    mode="lines+markers",
+                    name="FCR",
+                    line=dict(color="#f97316", width=3),
+                    marker=dict(size=8),
+                    yaxis="y2",
+                ))
+                health_fig.update_layout(
+                    height=240,
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(15,23,42,0.35)",
+                    font=dict(color="#e2e8f0"),
+                    legend=dict(orientation="h", y=1.18),
+                    hovermode="x unified",
+                    xaxis=dict(title="วันที่", type="category", gridcolor="rgba(148,163,184,0.12)"),
+                    yaxis=dict(title="Hen-day (%)", gridcolor="rgba(148,163,184,0.18)", rangemode="tozero"),
+                    yaxis2=dict(title="FCR", overlaying="y", side="right", showgrid=False, rangemode="tozero"),
+                )
+                st.plotly_chart(health_fig, use_container_width=True)
 
                 st.markdown("#### เปรียบเทียบวันต่อวัน")
                 compare_options = {
