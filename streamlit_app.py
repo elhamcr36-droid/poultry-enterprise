@@ -16,6 +16,20 @@ def get_log_value(log_data, key, default=None):
         return log_data.get(key, default)
     return default
 
+def sort_daily_logs_latest_first(logs):
+    def sort_key(row):
+        try:
+            row_id = int(row.get("id") or 0)
+        except Exception:
+            row_id = 0
+        return (
+            str(row.get("date") or ""),
+            str(row.get("created_at") or ""),
+            row_id,
+        )
+
+    return sorted(logs or [], key=sort_key, reverse=True)
+
 def render_big_menu(state_key, options, columns_per_row=3):
     if state_key not in st.session_state:
         st.session_state[state_key] = options[0]["id"]
@@ -58,6 +72,10 @@ def build_daily_logs_display(logs):
         return pd.DataFrame()
 
     df = pd.DataFrame(logs).copy()
+    sort_cols = [col for col in ["date", "created_at", "id"] if col in df.columns]
+    if sort_cols:
+        df = df.sort_values(sort_cols, ascending=False, na_position="last")
+
     display_columns = {
         "date": "วันที่",
         "flock_age_weeks": "อายุฝูง (สัปดาห์)",
@@ -96,7 +114,7 @@ def build_daily_logs_display(logs):
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
 
     df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce").dt.strftime("%Y-%m-%d")
-    return df.sort_values("วันที่", ascending=False, na_position="last")
+    return df
 
 def render_readable_table(data, *, column_order=None, column_labels=None, column_config=None, height=None):
     """Show tables with farmer-friendly Thai column names instead of database field names."""
@@ -760,12 +778,25 @@ def save_formula_to_supabase(formula_data):
         st.error(f"❌ ไม่สามารถบันทึกสูตรลงคลาวด์ได้: {e}")
         return False
 
+def delete_formula_from_supabase(formula_id):
+    try:
+        if not formula_id:
+            st.error("❌ ไม่พบรหัสสูตรอาหารที่ต้องการลบ")
+            return False
+        supabase.table(SAVED_FORMULAS_TABLE).delete().eq("id", formula_id).eq("owner_email", st.session_state.current_user_key).execute()
+        st.success("🗑️ ลบสูตรอาหารที่บันทึกไว้เรียบร้อยแล้ว")
+        fetch_saved_formulas_from_supabase()
+        return True
+    except Exception as e:
+        st.error(f"❌ ไม่สามารถลบสูตรอาหารได้: {e}")
+        return False
+
 def fetch_daily_logs_from_supabase():
     """ดึงสมุดบันทึกกิจกรรมฟาร์มรายวันเฉพาะของตนเอง"""
     try:
         if st.session_state.is_authenticated and st.session_state.current_user_key:
             user_email = st.session_state.current_user_key
-            response = supabase.table(DAILY_LOGS_TABLE).select("*").eq(DAILY_LOG_USER_COLUMN, user_email).order("date").execute()
+            response = supabase.table(DAILY_LOGS_TABLE).select("*").eq(DAILY_LOG_USER_COLUMN, user_email).order("date", desc=True).order("created_at", desc=True).order("id", desc=True).execute()
             if response.data:
                 st.session_state.daily_logs = response.data
                 return response.data
@@ -856,7 +887,7 @@ def update_user_profile_role(email, role):
         supabase.table(USER_PROFILES_TABLE).update({
             "role": role,
             "updated_at": datetime.datetime.utcnow().isoformat(),
-        }).eq("email", email).execute()
+        }).eq("email", email.strip().lower()).execute()
         fetch_user_profiles_from_supabase()
         return True
     except Exception as e:
@@ -868,7 +899,7 @@ def disable_user_profile(email):
         supabase.table(USER_PROFILES_TABLE).update({
             "status": "disabled",
             "updated_at": datetime.datetime.utcnow().isoformat(),
-        }).eq("email", email).execute()
+        }).eq("email", email.strip().lower()).execute()
         fetch_user_profiles_from_supabase()
         return True
     except Exception as e:
@@ -1520,7 +1551,8 @@ if st.session_state.user_role == "admin":
                             payload = {"name": selected_ing_edit, "min_limit": edit_ing_min, "max_limit": edit_ing_max, "owner_email": owner_email}
                             payload.update(edited_values)
                             st.session_state.db_ingredients[selected_ing_edit]["owner_email"] = owner_email
-                            supabase.table("ingredients").upsert(payload).execute()
+                            supabase.table("ingredients").update(payload).eq("name", selected_ing_edit).eq("owner_email", owner_email).execute()
+                            fetch_ingredients_from_supabase()
                             st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' ลงระบบคลาวด์เรียบร้อยแล้ว")
                             st.rerun()
                         except Exception as cloud_err:
@@ -1561,6 +1593,7 @@ if st.session_state.user_role == "admin":
                         st.session_state.db_ingredients[ing_name] = base_data
                         try:
                             supabase.table("ingredients").insert(base_data).execute()
+                            fetch_ingredients_from_supabase()
                             st.success(f"🎉 นำเข้า '{ing_name}' สู่คลาวด์ฐานข้อมูลเรียบร้อย!")
                             st.rerun()
                         except Exception as cloud_err:
@@ -1573,9 +1606,11 @@ if st.session_state.user_role == "admin":
                 owner_email = get_ingredient_owner_for_write(st.session_state.db_ingredients.get(to_del, {}))
                 try:
                     supabase.table("ingredients").delete().eq("name", to_del).eq("owner_email", owner_email).execute()
+                    fetch_ingredients_from_supabase()
                 except:
                     pass
-                del st.session_state.db_ingredients[to_del]
+                if to_del in st.session_state.db_ingredients:
+                    del st.session_state.db_ingredients[to_del]
                 st.success(f"🔥 ลบ '{to_del}' ออกจากคลังเรียบร้อยแล้ว")
                 st.rerun()
 
@@ -1600,6 +1635,7 @@ if st.session_state.user_role == "admin":
                         st.session_state.db_breeds.append(breed_payload)
                         try:
                             supabase.table("db_breeds").insert(breed_payload).execute()
+                            fetch_master_data_from_supabase()
                         except Exception as cloud_err:
                             st.warning(f"บันทึกสายพันธุ์ในหน่วยความจำแล้ว แต่ยังส่งขึ้น Supabase ไม่สำเร็จ: {cloud_err}")
                         st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
@@ -1614,9 +1650,11 @@ if st.session_state.user_role == "admin":
                     if st.button("🗑️ ยืนยันลบออกจากทำเนียบ", type="primary", use_container_width=True):
                         try:
                             supabase.table("db_breeds").delete().eq("breed_name", b_del).execute()
+                            fetch_master_data_from_supabase()
                         except Exception as cloud_err:
                             st.warning(f"ลบออกจากหน้าจอแล้ว แต่ยังลบจาก Supabase ไม่สำเร็จ: {cloud_err}")
-                        st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
+                        if any(b["breed_name"] == b_del for b in st.session_state.db_breeds):
+                            st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
                         st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
                         st.rerun()
                 else: st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
@@ -1639,15 +1677,32 @@ if st.session_state.user_role == "admin":
             for idx, nut_key in enumerate(target_nut_keys):
                 nut_info = st.session_state.db_nutrient_keys[nut_key]
                 with sc[idx % 3]:
-                    raw_val = st.session_state.db_targets[select_stage_crud].get(nut_key, 0.0)
+                    target_column = "fiber_max" if nut_key == "fiber" else nut_key
+                    raw_val = st.session_state.db_targets[select_stage_crud].get(target_column, 0.0)
                     current_target_val = float(raw_val) if raw_val is not None else 0.0
                     updated_target_values[nut_key] = st.number_input(f"ขั้นต่ำของ {nut_info['label']}:", value=current_target_val, step=nut_info["step"])
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.form_submit_button("💾 ยืนยันอัปเดตเกณฑ์โภชนาการช่วงอายุนี้", type="primary", use_container_width=True):
-                st.session_state.db_targets[select_stage_crud].update(updated_target_values)
+                db_target_update = {
+                    ("fiber_max" if key == "fiber" else key): value
+                    for key, value in updated_target_values.items()
+                }
+                st.session_state.db_targets[select_stage_crud].update(db_target_update)
                 try:
-                    supabase.table("db_targets").update(updated_target_values).eq("stage_key", select_stage_crud).execute()
+                    supabase.table("db_targets").update(db_target_update).eq("stage_key", select_stage_crud).execute()
+                    standard_update = {
+                        "min_protein": updated_target_values.get("protein", 0.0),
+                        "min_me": updated_target_values.get("me", 0.0),
+                        "min_calcium": updated_target_values.get("calcium", 0.0),
+                        "min_phosphorus": updated_target_values.get("phos", 0.0),
+                        "min_lysine": updated_target_values.get("lysine", 0.0),
+                        "min_methionine": updated_target_values.get("methionine", 0.0),
+                    }
+                    if "fiber" in updated_target_values:
+                        standard_update["max_fiber"] = updated_target_values["fiber"]
+                    supabase.table("nutrition_standards").update(standard_update).eq("phase_key", select_stage_crud).execute()
+                    fetch_master_data_from_supabase()
                 except Exception as cloud_err:
                     st.warning(f"อัปเดตในหน้าจอแล้ว แต่ยังส่งขึ้น Supabase ไม่สำเร็จ: {cloud_err}")
                 st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
@@ -1680,7 +1735,7 @@ if st.session_state.user_role == "admin":
             st.info("ℹ️ ยังไม่มีข้อมูลในตาราง user_profiles กรุณารัน SQL sync_user_profiles.sql ใน Supabase ก่อน")
             
         st.markdown("---")
-        uc1, uc2 = st.columns(2, gap="large")
+        uc1 = st.container()
         with uc1:
             st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
             with st.container(border=True):
@@ -1695,25 +1750,6 @@ if st.session_state.user_role == "admin":
                     if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
                         if update_user_profile_role(selected_user_email, new_role):
                             st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
-                            st.rerun()
-                
-        with uc2:
-            st.markdown("### ❌ ระงับและลบบัญชี")
-            with st.container(border=True):
-                user_to_delete = st.selectbox("เลือกบัญชีที่จะระงับการใช้งาน:", ["-- เลือกบัญชี --"] + list(st.session_state.user_database.keys()))
-                if st.button("🗑️ ยืนยันคำสั่งระงับบัญชีผู้ใช้", type="primary", use_container_width=True):
-                    current_user = st.session_state.get("current_user_key", "").lower().strip()
-                    
-                    if user_to_delete == "-- เลือกบัญชี --":
-                        st.warning("⚠️ กรุณาเลือกบัญชีผู้ใช้ก่อนกดยืนยัน")
-                    # ปรับปรุงให้ตรวจสอบอีเมลแบบเต็มสเกล ป้องกันแอดมินลบตัวเอง
-                    elif "222@gmail.com" in user_to_delete.lower() or "admin" in user_to_delete.lower():
-                        st.error("❌ บัญชี Root Account หลักของฟาร์ม ไม่สามารถลบได้")
-                    elif user_to_delete.lower().strip() == current_user:
-                        st.error("❌ คุณไม่สามารถสั่งลบบัญชีตัวเองที่กำลังใช้งานล็อกอินอยู่ได้")
-                    else:
-                        if disable_user_profile(user_to_delete):
-                            st.success(f"🔥 ระงับบัญชี {user_to_delete} เรียบร้อย")
                             st.rerun()
         
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -1810,7 +1846,7 @@ else:
         if not st.session_state.saved_formulas:
             st.info("💡 ตอนนี้ยังไม่มีสูตรอาหารที่บันทึกไว้")
         else:
-            col_load1, col_load2 = st.columns([7, 3])
+            col_load1, col_load2, col_load3 = st.columns([6, 2, 2])
             with col_load1:
                 selected_f_name = st.selectbox(
                     "🔍 เลือกชื่อสูตรเก่าที่ต้องการดู:",
@@ -1830,6 +1866,16 @@ else:
                     st.session_state["current_net_cost"] = float(target_f.get("cost") or calculate_current_feed_cost())
                     st.success(f"ดึงข้อมูล '{selected_f_name}' มาใช้งานแล้ว!")
                     st.rerun()
+            with col_load3:
+                st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+                if st.button("🗑️ ลบสูตรนี้", use_container_width=True):
+                    target_f = next(
+                        f
+                        for f in st.session_state.saved_formulas
+                        if f["name"] == selected_f_name
+                    )
+                    if delete_formula_from_supabase(target_f.get("id")):
+                        st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
         # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมายจาก Supabase ---
@@ -1899,64 +1945,30 @@ else:
             with col_inp4:
                 edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state["base_req_phos"]), step=0.02)
 
-            st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
-            if st.button("⚡ สั่ง AI คำนวณสูตรด่วน", type="primary", use_container_width=True):
+            custom_targets = nutrient_targets.copy()
+            custom_targets["min_protein"] = edit_p
+            custom_targets["min_me"] = edit_m
+            custom_targets["min_calcium"] = edit_c
+            custom_targets["min_phosphorus"] = edit_ph
+
+            auto_formula_context = (
+                f"{selected_breed_id}:{selected_stage_key}:"
+                f"{edit_p:.2f}:{edit_m:.0f}:{edit_c:.2f}:{edit_ph:.2f}"
+            )
+            if (
+                st.session_state.get("auto_formula_context") != auto_formula_context
+                or not st.session_state.current_weights
+            ):
                 with st.spinner("AI กำลังจัดสูตร..."):
-                    # ปรับชุดเป้าหมายสารอาหารส่งเข้า Solver ตามที่ผู้ใช้แก้ไขเพิ่มเติม
-                    custom_targets = nutrient_targets.copy()
-                    custom_targets["min_protein"] = edit_p
-                    custom_targets["min_me"] = edit_m
-                    custom_targets["min_calcium"] = edit_c
-                    custom_targets["min_phosphorus"] = edit_ph
-                    
                     st.session_state.current_weights = run_ai_solver(custom_targets)
-                    st.rerun()
+                    st.session_state["auto_formula_context"] = auto_formula_context
         else:
             st.error(f"❌ ไม่พบเกณฑ์มาตรฐานโภชนาการสำหรับสายพันธุ์ {selected_b_name} ระยะ {selected_stage_label} ({selected_stage_key}) บนฐานข้อมูล")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- ส่วนที่ 3: ปุ่มลัดตามสถานการณ์ราคาตลาด ---
-        st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-        st.markdown("### ⚡ [กดด่วน] ปุ่มลัดสลับสูตรอาหารตามสถานการณ์ราคาตลาด")
-        sc_col1, sc_col2, sc_col3 = st.columns(3)
-
-        if not st.session_state.current_weights and nutrient_targets:
-            st.session_state.current_weights = run_ai_solver(nutrient_targets)
-
-        with sc_col1:
-            if st.button("🟢 โหมดปกติ / เน้นถูกสุด", use_container_width=True) and nutrient_targets:
-                st.session_state.current_weights = run_ai_solver(nutrient_targets)
-                st.rerun()
-        with sc_col2:
-            if st.button("🌾 โหมดข้าวโพด / รำข้าวแพง", use_container_width=True) and nutrient_targets:
-                raw_weights = run_ai_solver(nutrient_targets)
-                if "ข้าวโพด" in raw_weights:
-                    raw_weights["ข้าวโพด"] = max(0.0, raw_weights["ข้าวโพด"] - 20.0)
-                if "รำข้าวละเอียด" in raw_weights:
-                    raw_weights["รำข้าวละเอียด"] = max(0.0, raw_weights["รำข้าวละเอียด"] - 10.0)
-                if "ปลายข้าว" in raw_weights:
-                    raw_weights["ปลายข้าว"] += 15.0
-                if "มันเส้น" in raw_weights:
-                    raw_weights["มันเส้น"] += 15.0
-                st.session_state.current_weights = raw_weights
-                st.rerun()
-        with sc_col3:
-            if st.button("🥚 โหมดเร่งไข่ใหญ่ / เปลือกหนา", use_container_width=True) and nutrient_targets:
-                # ปรับเพิ่มเกณฑ์โปรตีนและแคลเซียมชั่วคราวสำหรับโหมดเร่งไข่
-                boosted_targets = nutrient_targets.copy()
-                boosted_targets["min_protein"] += 0.5
-                boosted_targets["min_calcium"] += 0.3
-                raw_weights = run_ai_solver(boosted_targets)
-                if "น้ำมันปาล์ม" in raw_weights:
-                    raw_weights["น้ำมันปาล์ม"] = max(2.0, raw_weights["น้ำมันปาล์ม"])
-                if "เปลือกหอยบด" in raw_weights:
-                    raw_weights["เปลือกหอยบด"] = max(8.0, raw_weights["เปลือกหอยบด"])
-                st.session_state.current_weights = raw_weights
-                st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # --- ส่วนที่ 4: แถบปรับสัดส่วนอาหารแบบ 2 คอลัมน์ย่อย และตารางผลลัพธ์ ---
-        col_left, col_right = st.columns([1.1, 0.9])
+        # --- ส่วนที่ 3: แถบปรับสัดส่วนอาหาร และตารางผลลัพธ์ด้านล่าง ---
+        col_left = st.container()
+        col_right = st.container()
 
         # คำนวณต้นทุนล่วงหน้าเพื่อให้กล่องด้านซ้าย/ขวาสามารถเข้าถึงตัวแปร net_cost ได้อย่างถูกต้อง
         net_cost = 0.0
@@ -1996,16 +2008,16 @@ else:
                 "DDGS": 15.0,
             }
 
-            # ปรับแบ่งตัว Slider วัตถุดิบออกเป็น 2 คอลัมน์ย่อย
+            # ปรับแบ่งตัว Slider วัตถุดิบเป็นคอลัมน์ละไม่เกิน 10 รายการ
             ing_keys = list(st.session_state.db_ingredients.keys())
-            ing_col1, ing_col2 = st.columns(2)
+            ingredient_columns = st.columns(max(1, min(4, (len(ing_keys) + 9) // 10)))
 
             for idx, name in enumerate(ing_keys):
                 d = st.session_state.db_ingredients[name]
                 saved_w = float(st.session_state.current_weights.get(name, 0.0))
                 saved_w = max(0.0, min(100.0, saved_w))
 
-                target_col = ing_col1 if idx % 2 == 0 else ing_col2
+                target_col = ingredient_columns[min(idx // 10, len(ingredient_columns) - 1)]
                 with target_col:
                     user_val = st.slider(
                         f"🌽 {name} ({d['price']} บ.)",
@@ -2150,17 +2162,6 @@ else:
             "<div style='border-bottom: 2px solid #475569; margin:15px 0;'></div>",
             unsafe_allow_html=True,
         )
-
-        if st.session_state.daily_logs:
-            if st.button(
-                "📋 ดึงข้อมูลจากประวัติล่าสุด (ไม่ต้องพิมพ์ใหม่หมด)", use_container_width=True
-            ):
-                last_log = st.session_state.daily_logs[-1]
-                st.session_state["shortcut_birds"] = int(get_log_value(last_log, "bird_count", 1000) or 1000)
-                last_eggs = float(get_log_value(last_log, "collected_eggs", 0) or 0)
-                last_revenue = float(get_log_value(last_log, "total_revenue", 0) or 0)
-                st.session_state["shortcut_price"] = (last_revenue / last_eggs) if last_eggs > 0 else 4.10
-                st.success("ดึงข้อมูลเดิมเรียบร้อย! กรุณาตรวจสอบและอัปเดตจำนวนไข่ประจำวันนี้")
 
         log_col1, log_col2 = st.columns(2)
         with log_col1:
@@ -2355,16 +2356,17 @@ else:
         if not st.session_state.daily_logs:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
+            latest_logs = sort_daily_logs_latest_first(st.session_state.daily_logs)
             display_logs_df = build_daily_logs_display(st.session_state.daily_logs)
-            latest_log = display_logs_df.iloc[0] if not display_logs_df.empty else None
+            latest_log = latest_logs[0] if latest_logs else None
             if latest_log is not None:
                 kpi1, kpi2, kpi3 = st.columns(3)
                 with kpi1:
-                    st.metric("ไข่ล่าสุด", f"{int(latest_log['ไข่ที่เก็บได้']):,} ฟอง")
+                    st.metric("ไข่ล่าสุด", f"{int(latest_log.get('collected_eggs') or 0):,} ฟอง")
                 with kpi2:
-                    st.metric("รายได้ล่าสุด", f"{float(latest_log['รายได้'] or 0):,.2f} บาท")
+                    st.metric("รายได้ล่าสุด", f"{float(latest_log.get('total_revenue') or 0):,.2f} บาท")
                 with kpi3:
-                    st.metric("กำไรสุทธิล่าสุด", f"{float(latest_log['กำไรสุทธิ'] or 0):,.2f} บาท")
+                    st.metric("กำไรสุทธิล่าสุด", f"{float(latest_log.get('net_profit_day') or 0):,.2f} บาท")
             render_readable_table(
                 display_logs_df,
                 column_config={
@@ -2378,12 +2380,8 @@ else:
             )
             st.markdown("#### แก้ไขหรือลบประวัติย้อนหลัง")
             log_options = {
-                f"{item.get('date', '-')}: ไก่ {int(item.get('bird_count') or 0):,} ตัว, ไข่ {int(item.get('collected_eggs') or 0):,} ฟอง": item
-                for item in sorted(
-                    st.session_state.daily_logs,
-                    key=lambda row: str(row.get("date", "")),
-                    reverse=True,
-                )
+                f"#{item.get('id', '-')}: {item.get('date', '-')} | ไก่ {int(item.get('bird_count') or 0):,} ตัว | ไข่ {int(item.get('collected_eggs') or 0):,} ฟอง": item
+                for item in latest_logs
             }
             selected_log_label = st.selectbox("เลือกรายการที่ต้องการจัดการ:", list(log_options.keys()))
             selected_log = log_options[selected_log_label]
