@@ -2364,7 +2364,7 @@ else:
                 <div class="status-panel">
                     <b>วิธีปรับสูตร</b><br>
                     <span style="color:#cbd5e1;">
-                    ลากแถบของวัตถุดิบแต่ละตัวเพื่อเพิ่มหรือลดเปอร์เซ็นต์ ส่วนผสมรวมต้องเท่ากับ 100% ก่อนนำสูตรไปใช้จริง
+                    ลากแถบของวัตถุดิบหลายตัวให้เสร็จก่อน แล้วกดปุ่มอัปเดตสูตรครั้งเดียว ระบบจะไม่โหลดใหม่ทุกครั้งที่ลาก
                     </span>
                 </div>
                 """,
@@ -2381,8 +2381,6 @@ else:
                     unsafe_allow_html=True,
                 )
 
-            temp_weights = {}
-            running_total = 0.0
             inclusion_limits = {
                 "กากเบียร์แห้ง": 10.0,
                 "กากน้ำตาล": 5.0,
@@ -2395,35 +2393,45 @@ else:
 
             # ปรับแบ่งตัว Slider วัตถุดิบเป็นคอลัมน์ละไม่เกิน 10 รายการ
             ing_keys = list(st.session_state.db_ingredients.keys())
-            ingredient_columns = st.columns(max(1, min(4, (len(ing_keys) + 9) // 10)))
             formula_slider_reset_version = st.session_state.get("formula_slider_reset_version", 0)
+            temp_weights = {}
+            apply_formula_weights = False
+            reset_formula_weights = False
 
-            for idx, name in enumerate(ing_keys):
-                d = st.session_state.db_ingredients[name]
-                saved_w = float(st.session_state.current_weights.get(name, 0.0))
-                saved_w = max(0.0, min(100.0, saved_w))
+            with st.form(key=f"formula_weight_form_{formula_slider_reset_version}", clear_on_submit=False):
+                ingredient_columns = st.columns(max(1, min(4, (len(ing_keys) + 9) // 10)))
 
-                target_col = ingredient_columns[min(idx // 10, len(ingredient_columns) - 1)]
-                with target_col:
-                    user_val = st.slider(
-                        f"🌽 {name} ({d['price']} บ.)",
-                        min_value=0.0,
-                        max_value=100.0,
-                        value=saved_w,
-                        step=0.1,
-                        key=f"sld_user_{formula_slider_reset_version}_{name}",
-                    )
-                    if name in inclusion_limits and user_val > inclusion_limits[name]:
-                        st.markdown(
-                            f"<p style='color:#f87171; font-size:14px; font-weight:bold; margin:-8px 0px 10px 0px;'>⚠️ ห้ามเกิน {inclusion_limits[name]}% ไก่จะท้องเสีย</p>",
-                            unsafe_allow_html=True,
+                for idx, name in enumerate(ing_keys):
+                    d = st.session_state.db_ingredients[name]
+                    saved_w = float(st.session_state.current_weights.get(name, 0.0))
+                    saved_w = max(0.0, min(100.0, saved_w))
+
+                    target_col = ingredient_columns[min(idx // 10, len(ingredient_columns) - 1)]
+                    with target_col:
+                        user_val = st.slider(
+                            f"🌽 {name} ({d['price']} บ.)",
+                            min_value=0.0,
+                            max_value=100.0,
+                            value=saved_w,
+                            step=0.1,
+                            key=f"sld_user_{formula_slider_reset_version}_{name}",
                         )
+                        if name in inclusion_limits and user_val > inclusion_limits[name]:
+                            st.markdown(
+                                f"<p style='color:#f87171; font-size:14px; font-weight:bold; margin:-8px 0px 10px 0px;'>⚠️ ห้ามเกิน {inclusion_limits[name]}% ไก่จะท้องเสีย</p>",
+                                unsafe_allow_html=True,
+                            )
 
-                temp_weights[name] = user_val
-                running_total += user_val
+                    temp_weights[name] = user_val
 
-            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-            if st.button("รีเซ็ตค่าใหม่ทั้งหมดตาม AI คำนวณ", use_container_width=True, key="reset_formula_weights") and nutrient_targets:
+                st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+                submit_col1, submit_col2 = st.columns(2)
+                with submit_col1:
+                    apply_formula_weights = st.form_submit_button("อัปเดตสูตรหลังปรับสัดส่วน", use_container_width=True)
+                with submit_col2:
+                    reset_formula_weights = st.form_submit_button("รีเซ็ตค่าใหม่ทั้งหมดตาม AI คำนวณ", use_container_width=True)
+
+            if reset_formula_weights and nutrient_targets:
                 reset_targets = nutrient_targets.copy()
                 st.session_state.current_weights = run_ai_solver(reset_targets)
                 st.session_state["target_input_reset_version"] = st.session_state.get("target_input_reset_version", 0) + 1
@@ -2436,7 +2444,10 @@ else:
                 st.session_state.pop("current_net_cost", None)
                 st.rerun()
 
-            st.session_state.current_weights = temp_weights
+            if apply_formula_weights:
+                st.session_state.current_weights = temp_weights
+                st.session_state.pop("current_net_cost", None)
+                st.rerun()
 
             net_cost = 0.0
             act_nut = {"protein": 0.0, "me": 0.0, "calcium": 0.0, "phos": 0.0}
