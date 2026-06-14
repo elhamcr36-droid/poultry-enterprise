@@ -633,12 +633,40 @@ def add_nutrient_definition_to_supabase(nutrient_key, label, step, default_value
     fetch_nutrient_definitions_from_supabase()
     return True
 
+def update_nutrient_definition_in_supabase(nutrient_key, label, step, default_value=0.0):
+    data = st.session_state.db_nutrient_keys.get(nutrient_key, {})
+    filters = {"id": data.get("id")} if data.get("id") else {"nutrient_key": nutrient_key}
+    payload = {
+        "label": label.strip(),
+        "step": float(step),
+        "default_value": float(default_value),
+    }
+    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "update", payload, filters=filters)
+    fetch_nutrient_definitions_from_supabase()
+    return True
+
 def delete_nutrient_definition_from_supabase(nutrient_key):
     data = st.session_state.db_nutrient_keys.get(nutrient_key, {})
     filters = {"id": data.get("id")} if data.get("id") else {"nutrient_key": nutrient_key}
     table_mutation(NUTRIENT_DEFINITIONS_TABLE, "delete", filters=filters)
     fetch_nutrient_definitions_from_supabase()
     return True
+
+def clean_percent_suffix_from_name(name):
+    return re.sub(r"\s+\d+(?:\.\d+)?%\s*$", "", str(name or "")).strip()
+
+def cleanup_ingredient_percent_names_in_supabase():
+    cleaned_count = 0
+    for old_name, ingredient in list(st.session_state.get("db_ingredients", {}).items()):
+        cleaned_name = clean_percent_suffix_from_name(old_name)
+        if not cleaned_name or cleaned_name == old_name:
+            continue
+        filters = {"id": ingredient.get("id")} if ingredient.get("id") else {"name": old_name, "owner_email": ingredient.get("owner_email", DEFAULT_INGREDIENT_OWNER)}
+        table_mutation("ingredients", "update", {"name": cleaned_name}, filters=filters)
+        cleaned_count += 1
+    if cleaned_count:
+        fetch_ingredients_from_supabase()
+    return cleaned_count
 
 def fetch_first_available_table(table_key):
     if "master_load_debug" not in st.session_state:
@@ -1657,7 +1685,7 @@ if st.session_state.user_role == "admin":
         ])
         render_readable_table(df_nutrients)
 
-        n_col1, n_col2 = st.columns(2, gap="large")
+        n_col1, n_col2, n_col3 = st.columns(3, gap="large")
         with n_col1:
             st.markdown("### เพิ่มสารอาหาร")
             render_hint("กรอกรหัสอังกฤษสั้น ๆ และชื่อภาษาไทยที่ต้องการให้แสดง จากนั้นกดบันทึก")
@@ -1684,6 +1712,49 @@ if st.session_state.user_role == "admin":
                         st.error(f"เพิ่มสารอาหารไม่สำเร็จ: {e}")
 
         with n_col2:
+            st.markdown("### แก้ไขสารอาหาร")
+            render_hint("เลือกสารอาหารเดิมเพื่อแก้ชื่อที่แสดง ความละเอียด และค่าเริ่มต้น โดยไม่เปลี่ยนรหัสข้อมูล")
+            editable_nutrients = list(st.session_state.db_nutrient_keys.keys())
+            if editable_nutrients:
+                nutrient_to_edit = st.selectbox(
+                    "เลือกสารอาหารที่ต้องการแก้ไข",
+                    editable_nutrients,
+                    format_func=lambda key: st.session_state.db_nutrient_keys[key]["label"],
+                    key="nutrient_to_edit",
+                )
+                edit_nut_data = st.session_state.db_nutrient_keys[nutrient_to_edit]
+                with st.form("form_edit_nutrient_definition"):
+                    st.text_input("รหัสข้อมูล", value=nutrient_to_edit, disabled=True)
+                    edit_nut_label = st.text_input("ชื่อที่แสดงใหม่", value=edit_nut_data.get("label", ""))
+                    edit_nut_step = st.number_input(
+                        "ความละเอียดในการกรอกค่าใหม่",
+                        min_value=0.001,
+                        max_value=1000.0,
+                        value=float(edit_nut_data.get("step", 0.1) or 0.1),
+                        format="%.3f",
+                    )
+                    edit_nut_default = st.number_input(
+                        "ค่าเริ่มต้นใหม่",
+                        min_value=0.0,
+                        value=float(edit_nut_data.get("default", 0.0) or 0.0),
+                        step=0.1,
+                    )
+                    save_nutrient_edit = st.form_submit_button("บันทึกการแก้ไขสารอาหาร", type="primary", use_container_width=True)
+
+                if save_nutrient_edit:
+                    if not edit_nut_label.strip():
+                        st.error("กรุณากรอกชื่อที่แสดง")
+                    else:
+                        try:
+                            update_nutrient_definition_in_supabase(nutrient_to_edit, edit_nut_label, edit_nut_step, edit_nut_default)
+                            st.success(f"แก้ไขสารอาหาร '{edit_nut_label}' แล้ว")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"แก้ไขสารอาหารไม่สำเร็จ: {e}")
+            else:
+                st.info("ยังไม่มีรายการสารอาหารให้แก้ไข")
+
+        with n_col3:
             st.markdown("### ลบสารอาหาร")
             render_hint("เลือกสารอาหารที่ไม่ต้องการใช้ แล้วติ๊กยืนยันก่อนลบออกจากรายการ")
             removable_nutrients = [
@@ -1725,7 +1796,28 @@ if st.session_state.user_role == "admin":
                 )
             else:
                 st.info("คลังวัตถุดิบว่างเปล่า")
-        
+
+        percent_suffix_names = [
+            name for name in st.session_state.get("db_ingredients", {})
+            if clean_percent_suffix_from_name(name) != name
+        ]
+        if percent_suffix_names:
+            with st.expander("🧹 ล้างชื่อวัตถุดิบที่มีเปอร์เซ็นต์ติดท้าย", expanded=False):
+                render_hint("ใช้สำหรับแก้ชื่อเช่น 'ปลาป่น 60%' ให้เหลือ 'ปลาป่น' โดยไม่เปลี่ยนค่าสารอาหารในระบบ")
+                preview_cleanup = pd.DataFrame([
+                    {"ชื่อเดิม": name, "ชื่อใหม่": clean_percent_suffix_from_name(name)}
+                    for name in percent_suffix_names
+                ])
+                render_readable_table(preview_cleanup)
+                confirm_cleanup_names = st.checkbox("ยืนยันว่าต้องการล้างเปอร์เซ็นต์ท้ายชื่อวัตถุดิบเหล่านี้")
+                if st.button("ล้างเปอร์เซ็นต์ท้ายชื่อวัตถุดิบ", type="secondary", use_container_width=True, disabled=not confirm_cleanup_names):
+                    try:
+                        cleaned_count = cleanup_ingredient_percent_names_in_supabase()
+                        st.success(f"ล้างชื่อวัตถุดิบแล้ว {cleaned_count} รายการ")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"ล้างชื่อวัตถุดิบไม่สำเร็จ: {e}")
+            
         crud_mode = st.segmented_control(
             "เลือกฟังก์ชันจัดการคลังวัตถุดิบ:", 
             ["✏️ แก้ไขข้อมูลวัตถุดิบเดิม", "➕ เพิ่มวัตถุดิบใหม่", "🗑️ ลบวัตถุดิบออก"],
