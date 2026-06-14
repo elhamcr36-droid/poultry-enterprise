@@ -194,6 +194,12 @@ def render_readable_table(data, *, column_order=None, column_labels=None, column
     st.dataframe(df, **dataframe_options)
     return df
 
+def render_hint(text):
+    st.markdown(
+        f"<div class='app-hint'>{text}</div>",
+        unsafe_allow_html=True,
+    )
+
 def build_ingredients_display():
     rows = []
     for name, data in st.session_state.get("db_ingredients", {}).items():
@@ -399,6 +405,16 @@ st.markdown(
     .center-menu-wrap {
         max-width: 860px;
         margin: 0 auto;
+    }
+    .app-hint {
+        background: rgba(15, 23, 42, 0.58);
+        border-left: 3px solid #38bdf8;
+        border-radius: 8px;
+        color: #cbd5e1;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin: 8px 0 14px 0;
+        padding: 10px 12px;
     }
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
@@ -1602,6 +1618,7 @@ if st.session_state.user_role == "admin":
     # --- แท็บที่ 0: ดูสารอาหารที่ระบบรองรับ ---
     if selected_admin_page == "nutrients":
         st.subheader("จัดการสารอาหาร")
+        render_hint("ใช้หน้านี้เพื่อเพิ่มหรือลบหัวข้อสารอาหารที่ต้องการให้แสดงในฟอร์มวัตถุดิบ เช่น ไขมัน เถ้า หรือโซเดียม")
         nutrient_error = st.session_state.get("nutrient_definitions_error")
         if nutrient_error:
             st.warning(f"ยังเชื่อมตารางสารอาหารไม่ได้: {nutrient_error}")
@@ -1622,6 +1639,7 @@ if st.session_state.user_role == "admin":
         n_col1, n_col2 = st.columns(2, gap="large")
         with n_col1:
             st.markdown("### เพิ่มสารอาหาร")
+            render_hint("กรอกรหัสอังกฤษสั้น ๆ และชื่อภาษาไทยที่ต้องการให้แสดง จากนั้นกดบันทึก")
             with st.form("form_add_nutrient_definition"):
                 new_nut_key = st.text_input("รหัสข้อมูล", placeholder="เช่น fat, ash, sodium").strip().lower()
                 new_nut_label = st.text_input("ชื่อที่แสดง", placeholder="เช่น ไขมันดิบ (%)")
@@ -1646,6 +1664,7 @@ if st.session_state.user_role == "admin":
 
         with n_col2:
             st.markdown("### ลบสารอาหาร")
+            render_hint("เลือกสารอาหารที่ไม่ต้องการใช้ แล้วติ๊กยืนยันก่อนลบออกจาก Supabase")
             removable_nutrients = [
                 key for key, data in st.session_state.db_nutrient_keys.items()
                 if key
@@ -1692,10 +1711,12 @@ if st.session_state.user_role == "admin":
             default="✏️ แก้ไขข้อมูลวัตถุดิบเดิม"
         )
         st.markdown("---")
+        render_hint("เลือกโหมดที่ต้องการ: แก้ข้อมูลเดิม เพิ่มวัตถุดิบใหม่ หรือลบวัตถุดิบออกจากคลังกลาง")
 
         if crud_mode == "✏️ แก้ไขข้อมูลวัตถุดิบเดิม" and st.session_state.db_ingredients:
             selected_ing_edit = st.selectbox("เลือกวัตถุดิบที่จะปรับปรุงข้อมูล:", list(st.session_state.db_ingredients.keys()))
             target_ing = st.session_state.db_ingredients[selected_ing_edit]
+            render_hint("ปรับราคา สัดส่วนขั้นต่ำ/สูงสุด และค่าสารอาหารของวัตถุดิบที่เลือก แล้วกดบันทึก")
             
             with st.form(key=f"form_edit_{selected_ing_edit}"):
                 st.markdown(f"#### 📝 แก้ไขข้อมูลสารอาหารของ: **{selected_ing_edit}**")
@@ -1738,6 +1759,7 @@ if st.session_state.user_role == "admin":
         elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
             with st.form(key="form_add_new_ingredient"):
                 st.markdown("#### ➕ ลงทะเบียนวัตถุดิบตัวใหม่เข้าคลังกลาง")
+                render_hint("เพิ่มวัตถุดิบใหม่ที่ยังไม่มีในระบบ เช่น แหล่งพลังงาน โปรตีน หรือแร่ธาตุ")
                 ing_name = st.text_input("📝 ระบุชื่อวัตถุดิบใหม่:", placeholder="เช่น รำข้าวหอมมะลิบดละเอียด")
                 
                 c_limits = st.columns(2)
@@ -1778,6 +1800,7 @@ if st.session_state.user_role == "admin":
 
         elif crud_mode == "🗑️ ลบวัตถุดิบออก" and st.session_state.db_ingredients:
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
+            render_hint("เลือกรายการที่ไม่ใช้แล้ว การลบจะส่งคำสั่งไปที่ Supabase โดยตรง")
             to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
             if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
                 ingredient_to_delete = st.session_state.db_ingredients.get(to_del, {})
@@ -1803,6 +1826,7 @@ if st.session_state.user_role == "admin":
         
         with bc1:
             st.markdown("### ➕ เพิ่มสายพันธุ์ใหม่")
+            render_hint("เพิ่มสายพันธุ์พร้อมกลุ่ม สีไข่ และอัตรากินอาหารต่อวัน เพื่อใช้เป็นค่าแนะนำในหน้าบันทึกฟาร์ม")
             with st.container(border=True):
                 b_group = st.selectbox("กลุ่มสายพันธุ์หลัก:", [g["group_name"] for g in st.session_state.db_groups])
                 b_name = st.text_input("ชื่อทางการค้า (Breed Name):", placeholder="เช่น ไฮ-เซ็กซ์ บราวน์")
@@ -1821,6 +1845,7 @@ if st.session_state.user_role == "admin":
                     else: st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
         with bc2:
             st.markdown("### ❌ ลบข้อมูลสายพันธุ์")
+            render_hint("เลือกรายการสายพันธุ์ที่ต้องการลบ ระบบจะลบจาก Supabase ตามรหัสรายการ")
             with st.container(border=True):
                 if st.session_state.db_breeds:
                     breed_delete_options = {
@@ -1847,6 +1872,7 @@ if st.session_state.user_role == "admin":
             render_readable_table(build_targets_display())
         
         st.markdown("### ✏️ ปรับเปลี่ยนเกณฑ์ข้อกำหนดสารอาหารขั้นต่ำประจำช่วงอายุ")
+        render_hint("เลือกช่วงอายุหรือระยะผลิต แล้วปรับค่าเป้าหมายขั้นต่ำที่ใช้เป็นเกณฑ์คำนวณสูตรอาหาร")
         select_stage_crud = st.selectbox("เลือกช่วงระยะผลิตของไก่ไข่ที่ต้องการแก้ไขเกณฑ์:", list(st.session_state.db_targets.keys()), format_func=lambda x: st.session_state.db_targets[x]["stage_name"])
         
         with st.form(key=f"form_target_{select_stage_crud}"):
@@ -1896,6 +1922,7 @@ if st.session_state.user_role == "admin":
     # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
     if selected_admin_page == "users":
         st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
+        render_hint("ใช้ตรวจรายชื่อผู้ใช้และเปลี่ยนสิทธิ์เป็นผู้ใช้ทั่วไปหรือผู้ดูแลระบบ")
         if st.button("🔄 โหลดรายชื่อผู้ใช้จาก Supabase", use_container_width=True):
             fetch_user_profiles_from_supabase()
             st.rerun()
@@ -1923,6 +1950,7 @@ if st.session_state.user_role == "admin":
         uc1 = st.container()
         with uc1:
             st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
+            render_hint("เลือกอีเมลผู้ใช้ แล้วกำหนดสิทธิ์ใหม่ จากนั้นกดบันทึกการเปลี่ยนสิทธิ์")
             with st.container(border=True):
                 user_keys = list(st.session_state.get("user_database", {}).keys())
                 if not user_keys:
@@ -2119,6 +2147,7 @@ else:
         with dash_left:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'><h3>แนวโน้มผลผลิตและกำไร</h3></div>", unsafe_allow_html=True)
+            render_hint("ดูภาพรวมว่าไข่และกำไรเปลี่ยนไปอย่างไรในแต่ละวัน ชี้เมาส์ที่เส้นกราฟเพื่อดูตัวเลขของวันนั้น")
             if logs_sorted:
                 trend_df = build_daily_logs_analysis(logs_sorted).tail(30)
                 trend_summary = (
@@ -2172,6 +2201,7 @@ else:
         with dash_right:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'><h3>สถานะล่าสุด</h3></div>", unsafe_allow_html=True)
+            render_hint("ระบบสรุปสัญญาณสำคัญจากบันทึกล่าสุด เช่น ผลผลิตตก FCR สูง หรือมีความเสี่ยงด้านสุขภาพฝูง")
             if latest_log:
                 alerts = []
                 if float(latest_log.get("henday_pct") or 0) < 65:
@@ -2203,6 +2233,7 @@ else:
 
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'><h3>บันทึกล่าสุด</h3></div>", unsafe_allow_html=True)
+        render_hint("แสดงรายการย้อนหลังล่าสุด ใช้ตรวจความถูกต้องก่อนเข้าไปแก้ไขในหน้าบันทึกประจำวัน")
         if logs_sorted:
             render_readable_table(build_daily_logs_display(logs_sorted[:7]))
         else:
@@ -2215,6 +2246,7 @@ else:
         # --- ส่วนที่ 1: ดึงสูตรเก่า ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'><h3>1. สูตรอาหารที่บันทึกไว้</h3></div>", unsafe_allow_html=True)
+        render_hint("ใช้ดึงสูตรที่เคยบันทึกไว้กลับมาแก้ไขหรือใช้งานต่อ ถ้าไม่เคยบันทึกให้เริ่มจากขั้นตอนถัดไป")
         if not st.session_state.saved_formulas:
             st.info("💡 ตอนนี้ยังไม่มีสูตรอาหารที่บันทึกไว้")
         else:
@@ -2253,6 +2285,7 @@ else:
         # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมายจาก Supabase ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'><h3>2. ตั้งค่าเป้าหมายโภชนาการ</h3></div>", unsafe_allow_html=True)
+        render_hint("เลือกกลุ่ม สายพันธุ์ และช่วงอายุ ระบบจะดึงเกณฑ์โภชนาการมาใช้คำนวณสูตรให้อัตโนมัติ")
 
         col_br1, col_br2, col_br3 = st.columns(3)
         with col_br1:
@@ -2449,6 +2482,7 @@ else:
         with col_right:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'><h3>4. ตรวจผลโภชนาการและบันทึกสูตร</h3></div>", unsafe_allow_html=True)
+            render_hint("ตรวจว่าสูตรผ่านเกณฑ์โปรตีน พลังงาน แคลเซียม และฟอสฟอรัสหรือไม่ แล้วตั้งชื่อเพื่อบันทึกสูตร")
 
             # แสดงเปรียบเทียบค่าเป้าหมายที่ดึงมาจากชุดข้อมูล Supabase จริง
             target_p_val = edit_p if nutrient_targets else 16.5
@@ -2549,6 +2583,7 @@ else:
         log_col1, log_col2 = st.columns(2)
         with log_col1:
             st.markdown("<div class='section-title'><h3>1. ข้อมูลฝูงวันนี้</h3></div>", unsafe_allow_html=True)
+            render_hint("กรอกข้อมูลฝูงและอาหารที่ให้จริงในวันนี้ เพื่อใช้คำนวณต้นทุนและ FCR")
             log_date = st.date_input(
                 "วันที่บันทึกข้อมูล:", datetime.date.today(), key="farm_log_date"
             )
@@ -2589,6 +2624,7 @@ else:
 
         with log_col2:
             st.markdown("<div class='section-title'><h3>2. ผลผลิตและราคาไข่</h3></div>", unsafe_allow_html=True)
+            render_hint("กรอกจำนวนไข่ ราคาไข่ น้ำหนักไข่ และไก่ตาย เพื่อให้ระบบคำนวณรายได้และกำไร")
             collected_eggs = st.number_input(
                 "จำนวนฟองไข่ที่เก็บได้จริงวันนี้ (ฟอง):", min_value=0, value=850
             )
@@ -2686,6 +2722,7 @@ else:
             )
 
         st.markdown("<div class='section-title'><h3>3. สรุปผลวันนี้</h3></div>", unsafe_allow_html=True)
+        render_hint("ตรวจตัวเลขสรุปก่อนกดบันทึก ถ้าต้นทุนสูตรอาหารเป็นศูนย์ ให้กลับไปเลือกหรือคำนวณสูตรอาหารก่อน")
         profit_box_color = "#065f46" if net_profit_day >= 0 else "#991b1b"
         st.markdown(
             f"<div style='background-color:{profit_box_color}; padding:20px; border-radius:12px; text-align:center; font-size:26px; font-weight:bold; margin-bottom:20px;'>💸 เงินกำไรสุทธิประจำวัน (หักค่าอาหารแล้ว): {net_profit_day:,.2f} บาท</div>",
@@ -2736,6 +2773,7 @@ else:
             unsafe_allow_html=True,
         )
         st.markdown("<div class='section-title'><h3>4. ประวัติฟาร์มย้อนหลัง</h3></div>", unsafe_allow_html=True)
+        render_hint("เลือกช่วงวันที่เพื่อดูสรุปย้อนหลัง กราฟ และเปรียบเทียบวันต่อวัน")
         if not st.session_state.daily_logs:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
@@ -2753,6 +2791,7 @@ else:
                     st.metric("กำไรสุทธิล่าสุด", f"{float(latest_log.get('net_profit_day') or 0):,.2f} บาท")
 
             st.markdown("#### วิเคราะห์ตามช่วงวันที่")
+            render_hint("เลือกวันเริ่มและวันสิ้นสุด เพื่อให้ตารางและกราฟแสดงเฉพาะข้อมูลช่วงนั้น")
             date_values = analysis_df["date"].dropna()
             min_log_date = date_values.min().date() if not date_values.empty else datetime.date.today()
             max_log_date = date_values.max().date() if not date_values.empty else datetime.date.today()
@@ -2874,6 +2913,7 @@ else:
                 st.plotly_chart(health_fig, use_container_width=True)
 
                 st.markdown("#### เปรียบเทียบวันต่อวัน")
+                render_hint("เลือกสองวันที่ต้องการเทียบ ระบบจะแสดงผลต่างของไข่ กำไร Hen-day และ FCR")
                 compare_options = {
                     f"#{row.get('id', idx)} | {row['date'].date()} | ไข่ {int(row['collected_eggs']):,} ฟอง | กำไร {row['net_profit_day']:,.0f} บาท": idx
                     for idx, row in filtered_df.sort_values("date", ascending=False).iterrows()
@@ -2990,6 +3030,7 @@ else:
             "<h2>📊 ใบสั่งงานผสมอาหารสัตว์ (สำหรับยื่นให้คนงานตักของ)</h2>",
             unsafe_allow_html=True,
         )
+        render_hint("ระบุปริมาณอาหารที่ต้องการผสม ระบบจะแปลงเปอร์เซ็นต์สูตรเป็นกิโลกรัมของวัตถุดิบแต่ละชนิด")
         total_tonnage = st.number_input(
             "📦 ใส่จำนวนกิโลกรัมอาหารรวมที่ต้องการจะผสมในรอบนี้ (KG):",
             min_value=100,
