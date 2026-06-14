@@ -1759,52 +1759,85 @@ if st.session_state.user_role == "admin":
        
 else:
     # ==========================================
-    # 🎨 CUSTOM UI/UX FOR ALL AGES (BIG FONT & HIGH CONTRAST)
+    # 🎨 PROFESSIONAL FARM OPERATIONS UI
     # ==========================================
     st.markdown(
         """
         <style>
-            /* ขยายขนาดฟอนต์ของหัวข้อแท็บ */
-            .stTabs [data-baseweb="tab-list"] button {
-                font-size: 22px !important;
-                font-weight: bold !important;
-                height: 60px !important;
-            }
-            /* ขยายฟอนต์และช่องพิมพ์ข้อมูลทั้งหมด */
             .stNumberInput input, .stSelectbox div, .stSlider div {
-                font-size: 20px !important;
-                font-weight: bold !important;
+                font-size: 1rem !important;
+                font-weight: 650 !important;
             }
             label {
-                font-size: 20px !important;
-                font-weight: bold !important;
+                font-size: 0.98rem !important;
+                font-weight: 750 !important;
                 color: #f1f5f9 !important;
             }
-            /* ปรับแต่งปุ่มกดให้ใหญ่เบิ้ม จิ้มง่ายไม่พลาด */
             .stButton button {
-                font-size: 22px !important;
-                font-weight: bold !important;
-                padding: 15px 20px !important;
-                border-radius: 12px !important;
-                min-height: 55px !important;
+                font-size: 1rem !important;
+                font-weight: 800 !important;
+                padding: 12px 16px !important;
+                border-radius: 8px !important;
+                min-height: 48px !important;
             }
-            /* กล่องการ์ดเน้นข้อความให้อ่านง่าย */
             .farmer-card {
-                background-color: #1e293b;
-                border: 2px solid #475569;
-                padding: 22px;
-                border-radius: 14px;
-                margin-bottom: 20px;
+                background: rgba(15, 23, 42, 0.86) !important;
+                border: 1px solid rgba(148, 163, 184, 0.28) !important;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 16px;
+                box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
             }
-            /* สไตล์ตัวเลขแดชบอร์ดขนาดใหญ่พิเศษ */
             .big-metric-value {
-                font-size: 32px !important;
-                font-weight: bold !important;
+                font-size: 1.9rem !important;
+                font-weight: 850 !important;
                 color: #38bdf8;
             }
             .big-metric-label {
-                font-size: 18px !important;
+                font-size: 0.92rem !important;
                 color: #94a3b8;
+                text-transform: uppercase;
+                letter-spacing: 0.02em;
+            }
+            .ops-kpi {
+                background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.78));
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 8px;
+                padding: 16px;
+                min-height: 128px;
+            }
+            .ops-kpi .label {
+                color: #94a3b8 !important;
+                font-size: 0.88rem;
+                font-weight: 800;
+                margin-bottom: 8px !important;
+            }
+            .ops-kpi .value {
+                color: #f8fafc !important;
+                font-size: 1.9rem;
+                font-weight: 900;
+                margin-bottom: 4px !important;
+            }
+            .ops-kpi .note {
+                color: #cbd5e1 !important;
+                font-size: 0.9rem;
+                margin: 0 !important;
+            }
+            .section-title {
+                margin: 4px 0 14px 0;
+                padding-bottom: 8px;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+            }
+            .section-title h3 {
+                margin: 0 !important;
+                font-size: 1.18rem !important;
+            }
+            .status-panel {
+                background: rgba(2, 6, 23, 0.58);
+                border: 1px solid rgba(148, 163, 184, 0.24);
+                border-radius: 8px;
+                padding: 14px 16px;
+                margin-bottom: 10px;
             }
         </style>
     """,
@@ -1817,17 +1850,19 @@ else:
     selected_user_page = render_big_menu(
         "selected_user_page",
         [
-            {"id": "formula", "label": "🥣 คำนวณสูตรอาหาร"},
-            {"id": "daily", "label": "📝 บันทึกประจำวัน"},
-            {"id": "mixing", "label": "📋 ใบสั่งผสมอาหาร"},
+            {"id": "dashboard", "label": "ภาพรวมฟาร์ม"},
+            {"id": "formula", "label": "คำนวณสูตรอาหาร"},
+            {"id": "daily", "label": "บันทึกประจำวัน"},
+            {"id": "mixing", "label": "ใบสั่งผสมอาหาร"},
         ],
-        columns_per_row=3,
+        columns_per_row=4,
     )
     st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
     user_page_info = {
-        "formula": ("🥣 คำนวณสูตรอาหาร", "เลือกสายพันธุ์ ปรับวัตถุดิบ และคำนวณต้นทุนอาหาร"),
-        "daily": ("📝 บันทึกประจำวัน", "กรอกจำนวนไก่ ไข่ อาหาร และดูผลกำไรประจำวัน"),
-        "mixing": ("📋 ใบสั่งผสมอาหาร", "สรุปวัตถุดิบที่ต้องตักให้คนงานใช้ผสมอาหาร"),
+        "dashboard": ("ภาพรวมฟาร์ม", "ติดตามผลผลิต ต้นทุน และความเสี่ยงล่าสุดของฟาร์ม"),
+        "formula": ("คำนวณสูตรอาหาร", "เลือกสายพันธุ์ ปรับวัตถุดิบ และตรวจเกณฑ์โภชนาการ"),
+        "daily": ("บันทึกประจำวัน", "กรอกผลผลิต ต้นทุน และตัวชี้วัดประจำวัน"),
+        "mixing": ("ใบสั่งผสมอาหาร", "สรุปวัตถุดิบที่ต้องใช้สำหรับงานผสมอาหาร"),
     }
     user_title, user_subtitle = user_page_info[selected_user_page]
     st.markdown(
@@ -1837,12 +1872,150 @@ else:
 
 # ------------------------------------------
 # ------------------------------------------
+    # DASHBOARD: FARM OPERATIONS OVERVIEW
+    # ------------------------------------------
+    if selected_user_page == "dashboard":
+        logs_sorted = sort_daily_logs_latest_first(st.session_state.get("daily_logs", []))
+        latest_log = logs_sorted[0] if logs_sorted else {}
+        current_feed_cost = float(st.session_state.get("current_net_cost", 0.0) or calculate_current_feed_cost() or 0.0)
+        current_formula_name = st.session_state.get("selected_b_name", "ยังไม่ได้เลือกสูตร")
+
+        kpi_cols = st.columns(4)
+        with kpi_cols[0]:
+            st.markdown(
+                f"""
+                <div class="ops-kpi">
+                    <p class="label">ไข่ล่าสุด</p>
+                    <p class="value">{int(latest_log.get('collected_eggs') or 0):,}</p>
+                    <p class="note">ฟอง / วัน</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with kpi_cols[1]:
+            st.markdown(
+                f"""
+                <div class="ops-kpi">
+                    <p class="label">กำไรสุทธิล่าสุด</p>
+                    <p class="value">{float(latest_log.get('net_profit_day') or 0):,.0f}</p>
+                    <p class="note">บาท</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with kpi_cols[2]:
+            st.markdown(
+                f"""
+                <div class="ops-kpi">
+                    <p class="label">Hen-day</p>
+                    <p class="value">{float(latest_log.get('henday_pct') or 0):,.1f}%</p>
+                    <p class="note">อัตราการให้ไข่ล่าสุด</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with kpi_cols[3]:
+            st.markdown(
+                f"""
+                <div class="ops-kpi">
+                    <p class="label">ต้นทุนสูตรปัจจุบัน</p>
+                    <p class="value">{current_feed_cost:,.2f}</p>
+                    <p class="note">บาท / กก.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        dash_left, dash_right = st.columns([1.35, 0.85], gap="large")
+        with dash_left:
+            st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+            st.markdown("<div class='section-title'><h3>แนวโน้มผลผลิตและกำไร</h3></div>", unsafe_allow_html=True)
+            if logs_sorted:
+                trend_df = pd.DataFrame(logs_sorted).copy()
+                trend_df["date"] = pd.to_datetime(trend_df["date"], errors="coerce")
+                trend_df = trend_df.sort_values("date").tail(30)
+                for col in ["collected_eggs", "net_profit_day", "henday_pct"]:
+                    if col not in trend_df.columns:
+                        trend_df[col] = 0
+                    trend_df[col] = pd.to_numeric(trend_df[col], errors="coerce").fillna(0)
+
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=trend_df["date"],
+                    y=trend_df["collected_eggs"],
+                    mode="lines+markers",
+                    name="ไข่ (ฟอง)",
+                    line=dict(color="#38bdf8", width=3),
+                ))
+                fig.add_trace(go.Bar(
+                    x=trend_df["date"],
+                    y=trend_df["net_profit_day"],
+                    name="กำไรสุทธิ (บาท)",
+                    marker_color="#22c55e",
+                    opacity=0.45,
+                    yaxis="y2",
+                ))
+                fig.update_layout(
+                    height=360,
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(15,23,42,0.35)",
+                    font=dict(color="#e2e8f0"),
+                    legend=dict(orientation="h", y=1.08),
+                    yaxis=dict(title="ไข่", gridcolor="rgba(148,163,184,0.18)"),
+                    yaxis2=dict(title="กำไร", overlaying="y", side="right", gridcolor="rgba(0,0,0,0)"),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("ยังไม่มีข้อมูลบันทึกประจำวันสำหรับสร้างกราฟ")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with dash_right:
+            st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+            st.markdown("<div class='section-title'><h3>สถานะล่าสุด</h3></div>", unsafe_allow_html=True)
+            if latest_log:
+                alerts = []
+                if float(latest_log.get("henday_pct") or 0) < 65:
+                    alerts.append(("ต้องติดตาม", "Hen-day ต่ำกว่า 65% ควรตรวจอาหาร น้ำ และสุขภาพฝูง"))
+                if float(latest_log.get("fcr_ratio") or 0) > 3:
+                    alerts.append(("ต้นทุนสูง", "FCR สูง ควรตรวจน้ำหนักไข่และปริมาณอาหารที่ให้"))
+                if int(latest_log.get("dead_birds") or 0) > max(1, int(latest_log.get("bird_count") or 0) * 0.001):
+                    alerts.append(("ความเสี่ยงสุขภาพ", "จำนวนไก่ตาย/คัดทิ้งสูงกว่าปกติ"))
+
+                if alerts:
+                    for title, body in alerts:
+                        st.markdown(
+                            f"<div class='status-panel'><b>{title}</b><br><span style='color:#cbd5e1;'>{body}</span></div>",
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.markdown(
+                        "<div class='status-panel'><b>สถานะปกติ</b><br><span style='color:#cbd5e1;'>ตัวชี้วัดล่าสุดไม่พบสัญญาณเสี่ยงหลัก</span></div>",
+                        unsafe_allow_html=True,
+                    )
+
+                st.markdown(
+                    f"<div class='status-panel'><b>สูตร/สายพันธุ์ที่ใช้งาน</b><br><span style='color:#cbd5e1;'>{current_formula_name}</span></div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.info("เริ่มจากบันทึกข้อมูลประจำวัน เพื่อให้ระบบแสดงสถานะฟาร์ม")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='section-title'><h3>บันทึกล่าสุด</h3></div>", unsafe_allow_html=True)
+        if logs_sorted:
+            render_readable_table(build_daily_logs_display(logs_sorted[:7]))
+        else:
+            st.info("ยังไม่มีประวัติฟาร์มย้อนหลัง")
+        st.markdown("</div>", unsafe_allow_html=True)
+
     # TAB 1: MANAGEMENT & FORMULA MATRIX
     # ------------------------------------------
     if selected_user_page == "formula":
         # --- ส่วนที่ 1: ดึงสูตรเก่า ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-        st.markdown("### 📂 [ปุ่มทางลัด] เรียกใช้สูตรเก่าที่เคยเซฟไว้")
+        st.markdown("<div class='section-title'><h3>1. สูตรอาหารที่บันทึกไว้</h3></div>", unsafe_allow_html=True)
         if not st.session_state.saved_formulas:
             st.info("💡 ตอนนี้ยังไม่มีสูตรอาหารที่บันทึกไว้")
         else:
@@ -1880,7 +2053,7 @@ else:
 
         # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมายจาก Supabase ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-        st.markdown("### 🐓 เลือกสายพันธุ์และโภชนาการเป้าหมาย")
+        st.markdown("<div class='section-title'><h3>2. ตั้งค่าเป้าหมายโภชนาการ</h3></div>", unsafe_allow_html=True)
 
         col_br1, col_br2, col_br3 = st.columns(3)
         with col_br1:
@@ -1990,7 +2163,7 @@ else:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
             cl_title, cl_reset = st.columns([6, 4])
             with cl_title:
-                st.markdown("### 🥣 แถบปรับสัดส่วนวัตถุดิบ (%)")
+                st.markdown("<div class='section-title'><h3>3. ปรับสัดส่วนวัตถุดิบ</h3></div>", unsafe_allow_html=True)
             with cl_reset:
                 if st.button("🔄 รีเซ็ตค่าใหม่ทั้งหมด", use_container_width=True) and nutrient_targets:
                     st.session_state.current_weights = run_ai_solver(nutrient_targets)
@@ -2065,7 +2238,7 @@ else:
 
         with col_right:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-            st.markdown("### 🧪 ผลลัพธ์โภชนาการจริงในสูตร")
+            st.markdown("<div class='section-title'><h3>4. ตรวจผลโภชนาการและบันทึกสูตร</h3></div>", unsafe_allow_html=True)
 
             # แสดงเปรียบเทียบค่าเป้าหมายที่ดึงมาจากชุดข้อมูล Supabase จริง
             target_p_val = edit_p if nutrient_targets else 16.5
@@ -2155,7 +2328,7 @@ else:
         selected_stage_label = st.session_state.get("selected_stage_label", "ช่วงอายุที่เลือก")
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown(
-            "<h2>☀️ บันทึกตัวชี้วัดฟาร์ม & รายรับ-รายจ่ายประจำวัน</h2>",
+            "<h2>บันทึกตัวชี้วัดฟาร์มและผลประกอบการประจำวัน</h2>",
             unsafe_allow_html=True,
         )
         st.markdown(
@@ -2165,7 +2338,7 @@ else:
 
         log_col1, log_col2 = st.columns(2)
         with log_col1:
-            st.markdown("#### 📝 ส่วนที่ 1: ข้อมูลฝูงไก่วันนี้")
+            st.markdown("<div class='section-title'><h3>1. ข้อมูลฝูงวันนี้</h3></div>", unsafe_allow_html=True)
             log_date = st.date_input(
                 "วันที่บันทึกข้อมูล:", datetime.date.today(), key="farm_log_date"
             )
@@ -2205,7 +2378,7 @@ else:
             )
 
         with log_col2:
-            st.markdown("#### 💰 ส่วนที่ 2: จำนวนไข่และราคาส่งวันนี้")
+            st.markdown("<div class='section-title'><h3>2. ผลผลิตและราคาไข่</h3></div>", unsafe_allow_html=True)
             collected_eggs = st.number_input(
                 "จำนวนฟองไข่ที่เก็บได้จริงวันนี้ (ฟอง):", min_value=0, value=850
             )
@@ -2302,7 +2475,7 @@ else:
                 f"🚨 เล้าร้อนจัด ({env_temp}°C) ไก่เสี่ยงช็อกตาย! คนงานต้องเปิดระบบพ่นหมอกและเร่งพัดลมทันที (ปริมาณน้ำที่ฝูงไก่ต้องกินขั้นต่ำ: {total_water_needed_liters:,.1f} ลิตร)"
             )
 
-        st.markdown("### 📊 สรุปผลกำไรสุทธิและตัวชี้วัดวันนี้")
+        st.markdown("<div class='section-title'><h3>3. สรุปผลวันนี้</h3></div>", unsafe_allow_html=True)
         profit_box_color = "#065f46" if net_profit_day >= 0 else "#991b1b"
         st.markdown(
             f"<div style='background-color:{profit_box_color}; padding:20px; border-radius:12px; text-align:center; font-size:26px; font-weight:bold; margin-bottom:20px;'>💸 เงินกำไรสุทธิประจำวัน (หักค่าอาหารแล้ว): {net_profit_day:,.2f} บาท</div>",
@@ -2352,7 +2525,7 @@ else:
             "<div style='border-bottom: 2px dashed #475569; margin:25px 0;'></div>",
             unsafe_allow_html=True,
         )
-        st.markdown("### 📋 ตารางประวัติฟาร์มย้อนหลัง")
+        st.markdown("<div class='section-title'><h3>4. ประวัติฟาร์มย้อนหลัง</h3></div>", unsafe_allow_html=True)
         if not st.session_state.daily_logs:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
