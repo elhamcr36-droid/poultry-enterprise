@@ -2226,6 +2226,10 @@ else:
                     st.session_state["selected_b_name"] = target_f.get("breed", st.session_state.get("selected_b_name", "สูตรอาหารปัจจุบัน"))
                     st.session_state["selected_stage_label"] = target_f.get("stage", st.session_state.get("selected_stage_label", "ยังไม่ได้เลือกช่วงอายุ"))
                     st.session_state["current_net_cost"] = float(target_f.get("cost") or calculate_current_feed_cost())
+                    st.session_state["formula_slider_reset_version"] = st.session_state.get("formula_slider_reset_version", 0) + 1
+                    for slider_key in list(st.session_state.keys()):
+                        if str(slider_key).startswith("sld_user_"):
+                            del st.session_state[slider_key]
                     st.success(f"ดึงข้อมูล '{selected_f_name}' มาใช้งานแล้ว!")
                     st.rerun()
             with col_load3:
@@ -2296,20 +2300,47 @@ else:
                 st.session_state["base_req_me"] = nutrient_targets["min_me"]
                 st.session_state["base_req_calcium"] = nutrient_targets["min_calcium"]
                 st.session_state["base_req_phos"] = nutrient_targets["min_phosphorus"]
+                st.session_state["applied_target_values"] = {
+                    "min_protein": float(nutrient_targets["min_protein"]),
+                    "min_me": float(nutrient_targets["min_me"]),
+                    "min_calcium": float(nutrient_targets["min_calcium"]),
+                    "min_phosphorus": float(nutrient_targets["min_phosphorus"]),
+                }
                 st.session_state["target_input_reset_version"] = st.session_state.get("target_input_reset_version", 0) + 1
                 st.session_state["formula_slider_reset_version"] = st.session_state.get("formula_slider_reset_version", 0) + 1
+                st.session_state.current_weights = run_ai_solver(nutrient_targets)
 
             # สร้างฟอร์มให้ผู้ใช้สามารถปรับแต่งค่าเป้าหมายได้เองโดยอิงค่าเริ่มต้นจาก Supabase
             target_input_reset_version = st.session_state.get("target_input_reset_version", 0)
-            col_inp1, col_inp2, col_inp3, col_inp4 = st.columns(4)
-            with col_inp1:
-                edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state["base_req_protein"]), step=0.1, key=f"target_protein_{target_input_reset_version}")
-            with col_inp2:
-                edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state["base_req_me"]), step=25.0, key=f"target_me_{target_input_reset_version}")
-            with col_inp3:
-                edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state["base_req_calcium"]), step=0.05, key=f"target_calcium_{target_input_reset_version}")
-            with col_inp4:
-                edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state["base_req_phos"]), step=0.02, key=f"target_phos_{target_input_reset_version}")
+            applied_target_values = st.session_state.get("applied_target_values", {})
+            edit_p = float(applied_target_values.get("min_protein", st.session_state["base_req_protein"]))
+            edit_m = float(applied_target_values.get("min_me", st.session_state["base_req_me"]))
+            edit_c = float(applied_target_values.get("min_calcium", st.session_state["base_req_calcium"]))
+            edit_ph = float(applied_target_values.get("min_phosphorus", st.session_state["base_req_phos"]))
+
+            with st.form(key=f"target_nutrition_form_{target_input_reset_version}", clear_on_submit=False):
+                col_inp1, col_inp2, col_inp3, col_inp4 = st.columns(4)
+                with col_inp1:
+                    draft_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=edit_p, step=0.1, key=f"target_protein_{target_input_reset_version}")
+                with col_inp2:
+                    draft_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=edit_m, step=25.0, key=f"target_me_{target_input_reset_version}")
+                with col_inp3:
+                    draft_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=edit_c, step=0.05, key=f"target_calcium_{target_input_reset_version}")
+                with col_inp4:
+                    draft_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=edit_ph, step=0.02, key=f"target_phos_{target_input_reset_version}")
+                apply_target_values = st.form_submit_button("คำนวณสูตรจากเป้าหมายนี้", use_container_width=True)
+
+            if apply_target_values:
+                st.session_state["applied_target_values"] = {
+                    "min_protein": float(draft_p),
+                    "min_me": float(draft_m),
+                    "min_calcium": float(draft_c),
+                    "min_phosphorus": float(draft_ph),
+                }
+                edit_p = float(draft_p)
+                edit_m = float(draft_m)
+                edit_c = float(draft_c)
+                edit_ph = float(draft_ph)
 
             custom_targets = nutrient_targets.copy()
             custom_targets["min_protein"] = edit_p
@@ -2321,13 +2352,15 @@ else:
                 f"{selected_breed_id}:{selected_stage_key}:"
                 f"{edit_p:.2f}:{edit_m:.0f}:{edit_c:.2f}:{edit_ph:.2f}"
             )
-            if (
-                st.session_state.get("auto_formula_context") != auto_formula_context
-                or not st.session_state.current_weights
-            ):
+            if apply_target_values or not st.session_state.current_weights:
                 with st.spinner("AI กำลังจัดสูตร..."):
                     st.session_state.current_weights = run_ai_solver(custom_targets)
                     st.session_state["auto_formula_context"] = auto_formula_context
+                    st.session_state["formula_slider_reset_version"] = st.session_state.get("formula_slider_reset_version", 0) + 1
+                    for slider_key in list(st.session_state.keys()):
+                        if str(slider_key).startswith("sld_user_"):
+                            del st.session_state[slider_key]
+                st.rerun()
         else:
             st.error(f"❌ ไม่พบเกณฑ์มาตรฐานโภชนาการสำหรับสายพันธุ์ {selected_b_name} ระยะ {selected_stage_label} ({selected_stage_key}) บนฐานข้อมูล")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -2433,6 +2466,12 @@ else:
 
             if reset_formula_weights and nutrient_targets:
                 reset_targets = nutrient_targets.copy()
+                st.session_state["applied_target_values"] = {
+                    "min_protein": float(reset_targets["min_protein"]),
+                    "min_me": float(reset_targets["min_me"]),
+                    "min_calcium": float(reset_targets["min_calcium"]),
+                    "min_phosphorus": float(reset_targets["min_phosphorus"]),
+                }
                 st.session_state.current_weights = run_ai_solver(reset_targets)
                 st.session_state["target_input_reset_version"] = st.session_state.get("target_input_reset_version", 0) + 1
                 st.session_state["formula_slider_reset_version"] = st.session_state.get("formula_slider_reset_version", 0) + 1
@@ -2527,11 +2566,13 @@ else:
                 if len(selected_b_name.split()) > 1
                 else selected_b_name
             )
-            save_name_input = st.text_input(
-                "💾 ตั้งชื่อเล่นสูตรอาหารเพื่อกดเซฟ:",
-                value=f"สูตร {breed_display_name} {net_cost:.1f} บาท",
-            )
-            if st.button("📥 ยืนยันกดบันทึกสูตรอาหารลงคลัง", use_container_width=True):
+            with st.form("save_formula_form", clear_on_submit=False):
+                save_name_input = st.text_input(
+                    "💾 ตั้งชื่อเล่นสูตรอาหารเพื่อกดเซฟ:",
+                    value=f"สูตร {breed_display_name} {net_cost:.1f} บาท",
+                )
+                save_formula_clicked = st.form_submit_button("📥 ยืนยันกดบันทึกสูตรอาหารลงคลัง", use_container_width=True)
+            if save_formula_clicked:
                 formula_data = {
                     "date": str(datetime.date.today()),
                     "name": save_name_input,
