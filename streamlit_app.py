@@ -283,7 +283,7 @@ else:
 @st.cache_resource
 def init_supabase() -> Client:
     if not SUPABASE_URL or not SUPABASE_KEY:
-        raise ValueError("❌ ตรวจพบข้อผิดพลาด: กรุณากรอก SUPABASE_URL และ SUPABASE_KEY ให้ถูกต้องสมบูรณ์")
+        raise ValueError("❌ ตรวจพบข้อผิดพลาด: กรุณาตรวจสอบค่าการเชื่อมต่อระบบให้ถูกต้องสมบูรณ์")
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 try:
@@ -291,9 +291,9 @@ try:
 except Exception as e:
     error_msg = str(e).lower()
     if "name or service not known" in error_msg or "temporary failure in name resolution" in error_msg:
-        st.error("🌐 [ข้อผิดพลาดระบบเครือข่าย]: ไม่สามารถค้นหาที่อยู่ของเซิร์ฟเวอร์ฐานข้อมูลได้ (Name or service not known) กรุณาตรวจสอบอินเทอร์เน็ตของเครื่อง หรือ Reboot App บนระบบคลาวด์")
+        st.error("🌐 [ข้อผิดพลาดระบบเครือข่าย]: ไม่สามารถค้นหาที่อยู่ของเซิร์ฟเวอร์ระบบได้ (Name or service not known) กรุณาตรวจสอบอินเทอร์เน็ตของเครื่อง หรือ Reboot App บนระบบระบบ")
     else:
-        st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ Supabase ได้ตั้งแต่เริ่มต้น: {e}")
+        st.error(f"❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ระบบ ได้ตั้งแต่เริ่มต้น: {e}")
 
 # ==========================================
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
@@ -469,7 +469,7 @@ states = {
     "auth_page_mode": "login",
     "user_role": "user",
     "user_email": "",
-    "current_user_key": "",  # เก็บบัญชีอีเมลเพื่อใช้แบ่งแยกตัวใครตัวมันบนคลาวด์
+    "current_user_key": "",  # เก็บบัญชีอีเมลเพื่อใช้แบ่งแยกตัวใครตัวมันบนระบบ
     "saved_formulas": [],
     "daily_logs": [],
     "current_weights": {},
@@ -660,7 +660,7 @@ def fetch_first_available_table(table_key):
     return []
 
 def fetch_master_data_from_supabase():
-    """ ดึงข้อมูลจาก Database 100% สอดคล้องตามชื่อคอลัมน์จริงใน Supabase """
+    """ ดึงข้อมูลจาก Database 100% สอดคล้องตามชื่อคอลัมน์จริงใน ระบบ """
     try:
         st.session_state.master_load_debug = []
         
@@ -782,7 +782,7 @@ def query_nutrition_standard(table_name, breed_id, phase_column, phase_value):
 
 def fetch_nutrition_standards(breed_id, phase_name, phase_key=None):
     """ 
-    Load breed nutrition standards from the English Supabase view first.
+    Load breed nutrition standards from the English ระบบ view first.
     Falls back to the old Thai table/columns while the database migration is being applied.
     """
     phase_candidates = build_phase_candidates(phase_name, phase_key)
@@ -818,10 +818,10 @@ def fetch_nutrition_standards(breed_id, phase_name, phase_key=None):
                         continue
 
                     if res.data:
-                        st.warning("ใช้เกณฑ์โภชนาการกลางของระยะนี้ชั่วคราว เพราะสายพันธุ์ที่เลือกยังไม่มีเกณฑ์เฉพาะในฐานข้อมูล")
+                        st.warning("ใช้เกณฑ์โภชนาการกลางของระยะนี้ชั่วคราว เพราะสายพันธุ์ที่เลือกยังไม่มีเกณฑ์เฉพาะในระบบ")
                         return format_nutrition_standard_row(res.data[0])
     except Exception as e:
-        st.error(f"⚠️ เกิดข้อผิดพลาดในการดึงมาตรฐานโภชนาการจาก Supabase: {e}")
+        st.error(f"⚠️ เกิดข้อผิดพลาดในการดึงมาตรฐานโภชนาการจาก ระบบ: {e}")
     return None
 
 def fetch_nutrition_standard_phase_options(breed_id=None):
@@ -902,7 +902,7 @@ def fetch_saved_formulas_from_supabase():
         st.session_state.saved_formulas = []
         return []
     except Exception as e:
-        st.warning(f"⚠️ ไม่สามารถดึงสูตรอาหารส่วนตัวจากคลาวด์ได้: {e}")
+        st.warning(f"⚠️ ไม่สามารถดึงสูตรอาหารส่วนตัวจากระบบได้: {e}")
         return []
 
 def normalize_formula_weights(weights):
@@ -930,7 +930,7 @@ def save_formula_to_supabase(formula_data):
             st.error("❌ กรุณาเข้าสู่ระบบก่อนทำการบันทึกข้อมูล")
             return False
     except Exception as e:
-        st.error(f"❌ ไม่สามารถบันทึกสูตรลงคลาวด์ได้: {e}")
+        st.error(f"❌ ไม่สามารถบันทึกสูตรลงระบบได้: {e}")
         return False
 
 def delete_formula_from_supabase(formula_id):
@@ -958,7 +958,7 @@ def fetch_daily_logs_from_supabase():
         st.session_state.daily_logs = []
         return []
     except Exception as e:
-        st.warning(f"⚠️ ไม่สามารถดึงบันทึกกิจกรรมฟาร์มจากคลาวด์ได้: {e}")
+        st.warning(f"⚠️ ไม่สามารถดึงบันทึกกิจกรรมฟาร์มได้: {e}")
         return []
 
 def save_daily_log_to_supabase(log_data):
@@ -995,7 +995,7 @@ def fetch_user_profiles_from_supabase():
         }
         return profiles
     except Exception as e:
-        st.warning(f"⚠️ ไม่สามารถดึงรายชื่อผู้ใช้งานจาก Supabase ได้: {e}")
+        st.warning(f"⚠️ ไม่สามารถดึงรายชื่อผู้ใช้งานจาก ระบบ ได้: {e}")
         return []
 
 def upsert_user_profile(email, first_name="", last_name="", phone="", role="user"):
@@ -1068,7 +1068,7 @@ def disable_user_profile(email):
 def run_ai_solver(nutrient_targets):
     """
     สมองกลคำนวณสูตรอาหารต้นทุนต่ำสุด (Linear Programming)
-    โดยดึงข้อจำกัด (Constraints) มาจากตารางมาตรฐานโภชนาการบน Supabase 100%
+    โดยดึงข้อจำกัด (Constraints) มาจากตารางมาตรฐานโภชนาการบน ระบบ 100%
     """
     if not nutrient_targets:
         st.error("❌ ไม่สามารถคำนวณได้เนื่องจากไม่มีข้อมูลเกณฑ์เป้าหมายโภชนาการ")
@@ -1076,17 +1076,17 @@ def run_ai_solver(nutrient_targets):
 
     prob = pulp.LpProblem("AI_Layer_Nutrition_Solver", pulp.LpMinimize)
     
-    # ดึงวัตถุดิบปัจจุบันจากคลังใน Supabase
+    # ดึงวัตถุดิบปัจจุบันจากคลังใน ระบบ
     current_ingredients = fetch_ingredients_from_supabase()
     if not current_ingredients:
-        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ Supabase ไม่สามารถคำนวณได้")
+        st.error("❌ ไม่พบข้อมูลวัตถุดิบในระบบ จึงยังคำนวณไม่ได้")
         return {}
 
     def make_lp_var_name(name):
         safe_name = re.sub(r"[^0-9A-Za-z_]+", "_", str(name)).strip("_")
         return safe_name or "ingredient"
 
-    # กำหนดตัวแปรสำหรับสัดส่วนผสมวัตถุดิบแต่ละชนิด (LowBound - UpBound อิงตามที่ตั้งไว้ในฐานข้อมูล)
+    # กำหนดตัวแปรสำหรับสัดส่วนผสมวัตถุดิบแต่ละชนิด (LowBound - UpBound อิงตามที่ตั้งไว้ในระบบ)
     ing_vars = {
         name: pulp.LpVariable(
             f"ing_{idx}_{make_lp_var_name(name)}",
@@ -1107,7 +1107,7 @@ def run_ai_solver(nutrient_targets):
     # Constraint 1: สัดส่วนผสมของวัตถุดิบทุกชนิดรวมกันต้องได้ 100% พอดี
     prob += pulp.lpSum([ing_vars[name] for name in current_ingredients.keys()]) == 1.0, "Total_Weight_100_Percent"
     
-    # Constraints 2-8: ผูกข้อจำกัดสารอาหารตามค่าที่ดึงมาจาก Supabase จริง
+    # Constraints 2-8: ผูกข้อจำกัดสารอาหารตามค่าที่ดึงมาจาก ระบบ จริง
     prob += pulp.lpSum([ing_vars[name] * float(d["protein"]) for name, d in current_ingredients.items()]) + s_p >= nutrient_targets["min_protein"]
     prob += pulp.lpSum([ing_vars[name] * float(d["me"]) for name, d in current_ingredients.items()]) + s_m >= nutrient_targets["min_me"]
     
@@ -1230,7 +1230,7 @@ if not st.session_state.is_authenticated:
                 st.info("คุณสามารถตั้งรหัสผ่านใหม่จากหน้านี้ได้เลย โดยกรอกอีเมลและเบอร์โทรที่ใช้สมัครไว้")
             else:
                 st.warning("หน้านี้ใช้สำหรับตั้งรหัสผ่านใหม่หลังจากกดลิงก์ในอีเมลเท่านั้น")
-                st.info("ถ้าลิงก์หมดอายุหรือเข้าอีเมลไม่ได้ ให้กรอกข้อมูลด้านล่างเพื่อเปลี่ยนรหัสผ่านโดยยืนยันกับฐานข้อมูล")
+                st.info("ถ้าลิงก์หมดอายุหรือเข้าอีเมลไม่ได้ ให้กรอกข้อมูลด้านล่างเพื่อเปลี่ยนรหัสผ่านโดยยืนยันกับระบบ")
 
             direct_reset_email = st.text_input("📧 อีเมลบัญชีผู้ใช้:", key="reset_direct_email").strip().lower()
             direct_reset_phone = st.text_input("📞 เบอร์โทรศัพท์ที่ใช้สมัคร:", key="reset_direct_phone")
@@ -1413,7 +1413,7 @@ if not st.session_state.is_authenticated:
                     except Exception as error:
                         error_msg = str(error).lower()
                         if "name or service not known" in error_msg or "temporary failure in name resolution" in error_msg:
-                            st.error("🌐 ไม่สามารถเชื่อมต่ออินเทอร์เน็ตหรือเซิร์ฟเวอร์ฐานข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ")
+                            st.error("🌐 ไม่สามารถเชื่อมต่ออินเทอร์เน็ตหรือเซิร์ฟเวอร์ระบบได้ กรุณาตรวจสอบการเชื่อมต่อ")
                         elif "invalid login credentials" in error_msg or "bad credentials" in error_msg:
                             st.error("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบข้อมูลอีกครั้ง")
                         else:
@@ -1650,7 +1650,7 @@ if st.session_state.user_role == "admin":
 
         with n_col2:
             st.markdown("### ลบสารอาหาร")
-            render_hint("เลือกสารอาหารที่ไม่ต้องการใช้ แล้วติ๊กยืนยันก่อนลบออกจาก Supabase")
+            render_hint("เลือกสารอาหารที่ไม่ต้องการใช้ แล้วติ๊กยืนยันก่อนลบออกจากรายการ")
             removable_nutrients = [
                 key for key, data in st.session_state.db_nutrient_keys.items()
                 if key
@@ -1661,12 +1661,12 @@ if st.session_state.user_role == "admin":
                     removable_nutrients,
                     format_func=lambda key: st.session_state.db_nutrient_keys[key]["label"],
                 )
-                confirm_delete_nutrient = st.checkbox("ยืนยันว่าต้องการลบสารอาหารนี้ออกจาก Supabase ถาวร")
-                if st.button("ลบสารอาหารจาก Supabase", type="secondary", use_container_width=True, disabled=not confirm_delete_nutrient):
+                confirm_delete_nutrient = st.checkbox("ยืนยันว่าต้องการลบสารอาหารนี้ถาวร")
+                if st.button("ลบสารอาหารนี้", type="secondary", use_container_width=True, disabled=not confirm_delete_nutrient):
                     try:
                         label = st.session_state.db_nutrient_keys[nutrient_to_delete]["label"]
                         delete_nutrient_definition_from_supabase(nutrient_to_delete)
-                        st.success(f"ลบสารอาหาร '{label}' ออกจาก Supabase แล้ว")
+                        st.success(f"ลบสารอาหาร '{label}' แล้ว")
                         st.rerun()
                     except Exception as e:
                         st.error(f"ลบสารอาหารไม่สำเร็จ: {e}")
@@ -1727,7 +1727,7 @@ if st.session_state.user_role == "admin":
                     if edit_ing_min > edit_ing_max:
                         st.error("❌ ข้อผิดพลาด: สัดส่วนต่ำสุด (% Min) ห้ามมากกว่าสัดส่วนสูงสุด (% Max)")
                     else:
-                        # ⚡ ซิงค์ความถาวรลง Supabase Cloud Database แบบเรียลไทม์
+                        # ⚡ ซิงค์ความถาวรลง ระบบ แบบเรียลไทม์
                         try:
                             owner_email = get_ingredient_owner_for_write(target_ing)
                             payload = {"name": selected_ing_edit, "min_limit": edit_ing_min, "max_limit": edit_ing_max, "owner_email": owner_email}
@@ -1737,7 +1737,7 @@ if st.session_state.user_role == "admin":
                             fetch_ingredients_from_supabase()
                             st.session_state.pop("auto_formula_context", None)
                             st.session_state.current_weights = {}
-                            st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' ลงระบบคลาวด์เรียบร้อยแล้ว")
+                            st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' ลงระบบระบบเรียบร้อยแล้ว")
                             st.rerun()
                         except Exception as cloud_err:
                             st.error(f"❌ บันทึกวัตถุดิบไม่สำเร็จ: {cloud_err}")
@@ -1779,14 +1779,14 @@ if st.session_state.user_role == "admin":
                             fetch_ingredients_from_supabase()
                             st.session_state.pop("auto_formula_context", None)
                             st.session_state.current_weights = {}
-                            st.success(f"🎉 นำเข้า '{ing_name}' สู่คลาวด์ฐานข้อมูลเรียบร้อย!")
+                            st.success(f"🎉 นำเข้า '{ing_name}' เข้าสู่ระบบเรียบร้อย!")
                             st.rerun()
                         except Exception as cloud_err:
                             st.error(f"❌ เพิ่มวัตถุดิบไม่สำเร็จ: {cloud_err}")
 
         elif crud_mode == "🗑️ ลบวัตถุดิบออก" and st.session_state.db_ingredients:
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
-            render_hint("เลือกรายการที่ไม่ใช้แล้ว การลบจะส่งคำสั่งไปที่ Supabase โดยตรง")
+            render_hint("เลือกรายการที่ไม่ใช้แล้ว เมื่อลบแล้วรายการนี้จะหายจากระบบทันที")
             to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
             if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
                 ingredient_to_delete = st.session_state.db_ingredients.get(to_del, {})
@@ -1831,7 +1831,7 @@ if st.session_state.user_role == "admin":
                     else: st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
         with bc2:
             st.markdown("### ❌ ลบข้อมูลสายพันธุ์")
-            render_hint("เลือกรายการสายพันธุ์ที่ต้องการลบ ระบบจะลบจาก Supabase ตามรหัสรายการ")
+            render_hint("เลือกรายการสายพันธุ์ที่ต้องการลบ ระบบจะลบจาก ระบบ ตามรหัสรายการ")
             with st.container(border=True):
                 if st.session_state.db_breeds:
                     breed_delete_options = {
@@ -1909,7 +1909,7 @@ if st.session_state.user_role == "admin":
     if selected_admin_page == "users":
         st.subheader("👤 สรุปบัญชีผู้ใช้งานในระบบ")
         render_hint("ใช้ตรวจรายชื่อผู้ใช้และเปลี่ยนสิทธิ์เป็นผู้ใช้ทั่วไปหรือผู้ดูแลระบบ")
-        if st.button("🔄 โหลดรายชื่อผู้ใช้จาก Supabase", use_container_width=True):
+        if st.button("🔄 โหลดรายชื่อผู้ใช้", use_container_width=True):
             fetch_user_profiles_from_supabase()
             st.rerun()
         fetch_user_profiles_from_supabase()
@@ -1930,7 +1930,7 @@ if st.session_state.user_role == "admin":
         if users_list:
             render_readable_table(pd.DataFrame(users_list))
         else:
-            st.info("ℹ️ ยังไม่มีข้อมูลในตาราง user_profiles กรุณารัน SQL sync_user_profiles.sql ใน Supabase ก่อน")
+            st.info("ℹ️ ยังไม่มีข้อมูลในตาราง user_profiles กรุณารัน SQL sync_user_profiles.sql ในระบบก่อน")
             
         st.markdown("---")
         uc1 = st.container()
@@ -2244,7 +2244,7 @@ else:
                         st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมายจาก Supabase ---
+        # --- ส่วนที่ 2: เลือกสายพันธุ์ และ ตั้งค่าโภชนาการเป้าหมายจาก ระบบ ---
         st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'><h3>2. ตั้งค่าเป้าหมายโภชนาการ</h3></div>", unsafe_allow_html=True)
         render_hint("เลือกกลุ่ม สายพันธุ์ และช่วงอายุ ระบบจะดึงเกณฑ์โภชนาการมาใช้คำนวณสูตรให้อัตโนมัติ")
@@ -2288,7 +2288,7 @@ else:
             st.session_state["selected_stage_label"] = selected_stage_label
             phase_query_name = selected_stage_key
 
-        # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก Supabase แบบ Real-time ---
+        # --- [แก้ไขแล้ว] เรียกใช้งานฟังก์ชันดึงค่าเกณฑ์โภชนาการจาก ระบบ แบบ Real-time ---
         nutrient_targets = fetch_nutrition_standards(selected_breed_id, selected_stage_label, selected_stage_key)
 
         if nutrient_targets:
@@ -2310,7 +2310,7 @@ else:
                 st.session_state["formula_slider_reset_version"] = st.session_state.get("formula_slider_reset_version", 0) + 1
                 st.session_state.current_weights = run_ai_solver(nutrient_targets)
 
-            # สร้างฟอร์มให้ผู้ใช้สามารถปรับแต่งค่าเป้าหมายได้เองโดยอิงค่าเริ่มต้นจาก Supabase
+            # สร้างฟอร์มให้ผู้ใช้สามารถปรับแต่งค่าเป้าหมายได้เองโดยอิงค่าเริ่มต้นจาก ระบบ
             target_input_reset_version = st.session_state.get("target_input_reset_version", 0)
             applied_target_values = st.session_state.get("applied_target_values", {})
             edit_p = float(applied_target_values.get("min_protein", st.session_state["base_req_protein"]))
@@ -2362,7 +2362,7 @@ else:
                             del st.session_state[slider_key]
                 st.rerun()
         else:
-            st.error(f"❌ ไม่พบเกณฑ์มาตรฐานโภชนาการสำหรับสายพันธุ์ {selected_b_name} ระยะ {selected_stage_label} ({selected_stage_key}) บนฐานข้อมูล")
+            st.error(f"❌ ไม่พบเกณฑ์มาตรฐานโภชนาการสำหรับสายพันธุ์ {selected_b_name} ระยะ {selected_stage_label} ({selected_stage_key}) บนระบบ")
         st.markdown("</div>", unsafe_allow_html=True)
 
         # --- ส่วนที่ 3: แถบปรับสัดส่วนอาหาร และตารางผลลัพธ์ด้านล่าง ---
@@ -2506,7 +2506,7 @@ else:
             st.markdown("<div class='section-title'><h3>4. ตรวจผลโภชนาการและบันทึกสูตร</h3></div>", unsafe_allow_html=True)
             render_hint("ตรวจว่าสูตรผ่านเกณฑ์โปรตีน พลังงาน แคลเซียม และฟอสฟอรัสหรือไม่ แล้วตั้งชื่อเพื่อบันทึกสูตร")
 
-            # แสดงเปรียบเทียบค่าเป้าหมายที่ดึงมาจากชุดข้อมูล Supabase จริง
+            # แสดงเปรียบเทียบค่าเป้าหมายที่ดึงมาจากชุดข้อมูล ระบบ จริง
             target_p_val = edit_p if nutrient_targets else 16.5
             target_m_val = edit_m if nutrient_targets else 2750
             target_c_val = edit_c if nutrient_targets else 3.80
@@ -2631,7 +2631,7 @@ else:
                 key="temp_slider",
             )
 
-            # ดึงค่าแนะนำปริมาณอาหารจริงแบบ Dynamic จากรายสายพันธุ์ที่เลือกไว้ในตาราง Supabase
+            # ดึงค่าแนะนำปริมาณอาหารจริงแบบ Dynamic จากรายสายพันธุ์ที่เลือกไว้ในตาราง ระบบ
             breed_default_feed = st.session_state.get("current_breed_default_feed", 114.0)
             recommended_feed = float(bird_count * breed_default_feed / 1000.0)
             feed_input_value = max(10.0, recommended_feed)
@@ -3084,3 +3084,6 @@ else:
         else:
             st.info("ยังไม่มีสูตรอาหารสำหรับทำใบสั่งผสม กรุณาไปหน้า 'คำนวณสูตรอาหาร' แล้วคำนวณหรือดึงสูตรที่บันทึกไว้ก่อน")
         st.markdown("</div>", unsafe_allow_html=True)
+
+
+
