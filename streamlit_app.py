@@ -2368,6 +2368,29 @@ else:
                     st.session_state.current_weights = run_ai_solver(nutrient_targets)
                     st.rerun()
 
+            current_total_pct = sum(float(value or 0.0) for value in st.session_state.current_weights.values())
+            st.markdown(
+                """
+                <div class="status-panel">
+                    <b>วิธีปรับสูตร</b><br>
+                    <span style="color:#cbd5e1;">
+                    ลากแถบของวัตถุดิบแต่ละตัวเพื่อเพิ่มหรือลดเปอร์เซ็นต์ ส่วนผสมรวมต้องเท่ากับ 100% ก่อนนำสูตรไปใช้จริง
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if abs(current_total_pct - 100.0) > 0.1:
+                st.markdown(
+                    f"<div style='background-color:#991b1b; padding:15px; border-radius:8px; font-size:18px; font-weight:bold; text-align:center; margin-bottom:16px;'>⚠️ สัดส่วนอาหารรวมได้: {current_total_pct:.1f}% (กรุณาลากแถบให้ครบ 100%)</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    "<div style='background-color:#065f46; padding:15px; border-radius:8px; font-size:18px; font-weight:bold; text-align:center; margin-bottom:16px;'>ส่วนผสมครบถ้วน 100% พร้อมตรวจผลโภชนาการ</div>",
+                    unsafe_allow_html=True,
+                )
+
             temp_weights = {}
             running_total = 0.0
             inclusion_limits = {
@@ -2407,18 +2430,6 @@ else:
 
                 temp_weights[name] = user_val
                 running_total += user_val
-
-            st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
-            if abs(running_total - 100.0) > 0.1:
-                st.markdown(
-                    f"<div style='background-color:#991b1b; padding:15px; border-radius:8px; font-size:18px; font-weight:bold; text-align:center;'>⚠️ สัดส่วนอาหารรวมได้: {running_total:.1f}% (กรุณาปรับให้ครบ 100%)</div>",
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    f"<div style='background-color:#065f46; padding:15px; border-radius:8px; font-size:18px; font-weight:bold; text-align:center;'>🟢 ส่วนผสมครบถ้วนสมบูรณ์ 100%</div>",
-                    unsafe_allow_html=True,
-                )
 
             st.session_state.current_weights = temp_weights
 
