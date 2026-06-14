@@ -1774,10 +1774,14 @@ if st.session_state.user_role == "admin":
                     removable_nutrients,
                     format_func=lambda key: st.session_state.db_nutrient_keys[key]["label"],
                 )
-                confirm_delete_nutrient = st.checkbox("ยืนยันว่าต้องการลบสารอาหารนี้ถาวร")
+                nutrient_delete_label = st.session_state.db_nutrient_keys[nutrient_to_delete]["label"]
+                confirm_delete_nutrient = st.checkbox(
+                    f"ยืนยันว่าต้องการลบ/ปิดใช้งาน '{nutrient_delete_label}'",
+                    key=f"confirm_delete_nutrient_{nutrient_to_delete}",
+                )
                 if st.button("ลบสารอาหารนี้", type="secondary", use_container_width=True, disabled=not confirm_delete_nutrient):
                     try:
-                        label = st.session_state.db_nutrient_keys[nutrient_to_delete]["label"]
+                        label = nutrient_delete_label
                         delete_nutrient_definition_from_supabase(nutrient_to_delete)
                         st.success(f"ลบสารอาหาร '{label}' แล้ว")
                         st.rerun()
@@ -1816,7 +1820,11 @@ if st.session_state.user_role == "admin":
                     for name in percent_suffix_names
                 ])
                 render_readable_table(preview_cleanup)
-                confirm_cleanup_names = st.checkbox("ยืนยันว่าต้องการล้างเปอร์เซ็นต์ท้ายชื่อวัตถุดิบเหล่านี้")
+                cleanup_confirm_key = "confirm_cleanup_percent_names_" + "_".join(sorted(percent_suffix_names))
+                confirm_cleanup_names = st.checkbox(
+                    "ยืนยันว่าต้องการล้างเปอร์เซ็นต์ท้ายชื่อวัตถุดิบตามรายการที่แสดง",
+                    key=cleanup_confirm_key,
+                )
                 if st.button("ล้างเปอร์เซ็นต์ท้ายชื่อวัตถุดิบ", type="secondary", use_container_width=True, disabled=not confirm_cleanup_names):
                     try:
                         cleaned_count = cleanup_ingredient_percent_names_in_supabase()
@@ -1922,7 +1930,11 @@ if st.session_state.user_role == "admin":
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
             render_hint("เลือกรายการที่ไม่ใช้แล้ว เมื่อลบแล้วรายการนี้จะหายจากระบบทันที")
             to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
-            if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
+            confirm_delete_ingredient = st.checkbox(
+                f"ยืนยันว่าต้องการลบวัตถุดิบ {to_del}",
+                key=f"confirm_delete_ingredient_{to_del}",
+            )
+            if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True, disabled=not confirm_delete_ingredient):
                 ingredient_to_delete = st.session_state.db_ingredients.get(to_del, {})
                 owner_email = get_ingredient_owner_for_write(ingredient_to_delete)
                 try:
@@ -2087,7 +2099,10 @@ if st.session_state.user_role == "admin":
                                 st.rerun()
 
                         st.markdown("### 🗑️ ลบ/ระงับบัญชีผู้ใช้")
-                        confirm_disable_user = st.checkbox("ยืนยันว่าต้องการลบ/ระงับบัญชีนี้", key="confirm_disable_user_profile")
+                        confirm_disable_user = st.checkbox(
+                            f"ยืนยันว่าต้องการลบ/ระงับบัญชี {selected_user_email}",
+                            key=f"confirm_disable_user_profile_{selected_user_email}",
+                        )
                         disable_self = selected_user_email.strip().lower() == SUPER_ADMIN_EMAIL
                         if disable_self:
                             st.warning("ไม่สามารถลบหรือระงับบัญชีแอดมินใหญ่ได้")
