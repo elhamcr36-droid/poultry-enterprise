@@ -2296,17 +2296,20 @@ else:
                 st.session_state["base_req_me"] = nutrient_targets["min_me"]
                 st.session_state["base_req_calcium"] = nutrient_targets["min_calcium"]
                 st.session_state["base_req_phos"] = nutrient_targets["min_phosphorus"]
+                st.session_state["target_input_reset_version"] = st.session_state.get("target_input_reset_version", 0) + 1
+                st.session_state["formula_slider_reset_version"] = st.session_state.get("formula_slider_reset_version", 0) + 1
 
             # สร้างฟอร์มให้ผู้ใช้สามารถปรับแต่งค่าเป้าหมายได้เองโดยอิงค่าเริ่มต้นจาก Supabase
+            target_input_reset_version = st.session_state.get("target_input_reset_version", 0)
             col_inp1, col_inp2, col_inp3, col_inp4 = st.columns(4)
             with col_inp1:
-                edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state["base_req_protein"]), step=0.1)
+                edit_p = st.number_input("🎯 โปรตีนเป้าหมาย (%):", min_value=5.0, value=float(st.session_state["base_req_protein"]), step=0.1, key=f"target_protein_{target_input_reset_version}")
             with col_inp2:
-                edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state["base_req_me"]), step=25.0)
+                edit_m = st.number_input("🎯 พลังงานเป้าหมาย (kcal/kg):", min_value=1000.0, value=float(st.session_state["base_req_me"]), step=25.0, key=f"target_me_{target_input_reset_version}")
             with col_inp3:
-                edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state["base_req_calcium"]), step=0.05)
+                edit_c = st.number_input("🎯 แคลเซียมเป้าหมาย (%):", min_value=0.5, value=float(st.session_state["base_req_calcium"]), step=0.05, key=f"target_calcium_{target_input_reset_version}")
             with col_inp4:
-                edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state["base_req_phos"]), step=0.02)
+                edit_ph = st.number_input("🎯 ฟอสฟอรัสเป้าหมาย (%):", min_value=0.1, value=float(st.session_state["base_req_phos"]), step=0.02, key=f"target_phos_{target_input_reset_version}")
 
             custom_targets = nutrient_targets.copy()
             custom_targets["min_protein"] = edit_p
@@ -2393,6 +2396,7 @@ else:
             # ปรับแบ่งตัว Slider วัตถุดิบเป็นคอลัมน์ละไม่เกิน 10 รายการ
             ing_keys = list(st.session_state.db_ingredients.keys())
             ingredient_columns = st.columns(max(1, min(4, (len(ing_keys) + 9) // 10)))
+            formula_slider_reset_version = st.session_state.get("formula_slider_reset_version", 0)
 
             for idx, name in enumerate(ing_keys):
                 d = st.session_state.db_ingredients[name]
@@ -2407,7 +2411,7 @@ else:
                         max_value=100.0,
                         value=saved_w,
                         step=0.1,
-                        key=f"sld_user_{name}",
+                        key=f"sld_user_{formula_slider_reset_version}_{name}",
                     )
                     if name in inclusion_limits and user_val > inclusion_limits[name]:
                         st.markdown(
@@ -2419,11 +2423,16 @@ else:
                 running_total += user_val
 
             st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-            if st.button("รีเซ็ตสัดส่วนวัตถุดิบเป็นค่าที่ระบบคำนวณ", use_container_width=True, key="reset_formula_weights") and nutrient_targets:
-                st.session_state.current_weights = run_ai_solver(custom_targets)
+            if st.button("รีเซ็ตค่าใหม่ทั้งหมดตาม AI คำนวณ", use_container_width=True, key="reset_formula_weights") and nutrient_targets:
+                reset_targets = nutrient_targets.copy()
+                st.session_state.current_weights = run_ai_solver(reset_targets)
+                st.session_state["target_input_reset_version"] = st.session_state.get("target_input_reset_version", 0) + 1
+                st.session_state["formula_slider_reset_version"] = st.session_state.get("formula_slider_reset_version", 0) + 1
                 for slider_key in list(st.session_state.keys()):
-                    if str(slider_key).startswith("sld_user_"):
+                    slider_key_text = str(slider_key)
+                    if slider_key_text.startswith("sld_user_") or slider_key_text.startswith("target_protein_") or slider_key_text.startswith("target_me_") or slider_key_text.startswith("target_calcium_") or slider_key_text.startswith("target_phos_"):
                         del st.session_state[slider_key]
+                st.session_state.pop("auto_formula_context", None)
                 st.session_state.pop("current_net_cost", None)
                 st.rerun()
 
