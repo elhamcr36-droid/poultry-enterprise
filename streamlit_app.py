@@ -1575,18 +1575,6 @@ if st.session_state.user_role == "admin":
     verified_admin_role = get_user_role_from_supabase(st.session_state.get("current_user_key", ""))
     if verified_admin_role != "admin":
         st.error("บัญชีนี้ยังไม่ได้รับสิทธิ์ admin ในตาราง user_profiles จึงอาจเพิ่ม/แก้/ลบข้อมูลกลางไม่ได้")
-    with st.expander("สถานะการเชื่อมต่อฐานข้อมูลสำหรับผู้ดูแล", expanded=False):
-        if st.button("รีเฟรชข้อมูลกลางจาก Supabase", use_container_width=True):
-            fetch_master_data_from_supabase()
-            fetch_ingredients_from_supabase()
-            fetch_nutrient_definitions_from_supabase()
-            fetch_user_profiles_from_supabase()
-            st.success("โหลดข้อมูลล่าสุดจาก Supabase แล้ว")
-            st.rerun()
-        debug_rows = st.session_state.get("master_load_debug", [])
-        if debug_rows:
-            render_readable_table(pd.DataFrame(debug_rows))
-        st.caption("ถ้ากดเพิ่ม/ลบ/แก้ไขแล้วยังไม่ได้ ให้รันไฟล์ supabase_admin_crud_policies.sql ใน Supabase SQL Editor ก่อน")
     
     st.markdown("<div class='center-menu-wrap'>", unsafe_allow_html=True)
     selected_admin_page = render_big_menu(
