@@ -2121,46 +2121,48 @@ else:
             st.markdown("<div class='section-title'><h3>แนวโน้มผลผลิตและกำไร</h3></div>", unsafe_allow_html=True)
             if logs_sorted:
                 trend_df = build_daily_logs_analysis(logs_sorted).tail(30)
+                trend_summary = (
+                    trend_df.assign(day=trend_df["date"].dt.date)
+                    .groupby("day", as_index=False)
+                    .agg({
+                        "collected_eggs": "sum",
+                        "net_profit_day": "sum",
+                    })
+                    .sort_values("day")
+                )
+                trend_summary["day_label"] = pd.to_datetime(trend_summary["day"]).dt.strftime("%d/%m")
 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=trend_df["date"],
-                    y=trend_df["collected_eggs"],
+                    x=trend_summary["day_label"],
+                    y=trend_summary["collected_eggs"],
                     mode="lines+markers",
-                    name="ไข่ (ฟอง)",
-                    line=dict(color="#38bdf8", width=3, shape="spline"),
-                    marker=dict(size=8),
+                    name="ไข่รวม (ฟอง)",
+                    line=dict(color="#38bdf8", width=3),
+                    marker=dict(size=9),
+                    hovertemplate="วันที่ %{x}<br>ไข่ %{y:,.0f} ฟอง<extra></extra>",
                 ))
                 fig.add_trace(go.Scatter(
-                    x=trend_df["date"],
-                    y=trend_df["net_profit_day"],
+                    x=trend_summary["day_label"],
+                    y=trend_summary["net_profit_day"],
                     name="กำไรสุทธิ (บาท)",
                     mode="lines+markers",
-                    line=dict(color="#22c55e", width=3, shape="spline"),
-                    marker=dict(size=8),
+                    line=dict(color="#22c55e", width=3),
+                    marker=dict(size=9),
                     yaxis="y2",
-                ))
-                fig.add_trace(go.Scatter(
-                    x=trend_df["date"],
-                    y=trend_df["henday_pct"],
-                    name="Hen-day (%)",
-                    mode="lines+markers",
-                    line=dict(color="#fbbf24", width=2, dash="dot"),
-                    marker=dict(size=7),
-                    yaxis="y3",
+                    hovertemplate="วันที่ %{x}<br>กำไร %{y:,.0f} บาท<extra></extra>",
                 ))
                 fig.update_layout(
-                    height=390,
+                    height=340,
                     margin=dict(l=10, r=10, t=10, b=10),
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(15,23,42,0.35)",
                     font=dict(color="#e2e8f0"),
-                    legend=dict(orientation="h", y=1.08),
+                    legend=dict(orientation="h", y=1.10),
                     hovermode="x unified",
-                    xaxis=dict(title="วันที่", gridcolor="rgba(148,163,184,0.12)"),
-                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)"),
-                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", gridcolor="rgba(0,0,0,0)"),
-                    yaxis3=dict(title="Hen-day", overlaying="y", side="right", position=0.94, showgrid=False, visible=False),
+                    xaxis=dict(title="วันที่", type="category", gridcolor="rgba(148,163,184,0.12)"),
+                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)", rangemode="tozero"),
+                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", showgrid=False, zeroline=True, zerolinecolor="rgba(248,250,252,0.35)"),
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
