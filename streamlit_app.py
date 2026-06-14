@@ -620,16 +620,23 @@ def fetch_nutrient_definitions_from_supabase():
         return []
 
 def add_nutrient_definition_to_supabase(nutrient_key, label, step, default_value=0.0):
+    nutrient_key = nutrient_key.strip().lower()
     payload = {
-        "nutrient_key": nutrient_key.strip().lower(),
+        "nutrient_key": nutrient_key,
         "label": label.strip(),
         "step": float(step),
         "default_value": float(default_value),
         "is_active": True,
-        "is_core": False,
         "display_order": len(st.session_state.get("db_nutrient_keys", {})) + 1,
     }
-    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "insert", payload)
+    existing_response = supabase.table(NUTRIENT_DEFINITIONS_TABLE).select("id,is_core").eq("nutrient_key", nutrient_key).limit(1).execute()
+    if existing_response.data:
+        existing = existing_response.data[0]
+        payload["is_core"] = bool(existing.get("is_core", False))
+        supabase.table(NUTRIENT_DEFINITIONS_TABLE).update(payload).eq("id", existing["id"]).execute()
+    else:
+        payload["is_core"] = False
+        supabase.table(NUTRIENT_DEFINITIONS_TABLE).insert(payload).execute()
     fetch_nutrient_definitions_from_supabase()
     return True
 
@@ -648,7 +655,7 @@ def update_nutrient_definition_in_supabase(nutrient_key, label, step, default_va
 def delete_nutrient_definition_from_supabase(nutrient_key):
     data = st.session_state.db_nutrient_keys.get(nutrient_key, {})
     filters = {"id": data.get("id")} if data.get("id") else {"nutrient_key": nutrient_key}
-    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "delete", filters=filters)
+    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "update", {"is_active": False}, filters=filters)
     fetch_nutrient_definitions_from_supabase()
     return True
 
