@@ -1622,8 +1622,6 @@ if st.session_state.user_role == "admin":
         nutrient_error = st.session_state.get("nutrient_definitions_error")
         if nutrient_error:
             st.warning(f"ยังเชื่อมตารางสารอาหารไม่ได้: {nutrient_error}")
-        elif st.session_state.get("nutrient_definitions_loaded_from_db"):
-            st.success("เชื่อมต่อรายการสารอาหารจาก Supabase แล้ว")
 
         df_nutrients = pd.DataFrame([
             {
@@ -2773,7 +2771,7 @@ else:
             unsafe_allow_html=True,
         )
         st.markdown("<div class='section-title'><h3>4. ประวัติฟาร์มย้อนหลัง</h3></div>", unsafe_allow_html=True)
-        render_hint("เลือกช่วงวันที่เพื่อดูสรุปย้อนหลัง กราฟ และเปรียบเทียบวันต่อวัน")
+        render_hint("เลือกจากวันที่เริ่มต้นถึงวันที่สิ้นสุด เพื่อดูสรุปย้อนหลัง กราฟ และเปรียบเทียบวันต่อวัน")
         if not st.session_state.daily_logs:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
@@ -2797,9 +2795,11 @@ else:
             max_log_date = date_values.max().date() if not date_values.empty else datetime.date.today()
             filter_col1, filter_col2 = st.columns(2)
             with filter_col1:
-                history_start = st.date_input("ตั้งแต่วันที่", value=min_log_date, key="history_start_date")
+                history_start = st.date_input("จากวันที่", value=min_log_date, key="history_start_date")
             with filter_col2:
                 history_end = st.date_input("ถึงวันที่", value=max_log_date, key="history_end_date")
+
+            st.caption(f"กำลังแสดงข้อมูลจากวันที่ {history_start.strftime('%Y-%m-%d')} ถึงวันที่ {history_end.strftime('%Y-%m-%d')}")
 
             filtered_df = analysis_df[
                 (analysis_df["date"].dt.date >= history_start)
