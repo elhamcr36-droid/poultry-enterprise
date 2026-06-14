@@ -1615,22 +1615,22 @@ if st.session_state.user_role == "admin":
     selected_admin_page = render_big_menu(
         "selected_admin_page",
         [
-            {"id": "nutrients", "label": "สารอาหาร"},
-            {"id": "ingredients", "label": "วัตถุดิบ"},
-            {"id": "breeds", "label": "สายพันธุ์"},
-            {"id": "targets", "label": "เกณฑ์อาหาร"},
-            {"id": "users", "label": "ผู้ใช้งาน"},
+            {"id": "nutrients", "label": "ข้อมูลสารอาหาร"},
+            {"id": "ingredients", "label": "ข้อมูลวัตถุดิบ"},
+            {"id": "breeds", "label": "ข้อมูลสายพันธุ์"},
+            {"id": "targets", "label": "ข้อมูลเกณฑ์อาหาร"},
+            {"id": "users", "label": "ข้อมูลผู้ใช้งาน"},
         ],
         columns_per_row=3,
     )
     st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
     admin_page_info = {
-        "nutrients": ("สารอาหาร", "เพิ่ม ลบ หรือดูหัวข้อสารอาหารที่ใช้ในสูตรอาหาร"),
-        "ingredients": ("วัตถุดิบ", "จัดการวัตถุดิบ ราคา และค่าทางโภชนาการ"),
-        "breeds": ("สายพันธุ์", "เพิ่มหรือแก้ไขข้อมูลสายพันธุ์ไก่ไข่"),
-        "targets": ("เกณฑ์อาหาร", "ตั้งค่าเกณฑ์โภชนาการตามช่วงอายุ"),
-        "users": ("ผู้ใช้งาน", "ดูรายชื่อและเปลี่ยนสิทธิ์ผู้ใช้งาน"),
+        "nutrients": ("ข้อมูลสารอาหาร", "เพิ่ม ลบ หรือดูหัวข้อสารอาหารที่ใช้ในสูตรอาหาร"),
+        "ingredients": ("ข้อมูลวัตถุดิบ", "จัดการวัตถุดิบ ราคา และค่าทางโภชนาการ"),
+        "breeds": ("ข้อมูลสายพันธุ์", "เพิ่มหรือแก้ไขข้อมูลสายพันธุ์ไก่ไข่"),
+        "targets": ("ข้อมูลเกณฑ์อาหาร", "ตั้งค่าเกณฑ์โภชนาการตามช่วงอายุ"),
+        "users": ("ข้อมูลผู้ใช้งาน", "ดูรายชื่อและเปลี่ยนสิทธิ์ผู้ใช้งาน"),
     }
     admin_title, admin_subtitle = admin_page_info[selected_admin_page]
     st.markdown(
