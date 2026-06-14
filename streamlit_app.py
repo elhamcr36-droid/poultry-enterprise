@@ -490,6 +490,7 @@ SAVED_FORMULAS_TABLE = "saved_formulas"
 DAILY_LOGS_TABLE = "daily_logs"
 DAILY_LOG_USER_COLUMN = "user_id"
 USER_PROFILES_TABLE = "user_profiles"
+NUTRIENT_DEFINITIONS_TABLE = "nutrient_definitions"
 MASTER_TABLE_CANDIDATES = {
     "groups": ["db_groups", "groups"],
     "breeds": ["db_breeds", "breeds"],
@@ -522,6 +523,50 @@ def table_mutation(table_name, action, payload=None, filters=None):
         if value is not None and value != "":
             query = query.eq(column, value)
     return query.execute()
+
+def fetch_nutrient_definitions_from_supabase():
+    try:
+        response = supabase.table(NUTRIENT_DEFINITIONS_TABLE).select("*").eq("is_active", True).order("display_order").execute()
+        rows = response.data or []
+        if rows:
+            st.session_state.db_nutrient_keys = {
+                row["nutrient_key"]: {
+                    "label": row.get("label", row["nutrient_key"]),
+                    "step": float(row.get("step", 0.1) or 0.1),
+                    "default": float(row.get("default_value", 0.0) or 0.0),
+                    "id": row.get("id"),
+                    "is_core": bool(row.get("is_core", False)),
+                }
+                for row in rows
+                if row.get("nutrient_key")
+            }
+        return rows
+    except Exception as e:
+        st.session_state.nutrient_definitions_error = str(e)
+        return []
+
+def add_nutrient_definition_to_supabase(nutrient_key, label, step, default_value=0.0):
+    payload = {
+        "nutrient_key": nutrient_key.strip().lower(),
+        "label": label.strip(),
+        "step": float(step),
+        "default_value": float(default_value),
+        "is_active": True,
+        "is_core": False,
+        "display_order": len(st.session_state.get("db_nutrient_keys", {})) + 1,
+    }
+    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "insert", payload)
+    fetch_nutrient_definitions_from_supabase()
+    return True
+
+def delete_nutrient_definition_from_supabase(nutrient_key):
+    data = st.session_state.db_nutrient_keys.get(nutrient_key, {})
+    if data.get("is_core"):
+        raise ValueError("สารอาหารหลักของระบบไม่สามารถลบได้")
+    filters = {"id": data.get("id")} if data.get("id") else {"nutrient_key": nutrient_key}
+    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "update", {"is_active": False}, filters)
+    fetch_nutrient_definitions_from_supabase()
+    return True
 
 def fetch_first_available_table(table_key):
     if "master_load_debug" not in st.session_state:
@@ -1408,6 +1453,7 @@ if not st.session_state.is_authenticated:
 # 🔥 โหลดข้อมูลวัตถุดิบเริ่มต้นหลังจากผู้ใช้งานผ่านประตูความปลอดภัยเข้าสู่ระบบเรียบร้อยแล้ว เท่านั้น
 fetch_master_data_from_supabase()
 ingredients = fetch_ingredients_from_supabase()
+fetch_nutrient_definitions_from_supabase()
 
 # ==========================================
 # 🎉 5. HEADER CONTROL PANEL
@@ -1466,6 +1512,7 @@ if st.session_state.user_role == "admin":
         if st.button("รีเฟรชข้อมูลกลางจาก Supabase", use_container_width=True):
             fetch_master_data_from_supabase()
             fetch_ingredients_from_supabase()
+            fetch_nutrient_definitions_from_supabase()
             fetch_user_profiles_from_supabase()
             st.success("โหลดข้อมูลล่าสุดจาก Supabase แล้ว")
             st.rerun()
@@ -1503,13 +1550,70 @@ if st.session_state.user_role == "admin":
     
     # --- แท็บที่ 0: ดูสารอาหารที่ระบบรองรับ ---
     if selected_admin_page == "nutrients":
-        st.subheader("สารอาหารที่ระบบใช้คำนวณ")
+        st.subheader("จัดการสารอาหาร")
+        nutrient_error = st.session_state.get("nutrient_definitions_error")
+        if nutrient_error:
+            st.warning(f"ยังเชื่อมตารางสารอาหารไม่ได้: {nutrient_error}")
+
         df_nutrients = pd.DataFrame([
-            {"รหัสข้อมูล": k, "ชื่อที่แสดง": v["label"], "หน่วย/ความละเอียด": v["step"]}
+            {
+                "รหัสข้อมูล": k,
+                "ชื่อที่แสดง": v["label"],
+                "หน่วย/ความละเอียด": v["step"],
+                "ประเภท": "สารอาหารหลัก" if v.get("is_core") else "เพิ่มเอง",
+            }
             for k, v in st.session_state.db_nutrient_keys.items()
         ])
         render_readable_table(df_nutrients)
-        st.info("ถ้าต้องการแก้ค่าของสารอาหารแต่ละรายการ ให้ไปที่หน้า วัตถุดิบ หรือ เกณฑ์อาหาร")
+
+        n_col1, n_col2 = st.columns(2, gap="large")
+        with n_col1:
+            st.markdown("### เพิ่มสารอาหาร")
+            with st.form("form_add_nutrient_definition"):
+                new_nut_key = st.text_input("รหัสข้อมูล", placeholder="เช่น fat, ash, sodium").strip().lower()
+                new_nut_label = st.text_input("ชื่อที่แสดง", placeholder="เช่น ไขมันดิบ (%)")
+                new_nut_step = st.number_input("ความละเอียดในการกรอกค่า", min_value=0.001, max_value=1000.0, value=0.1, format="%.3f")
+                new_nut_default = st.number_input("ค่าเริ่มต้น", min_value=0.0, value=0.0, step=0.1)
+                add_nutrient = st.form_submit_button("บันทึกสารอาหารใหม่", type="primary", use_container_width=True)
+
+            if add_nutrient:
+                if not new_nut_key or not new_nut_label:
+                    st.error("กรุณากรอกรหัสข้อมูลและชื่อที่แสดง")
+                elif not re.match(r"^[a-z][a-z0-9_]*$", new_nut_key):
+                    st.error("รหัสข้อมูลต้องเป็นภาษาอังกฤษตัวเล็ก ตัวเลข หรือ _ และต้องขึ้นต้นด้วยตัวอักษร")
+                elif new_nut_key in st.session_state.db_nutrient_keys:
+                    st.error("รหัสข้อมูลนี้มีอยู่แล้ว")
+                else:
+                    try:
+                        add_nutrient_definition_to_supabase(new_nut_key, new_nut_label, new_nut_step, new_nut_default)
+                        st.success(f"เพิ่มสารอาหาร '{new_nut_label}' แล้ว")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"เพิ่มสารอาหารไม่สำเร็จ: {e}")
+
+        with n_col2:
+            st.markdown("### ลบสารอาหาร")
+            removable_nutrients = [
+                key for key, data in st.session_state.db_nutrient_keys.items()
+                if not data.get("is_core") and key != "price"
+            ]
+            if removable_nutrients:
+                nutrient_to_delete = st.selectbox(
+                    "เลือกสารอาหารที่ต้องการลบ",
+                    removable_nutrients,
+                    format_func=lambda key: st.session_state.db_nutrient_keys[key]["label"],
+                )
+                confirm_delete_nutrient = st.checkbox("ยืนยันว่าต้องการลบสารอาหารนี้")
+                if st.button("ลบสารอาหาร", type="secondary", use_container_width=True, disabled=not confirm_delete_nutrient):
+                    try:
+                        label = st.session_state.db_nutrient_keys[nutrient_to_delete]["label"]
+                        delete_nutrient_definition_from_supabase(nutrient_to_delete)
+                        st.success(f"ลบสารอาหาร '{label}' แล้ว")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"ลบสารอาหารไม่สำเร็จ: {e}")
+            else:
+                st.info("ยังไม่มีสารอาหารที่เพิ่มเองให้ลบ")
 
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
     if selected_admin_page == "ingredients":
