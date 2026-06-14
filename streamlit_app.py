@@ -116,6 +116,56 @@ def build_daily_logs_display(logs):
     df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce").dt.strftime("%Y-%m-%d")
     return df
 
+def build_daily_logs_analysis(logs):
+    df = pd.DataFrame(logs or [])
+    if df.empty:
+        return df
+
+    df["date"] = pd.to_datetime(df.get("date"), errors="coerce")
+    numeric_cols = [
+        "flock_age_weeks",
+        "bird_count",
+        "env_temp",
+        "actual_feed_given_kg",
+        "collected_eggs",
+        "egg_sale_price",
+        "dead_birds",
+        "avg_egg_weight_g",
+        "total_revenue",
+        "total_feed_cost",
+        "net_profit_day",
+        "henday_pct",
+        "fcr_ratio",
+    ]
+    for col in numeric_cols:
+        if col not in df.columns:
+            df[col] = 0
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    df["cost_per_egg"] = df.apply(
+        lambda row: (row["total_feed_cost"] / row["collected_eggs"]) if row["collected_eggs"] > 0 else 0,
+        axis=1,
+    )
+    sort_cols = [col for col in ["date", "created_at", "id"] if col in df.columns]
+    return df.sort_values(sort_cols, ascending=True, na_position="last") if sort_cols else df
+
+def render_comparison_metric(label, left_value, right_value, suffix="", decimals=2, lower_is_better=False):
+    diff = right_value - left_value
+    good = diff <= 0 if lower_is_better else diff >= 0
+    color = "#22c55e" if good else "#f87171"
+    sign = "+" if diff > 0 else ""
+    st.markdown(
+        f"""
+        <div class="status-panel">
+            <b>{label}</b><br>
+            <span style="color:#cbd5e1;">วันแรก: {left_value:,.{decimals}f}{suffix}</span><br>
+            <span style="color:#cbd5e1;">วันเทียบ: {right_value:,.{decimals}f}{suffix}</span><br>
+            <span style="color:{color}; font-weight:800;">ผลต่าง: {sign}{diff:,.{decimals}f}{suffix}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 def render_readable_table(data, *, column_order=None, column_labels=None, column_config=None, height=None):
     """Show tables with farmer-friendly Thai column names instead of database field names."""
     if isinstance(data, pd.DataFrame):
@@ -564,7 +614,7 @@ def delete_nutrient_definition_from_supabase(nutrient_key):
     if data.get("is_core"):
         raise ValueError("สารอาหารหลักของระบบไม่สามารถลบได้")
     filters = {"id": data.get("id")} if data.get("id") else {"nutrient_key": nutrient_key}
-    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "update", {"is_active": False}, filters)
+    table_mutation(NUTRIENT_DEFINITIONS_TABLE, "delete", filters=filters)
     fetch_nutrient_definitions_from_supabase()
     return True
 
@@ -1603,12 +1653,12 @@ if st.session_state.user_role == "admin":
                     removable_nutrients,
                     format_func=lambda key: st.session_state.db_nutrient_keys[key]["label"],
                 )
-                confirm_delete_nutrient = st.checkbox("ยืนยันว่าต้องการลบสารอาหารนี้")
-                if st.button("ลบสารอาหาร", type="secondary", use_container_width=True, disabled=not confirm_delete_nutrient):
+                confirm_delete_nutrient = st.checkbox("ยืนยันว่าต้องการลบสารอาหารนี้ออกจาก Supabase ถาวร")
+                if st.button("ลบสารอาหารจาก Supabase", type="secondary", use_container_width=True, disabled=not confirm_delete_nutrient):
                     try:
                         label = st.session_state.db_nutrient_keys[nutrient_to_delete]["label"]
                         delete_nutrient_definition_from_supabase(nutrient_to_delete)
-                        st.success(f"ลบสารอาหาร '{label}' แล้ว")
+                        st.success(f"ลบสารอาหาร '{label}' ออกจาก Supabase แล้ว")
                         st.rerun()
                     except Exception as e:
                         st.error(f"ลบสารอาหารไม่สำเร็จ: {e}")
@@ -1937,6 +1987,7 @@ else:
                 border-radius: 8px;
                 padding: 16px;
                 min-height: 128px;
+                margin-bottom: 18px;
             }
             .ops-kpi .label {
                 color: #94a3b8 !important;
@@ -2060,18 +2111,13 @@ else:
                 unsafe_allow_html=True,
             )
 
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
         dash_left, dash_right = st.columns([1.35, 0.85], gap="large")
         with dash_left:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'><h3>แนวโน้มผลผลิตและกำไร</h3></div>", unsafe_allow_html=True)
             if logs_sorted:
-                trend_df = pd.DataFrame(logs_sorted).copy()
-                trend_df["date"] = pd.to_datetime(trend_df["date"], errors="coerce")
-                trend_df = trend_df.sort_values("date").tail(30)
-                for col in ["collected_eggs", "net_profit_day", "henday_pct"]:
-                    if col not in trend_df.columns:
-                        trend_df[col] = 0
-                    trend_df[col] = pd.to_numeric(trend_df[col], errors="coerce").fillna(0)
+                trend_df = build_daily_logs_analysis(logs_sorted).tail(30)
 
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
@@ -2079,25 +2125,39 @@ else:
                     y=trend_df["collected_eggs"],
                     mode="lines+markers",
                     name="ไข่ (ฟอง)",
-                    line=dict(color="#38bdf8", width=3),
+                    line=dict(color="#38bdf8", width=3, shape="spline"),
+                    marker=dict(size=8),
                 ))
-                fig.add_trace(go.Bar(
+                fig.add_trace(go.Scatter(
                     x=trend_df["date"],
                     y=trend_df["net_profit_day"],
                     name="กำไรสุทธิ (บาท)",
-                    marker_color="#22c55e",
-                    opacity=0.45,
+                    mode="lines+markers",
+                    line=dict(color="#22c55e", width=3, shape="spline"),
+                    marker=dict(size=8),
                     yaxis="y2",
                 ))
+                fig.add_trace(go.Scatter(
+                    x=trend_df["date"],
+                    y=trend_df["henday_pct"],
+                    name="Hen-day (%)",
+                    mode="lines+markers",
+                    line=dict(color="#fbbf24", width=2, dash="dot"),
+                    marker=dict(size=7),
+                    yaxis="y3",
+                ))
                 fig.update_layout(
-                    height=360,
+                    height=390,
                     margin=dict(l=10, r=10, t=10, b=10),
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(15,23,42,0.35)",
                     font=dict(color="#e2e8f0"),
                     legend=dict(orientation="h", y=1.08),
-                    yaxis=dict(title="ไข่", gridcolor="rgba(148,163,184,0.18)"),
-                    yaxis2=dict(title="กำไร", overlaying="y", side="right", gridcolor="rgba(0,0,0,0)"),
+                    hovermode="x unified",
+                    xaxis=dict(title="วันที่", gridcolor="rgba(148,163,184,0.12)"),
+                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)"),
+                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", gridcolor="rgba(0,0,0,0)"),
+                    yaxis3=dict(title="Hen-day", overlaying="y", side="right", position=0.94, showgrid=False, visible=False),
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -2664,7 +2724,8 @@ else:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
             latest_logs = sort_daily_logs_latest_first(st.session_state.daily_logs)
-            display_logs_df = build_daily_logs_display(st.session_state.daily_logs)
+            filtered_logs = latest_logs
+            analysis_df = build_daily_logs_analysis(latest_logs)
             latest_log = latest_logs[0] if latest_logs else None
             if latest_log is not None:
                 kpi1, kpi2, kpi3 = st.columns(3)
@@ -2674,6 +2735,109 @@ else:
                     st.metric("รายได้ล่าสุด", f"{float(latest_log.get('total_revenue') or 0):,.2f} บาท")
                 with kpi3:
                     st.metric("กำไรสุทธิล่าสุด", f"{float(latest_log.get('net_profit_day') or 0):,.2f} บาท")
+
+            st.markdown("#### วิเคราะห์ตามช่วงวันที่")
+            date_values = analysis_df["date"].dropna()
+            min_log_date = date_values.min().date() if not date_values.empty else datetime.date.today()
+            max_log_date = date_values.max().date() if not date_values.empty else datetime.date.today()
+            filter_col1, filter_col2 = st.columns(2)
+            with filter_col1:
+                history_start = st.date_input("ตั้งแต่วันที่", value=min_log_date, key="history_start_date")
+            with filter_col2:
+                history_end = st.date_input("ถึงวันที่", value=max_log_date, key="history_end_date")
+
+            filtered_df = analysis_df[
+                (analysis_df["date"].dt.date >= history_start)
+                & (analysis_df["date"].dt.date <= history_end)
+            ].copy()
+
+            if filtered_df.empty:
+                st.warning("ไม่พบข้อมูลในช่วงวันที่ที่เลือก")
+                display_logs_df = pd.DataFrame()
+            else:
+                summary_cols = st.columns(5)
+                with summary_cols[0]:
+                    st.metric("จำนวนวัน", f"{len(filtered_df):,} วัน")
+                with summary_cols[1]:
+                    st.metric("ไข่รวม", f"{filtered_df['collected_eggs'].sum():,.0f} ฟอง")
+                with summary_cols[2]:
+                    st.metric("รายได้รวม", f"{filtered_df['total_revenue'].sum():,.2f} บาท")
+                with summary_cols[3]:
+                    st.metric("กำไรรวม", f"{filtered_df['net_profit_day'].sum():,.2f} บาท")
+                with summary_cols[4]:
+                    st.metric("Hen-day เฉลี่ย", f"{filtered_df['henday_pct'].mean():,.1f}%")
+
+                history_fig = go.Figure()
+                history_fig.add_trace(go.Scatter(
+                    x=filtered_df["date"],
+                    y=filtered_df["collected_eggs"],
+                    mode="lines+markers",
+                    name="ไข่ (ฟอง)",
+                    line=dict(color="#38bdf8", width=3, shape="spline"),
+                    marker=dict(size=8),
+                ))
+                history_fig.add_trace(go.Scatter(
+                    x=filtered_df["date"],
+                    y=filtered_df["net_profit_day"],
+                    mode="lines+markers",
+                    name="กำไรสุทธิ (บาท)",
+                    line=dict(color="#22c55e", width=3, shape="spline"),
+                    marker=dict(size=8),
+                    yaxis="y2",
+                ))
+                history_fig.add_trace(go.Scatter(
+                    x=filtered_df["date"],
+                    y=filtered_df["fcr_ratio"],
+                    mode="lines+markers",
+                    name="FCR",
+                    line=dict(color="#f97316", width=2, dash="dot"),
+                    marker=dict(size=7),
+                    yaxis="y3",
+                ))
+                history_fig.update_layout(
+                    height=380,
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(15,23,42,0.35)",
+                    font=dict(color="#e2e8f0"),
+                    legend=dict(orientation="h", y=1.08),
+                    hovermode="x unified",
+                    xaxis=dict(title="วันที่", gridcolor="rgba(148,163,184,0.12)"),
+                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)"),
+                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", showgrid=False),
+                    yaxis3=dict(title="FCR", overlaying="y", side="right", position=0.94, visible=False, showgrid=False),
+                )
+                st.plotly_chart(history_fig, use_container_width=True)
+
+                st.markdown("#### เปรียบเทียบวันต่อวัน")
+                compare_options = {
+                    f"#{row.get('id', idx)} | {row['date'].date()} | ไข่ {int(row['collected_eggs']):,} ฟอง | กำไร {row['net_profit_day']:,.0f} บาท": idx
+                    for idx, row in filtered_df.sort_values("date", ascending=False).iterrows()
+                }
+                if len(compare_options) >= 2:
+                    compare_col1, compare_col2 = st.columns(2)
+                    option_labels = list(compare_options.keys())
+                    with compare_col1:
+                        compare_left_label = st.selectbox("เลือกวันแรก", option_labels, index=min(1, len(option_labels) - 1), key="compare_left_day")
+                    with compare_col2:
+                        compare_right_label = st.selectbox("เลือกวันเทียบ", option_labels, index=0, key="compare_right_day")
+
+                    left_row = filtered_df.loc[compare_options[compare_left_label]]
+                    right_row = filtered_df.loc[compare_options[compare_right_label]]
+                    cmp_cols = st.columns(4)
+                    with cmp_cols[0]:
+                        render_comparison_metric("ไข่ที่เก็บได้", left_row["collected_eggs"], right_row["collected_eggs"], " ฟอง", 0)
+                    with cmp_cols[1]:
+                        render_comparison_metric("กำไรสุทธิ", left_row["net_profit_day"], right_row["net_profit_day"], " บาท", 2)
+                    with cmp_cols[2]:
+                        render_comparison_metric("Hen-day", left_row["henday_pct"], right_row["henday_pct"], "%", 1)
+                    with cmp_cols[3]:
+                        render_comparison_metric("FCR", left_row["fcr_ratio"], right_row["fcr_ratio"], "", 2, lower_is_better=True)
+                else:
+                    st.info("ต้องมีข้อมูลอย่างน้อย 2 วัน จึงจะเปรียบเทียบวันต่อวันได้")
+
+                filtered_logs = filtered_df.sort_values("date", ascending=False).to_dict("records")
+                display_logs_df = build_daily_logs_display(filtered_logs)
             render_readable_table(
                 display_logs_df,
                 column_config={
@@ -2688,7 +2852,7 @@ else:
             st.markdown("#### แก้ไขหรือลบประวัติย้อนหลัง")
             log_options = {
                 f"#{item.get('id', '-')}: {item.get('date', '-')} | ไก่ {int(item.get('bird_count') or 0):,} ตัว | ไข่ {int(item.get('collected_eggs') or 0):,} ฟอง": item
-                for item in latest_logs
+                for item in filtered_logs
             }
             selected_log_label = st.selectbox("เลือกรายการที่ต้องการจัดการ:", list(log_options.keys()))
             selected_log = log_options[selected_log_label]
