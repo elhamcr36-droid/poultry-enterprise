@@ -2885,7 +2885,7 @@ else:
                 st.markdown("#### เปรียบเทียบวันต่อวัน")
                 render_hint("เลือกสองวันที่ต้องการเทียบ ระบบจะแสดงผลต่างของไข่ กำไร Hen-day และ FCR")
                 compare_options = {
-                    f"#{row.get('id', idx)} | {row['date'].date()} | ไข่ {int(row['collected_eggs']):,} ฟอง | กำไร {row['net_profit_day']:,.0f} บาท": idx
+                    f"{row['date'].date()} | ไข่ {int(row['collected_eggs']):,} ฟอง | กำไร {row['net_profit_day']:,.0f} บาท": idx
                     for idx, row in filtered_df.sort_values("date", ascending=False).iterrows()
                 }
                 if len(compare_options) >= 2:
@@ -2925,7 +2925,7 @@ else:
             )
             st.markdown("#### แก้ไขหรือลบประวัติย้อนหลัง")
             log_options = {
-                f"#{item.get('id', '-')}: {item.get('date', '-')} | ไก่ {int(item.get('bird_count') or 0):,} ตัว | ไข่ {int(item.get('collected_eggs') or 0):,} ฟอง": item
+                f"{item.get('date', '-')} | ไก่ {int(item.get('bird_count') or 0):,} ตัว | ไข่ {int(item.get('collected_eggs') or 0):,} ฟอง": item
                 for item in filtered_logs
             }
             selected_log_label = st.selectbox("เลือกรายการที่ต้องการจัดการ:", list(log_options.keys()))
