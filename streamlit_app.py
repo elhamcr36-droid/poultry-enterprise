@@ -243,7 +243,7 @@ except Exception as e:
 # 🔱 1. INITIAL APP CONFIGURATION & THEME
 # ==========================================
 st.set_page_config(
-    page_title="ระบบคำนวณโภชนาการและจัดการสายพันธุ์ไก่ไข่ (Layer Nutrition Studio Pro)", 
+    page_title="ระบบจัดการโภชนาการและฟาร์มไก่ไข่", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -326,6 +326,29 @@ st.markdown(
         border-color: #fbbf24 !important;
         background: rgba(30, 41, 59, 0.98) !important;
         transform: translateY(-1px);
+    }
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stButton"]) {
+        justify-content: center;
+    }
+    .app-main-title {
+        text-align: center;
+        margin: 4px 0 10px 0;
+        padding: 18px 20px;
+        border-radius: 10px;
+        background: rgba(2, 6, 23, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+    }
+    .app-main-title h1 {
+        margin: 0 !important;
+        font-size: 2rem !important;
+    }
+    .app-main-title p {
+        margin: 8px 0 0 0 !important;
+        color: #cbd5e1 !important;
+    }
+    .center-menu-wrap {
+        max-width: 860px;
+        margin: 0 auto;
     }
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
@@ -1230,7 +1253,7 @@ if not st.session_state.is_authenticated:
     # --- 4.1 หน้า LOGIN ---
     if st.session_state.auth_page_mode == "login":
         st.markdown("<div class='content-card' style='max-width: 550px; margin: 60px auto 0 auto;'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบ Layer Nutrition Studio Pro</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #ffb703 !important;'>🔐 เข้าสู่ระบบจัดการโภชนาการและฟาร์มไก่ไข่</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
 
         email_login = st.text_input("📧 อีเมลเข้าใช้งาน:", key="login_email")
@@ -1391,17 +1414,25 @@ ingredients = fetch_ingredients_from_supabase()
 # ==========================================
 col_h1, col_h2 = st.columns([7.5, 2.5])
 with col_h1:
-    st.markdown(f"# 🐔 Layer Nutrition Studio Pro <span style='font-size:1.1rem; color:#38bdf8;'>[สิทธิ์การใช้งาน: {st.session_state.user_email}]</span>", unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="app-main-title">
+            <h1>ระบบจัดการโภชนาการและฟาร์มไก่ไข่</h1>
+            <p>ผู้ใช้งาน: {st.session_state.user_email}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 with col_h2:
     cc1, cc2 = st.columns(2)
     with cc1:
         if "admin" in st.session_state.user_email.lower() or st.session_state.user_role == "admin":
             if st.session_state.user_role == "user":
-                if st.button("🔄 หน้า Admin", use_container_width=True):
+                if st.button("หน้าผู้ดูแล", use_container_width=True):
                     st.session_state.user_role = "admin"
                     st.rerun()
             else:
-                if st.button("🔄 หน้า User", use_container_width=True):
+                if st.button("หน้าผู้ใช้", use_container_width=True):
                     st.session_state.user_role = "user"
                     st.rerun()
     with cc2:
@@ -1419,8 +1450,15 @@ st.markdown("---")
 # 🛠️ 6. MAIN ROUTER & DASHBOARD INTERFACE (UX/UI PREMIUM VERSION)
 # ==========================================
 if st.session_state.user_role == "admin":
-    st.title("💻 Admin Master Data Control")
-    st.caption("ระบบจัดการโครงสร้างสารอาหาร วัตถุดิบ สายพันธุ์ และผู้ใช้งานแบบ Dynamic ร่วมกับคลาวด์")
+    st.markdown(
+        """
+        <div class="farm-page-card" style="text-align:center; border-left:1px solid rgba(255,255,255,0.16);">
+            <h2>หน้าผู้ดูแลระบบ</h2>
+            <p>จัดการข้อมูลกลาง วัตถุดิบ สายพันธุ์ เกณฑ์อาหาร และสิทธิ์ผู้ใช้งาน</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     verified_admin_role = get_user_role_from_supabase(st.session_state.get("current_user_key", ""))
     if verified_admin_role != "admin":
         st.error("บัญชีนี้ยังไม่ได้รับสิทธิ์ admin ในตาราง user_profiles จึงอาจเพิ่ม/แก้/ลบข้อมูลกลางไม่ได้")
@@ -1436,24 +1474,26 @@ if st.session_state.user_role == "admin":
             render_readable_table(pd.DataFrame(debug_rows))
         st.caption("ถ้ากดเพิ่ม/ลบ/แก้ไขแล้วยังไม่ได้ ให้รันไฟล์ supabase_admin_crud_policies.sql ใน Supabase SQL Editor ก่อน")
     
+    st.markdown("<div class='center-menu-wrap'>", unsafe_allow_html=True)
     selected_admin_page = render_big_menu(
         "selected_admin_page",
         [
-            {"id": "nutrients", "label": "⚙️ สารอาหาร"},
-            {"id": "ingredients", "label": "🌽 วัตถุดิบ"},
-            {"id": "breeds", "label": "🐓 สายพันธุ์"},
-            {"id": "targets", "label": "🧬 เกณฑ์อาหาร"},
-            {"id": "users", "label": "👤 ผู้ใช้งาน"},
+            {"id": "nutrients", "label": "สารอาหาร"},
+            {"id": "ingredients", "label": "วัตถุดิบ"},
+            {"id": "breeds", "label": "สายพันธุ์"},
+            {"id": "targets", "label": "เกณฑ์อาหาร"},
+            {"id": "users", "label": "ผู้ใช้งาน"},
         ],
         columns_per_row=3,
     )
+    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
     admin_page_info = {
-        "nutrients": ("⚙️ สารอาหาร", "เพิ่ม ลบ หรือดูหัวข้อสารอาหารที่ใช้ในสูตรอาหาร"),
-        "ingredients": ("🌽 วัตถุดิบ", "จัดการวัตถุดิบ ราคา และค่าทางโภชนาการ"),
-        "breeds": ("🐓 สายพันธุ์", "เพิ่มหรือแก้ไขข้อมูลสายพันธุ์ไก่ไข่"),
-        "targets": ("🧬 เกณฑ์อาหาร", "ตั้งค่าเกณฑ์โภชนาการตามช่วงอายุ"),
-        "users": ("👤 ผู้ใช้งาน", "ดูรายชื่อ เปลี่ยนสิทธิ์ และระงับบัญชี"),
+        "nutrients": ("สารอาหาร", "เพิ่ม ลบ หรือดูหัวข้อสารอาหารที่ใช้ในสูตรอาหาร"),
+        "ingredients": ("วัตถุดิบ", "จัดการวัตถุดิบ ราคา และค่าทางโภชนาการ"),
+        "breeds": ("สายพันธุ์", "เพิ่มหรือแก้ไขข้อมูลสายพันธุ์ไก่ไข่"),
+        "targets": ("เกณฑ์อาหาร", "ตั้งค่าเกณฑ์โภชนาการตามช่วงอายุ"),
+        "users": ("ผู้ใช้งาน", "ดูรายชื่อและเปลี่ยนสิทธิ์ผู้ใช้งาน"),
     }
     admin_title, admin_subtitle = admin_page_info[selected_admin_page]
     st.markdown(
@@ -1461,68 +1501,15 @@ if st.session_state.user_role == "admin":
         unsafe_allow_html=True,
     )
     
-    # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง ---
+    # --- แท็บที่ 0: ดูสารอาหารที่ระบบรองรับ ---
     if selected_admin_page == "nutrients":
-        st.subheader("⚙️ สารอาหารที่มีในระบบปัจจุบัน")
-        st.info("หมายเหตุ: หน้านี้ปรับหัวข้อสารอาหารในแอปเท่านั้น ถ้าต้องการเพิ่มคอลัมน์สารอาหารใหม่ให้บันทึกลง Supabase จริง ต้องเพิ่มคอลัมน์ในตาราง ingredients/db_targets/nutrition_standards ผ่าน SQL ก่อน")
-        
-        with st.expander("📊 ดูโครงสร้างสารอาหารที่ใช้งานอยู่ทั้งหมด", expanded=True):
-            df_nutrients = pd.DataFrame([
-                {"รหัสระบบ (Key)": k, "ชื่อตัวชี้วัด (Label)": v["label"], "ความละเอียด (Step)": v["step"]} 
-                for k, v in st.session_state.db_nutrient_keys.items()
-            ])
-            render_readable_table(df_nutrients)
-        
-        st.markdown("---")
-        n_col1, n_col2 = st.columns(2, gap="large")
-        
-        with n_col1:
-            st.markdown("### ➕ เพิ่มสารอาหารใหม่")
-            with st.container(border=True):
-                new_nut_key = st.text_input("รหัสอังกฤษ (เช่น fat, ash):", placeholder="กรอกพิมพ์เล็กห้ามมีช่องว่าง", key="add_nut_key").strip().lower()
-                new_nut_label = st.text_input("ชื่อภาษาไทยที่แสดง (เช่น ไขมันดิบ (%)):", placeholder="เช่น วิตามินอี (mg/kg)", key="add_nut_label")
-                new_nut_step = st.number_input("ความละเอียดในการกดปุ่มเพิ่ม/ลดค่า:", min_value=0.001, max_value=100.0, value=0.1, format="%.3f", key="add_nut_step")
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                if st.button("✨ ยืนยันสร้างหัวข้อสารอาหาร", type="primary", use_container_width=True):
-                    if not new_nut_key or not new_nut_label:
-                        st.error("❌ กรุณากรอกข้อมูลให้ครบทั้งสองช่อง")
-                    elif new_nut_key in st.session_state.db_nutrient_keys or new_nut_key in ["name", "min_limit", "max_limit"]:
-                        st.error("❌ รหัสนี้ซ้ำหรือเป็นคำต้องห้ามของระบบ")
-                    else:
-                        # 1. เพิ่มเข้า Local Session State
-                        st.session_state.db_nutrient_keys[new_nut_key] = {"label": new_nut_label, "step": new_nut_step, "default": 0.0}
-                        
-                        # 2. ทำการอัปเดต Schema วัตถุดิบเดิมให้รองรับ Key ใหม่ (ป้องกันบั๊ก KeyError)
-                        for ing_name in st.session_state.db_ingredients.keys():
-                            if new_nut_key not in st.session_state.db_ingredients[ing_name]:
-                                st.session_state.db_ingredients[ing_name][new_nut_key] = 0.0
-                        
-                        st.success(f"🎉 เพิ่มโครงสร้างหัวข้อสารอาหาร '{new_nut_label}' เรียบร้อยแล้ว!")
-                        st.rerun()
-                        
-        with n_col2:
-            st.markdown("### ❌ ลบสารอาหาร")
-            with st.container(border=True):
-                removable_keys = [k for k in st.session_state.db_nutrient_keys.keys() if k != "price"]
-                
-                if removable_keys:
-                    nut_to_del = st.selectbox("เลือกสารอาหารที่ต้องการถอดถอน:", removable_keys, format_func=lambda x: st.session_state.db_nutrient_keys[x]["label"], key="del_nut_select")
-                    st.markdown("<br><br><br>", unsafe_allow_html=True)
-                    
-                    if st.button("🗑️ ยืนยันลบออกจากระบบถาวร", type="secondary", use_container_width=True):
-                        del_label = st.session_state.db_nutrient_keys[nut_to_del]["label"]
-                        
-                        # ลบออกจากโครงสร้างหลักและวัตถุดิบทุกตัวป้องกันข้อมูลขยะค้างคั่ง
-                        del st.session_state.db_nutrient_keys[nut_to_del]
-                        for ing_name in st.session_state.db_ingredients.keys():
-                            if nut_to_del in st.session_state.db_ingredients[ing_name]:
-                                del st.session_state.db_ingredients[ing_name][nut_to_del]
-                                
-                        st.success(f"🔥 ลบสารอาหาร '{del_label}' สำเร็จ")
-                        st.rerun()
-                else:
-                    st.warning("⚠️ ไม่มีสารอาหารอื่นนอกเหนือจากราคาที่สามารถลบได้")
+        st.subheader("สารอาหารที่ระบบใช้คำนวณ")
+        df_nutrients = pd.DataFrame([
+            {"รหัสข้อมูล": k, "ชื่อที่แสดง": v["label"], "หน่วย/ความละเอียด": v["step"]}
+            for k, v in st.session_state.db_nutrient_keys.items()
+        ])
+        render_readable_table(df_nutrients)
+        st.info("ถ้าต้องการแก้ค่าของสารอาหารแต่ละรายการ ให้ไปที่หน้า วัตถุดิบ หรือ เกณฑ์อาหาร")
 
     # --- แท็บที่ 1: จัดการและแก้ไขวัตถุดิบ/สารอาหาร ---
     if selected_admin_page == "ingredients":
@@ -1794,7 +1781,7 @@ if st.session_state.user_role == "admin":
                             st.rerun()
         
     st.markdown("<br><br>", unsafe_allow_html=True)
-    if st.button("🔄 สลับบทบาทกลับไปโหมดผู้ใช้งานทั่วไป (User Dashboard)", use_container_width=True):
+    if st.button("สลับกลับไปหน้าผู้ใช้งานทั่วไป", use_container_width=True):
         st.session_state.user_role = "user"
         st.rerun()
        
@@ -1888,6 +1875,7 @@ else:
     # ==========================================
     # 👑 USER ROUTE: ACCESSIBLE INTERFACE
     # ==========================================
+    st.markdown("<div class='center-menu-wrap'>", unsafe_allow_html=True)
     selected_user_page = render_big_menu(
         "selected_user_page",
         [
@@ -1898,6 +1886,7 @@ else:
         ],
         columns_per_row=4,
     )
+    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("<div class='divider-line'></div>", unsafe_allow_html=True)
     user_page_info = {
         "dashboard": ("ภาพรวมฟาร์ม", "ติดตามผลผลิต ต้นทุน และความเสี่ยงล่าสุดของฟาร์ม"),
