@@ -557,11 +557,16 @@ DAILY_LOGS_TABLE = "daily_logs"
 DAILY_LOG_USER_COLUMN = "user_id"
 USER_PROFILES_TABLE = "user_profiles"
 NUTRIENT_DEFINITIONS_TABLE = "nutrient_definitions"
+SUPER_ADMIN_EMAIL = "222@gmail.com"
 MASTER_TABLE_CANDIDATES = {
     "groups": ["db_groups", "groups"],
     "breeds": ["db_breeds", "breeds"],
     "targets": ["db_targets", "targets"],
 }
+
+def is_super_admin(email=None):
+    email_to_check = email if email is not None else st.session_state.get("current_user_key", "")
+    return str(email_to_check or "").strip().lower() == SUPER_ADMIN_EMAIL
 
 def get_ingredient_owner_for_write(existing_ingredient=None):
     if isinstance(existing_ingredient, dict) and existing_ingredient.get("owner_email"):
@@ -1024,7 +1029,7 @@ def upsert_user_profile(email, first_name="", last_name="", phone="", role="user
 def get_user_role_from_supabase(email):
     if not email:
         return "user"
-    if email.strip().lower() == "222@gmail.com":
+    if is_super_admin(email):
         return "admin"
     try:
         response = supabase.table(USER_PROFILES_TABLE).select("role,status").eq("email", email.strip().lower()).limit(1).execute()
@@ -1038,11 +1043,18 @@ def get_user_role_from_supabase(email):
     return "user"
 
 def update_user_profile_role(email, role):
+    if not is_super_admin():
+        st.error("❌ เฉพาะแอดมินใหญ่ 222@gmail.com เท่านั้นที่เปลี่ยนสิทธิ์ผู้ใช้ได้")
+        return False
+    email = email.strip().lower()
+    if email == SUPER_ADMIN_EMAIL and role != "admin":
+        st.error("❌ ไม่สามารถลดสิทธิ์บัญชีแอดมินใหญ่ได้")
+        return False
     try:
         supabase.table(USER_PROFILES_TABLE).update({
             "role": role,
             "updated_at": datetime.datetime.utcnow().isoformat(),
-        }).eq("email", email.strip().lower()).execute()
+        }).eq("email", email).execute()
         fetch_user_profiles_from_supabase()
         return True
     except Exception as e:
@@ -1050,15 +1062,38 @@ def update_user_profile_role(email, role):
         return False
 
 def disable_user_profile(email):
+    if not is_super_admin():
+        st.error("❌ เฉพาะแอดมินใหญ่ 222@gmail.com เท่านั้นที่ลบหรือระงับผู้ใช้ได้")
+        return False
+    email = email.strip().lower()
+    if email == SUPER_ADMIN_EMAIL:
+        st.error("❌ ไม่สามารถลบหรือระงับบัญชีแอดมินใหญ่ได้")
+        return False
     try:
         supabase.table(USER_PROFILES_TABLE).update({
             "status": "disabled",
             "updated_at": datetime.datetime.utcnow().isoformat(),
-        }).eq("email", email.strip().lower()).execute()
+        }).eq("email", email).execute()
         fetch_user_profiles_from_supabase()
         return True
     except Exception as e:
         st.error(f"❌ ระงับบัญชีไม่สำเร็จ: {e}")
+        return False
+
+def delete_user_profile(email):
+    if not is_super_admin():
+        st.error("❌ เฉพาะแอดมินใหญ่ 222@gmail.com เท่านั้นที่ลบผู้ใช้ได้")
+        return False
+    email = email.strip().lower()
+    if email == SUPER_ADMIN_EMAIL:
+        st.error("❌ ไม่สามารถลบบัญชีแอดมินใหญ่ได้")
+        return False
+    try:
+        supabase.table(USER_PROFILES_TABLE).delete().eq("email", email).execute()
+        fetch_user_profiles_from_supabase()
+        return True
+    except Exception as e:
+        st.error(f"❌ ลบผู้ใช้ไม่สำเร็จ: {e}")
         return False
 
 
@@ -1933,23 +1968,36 @@ if st.session_state.user_role == "admin":
             st.info("ℹ️ ยังไม่มีข้อมูลในตาราง user_profiles กรุณารัน SQL sync_user_profiles.sql ในระบบก่อน")
             
         st.markdown("---")
-        uc1 = st.container()
-        with uc1:
-            st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
-            render_hint("เลือกอีเมลผู้ใช้ แล้วกำหนดสิทธิ์ใหม่ จากนั้นกดบันทึกการเปลี่ยนสิทธิ์")
-            with st.container(border=True):
-                user_keys = list(st.session_state.get("user_database", {}).keys())
-                if not user_keys:
-                    st.warning("ยังไม่มีข้อมูลสมาชิกในตาราง user_profiles")
-                else:
-                    selected_user_email = st.selectbox("เลือกบัญชีอีเมลที่ต้องการแก้ไข:", user_keys)
-                    current_user_role = st.session_state.user_database[selected_user_email]["role"]
-                    new_role = st.selectbox("ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:", ["user", "admin"], index=0 if current_user_role == "user" else 1)
-                    
-                    if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
-                        if update_user_profile_role(selected_user_email, new_role):
-                            st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
-                            st.rerun()
+        if is_super_admin():
+            uc1 = st.container()
+            with uc1:
+                st.markdown("### ✏️ เปลี่ยนแปลงสิทธิ์ของสมาชิก")
+                render_hint("เฉพาะแอดมินใหญ่ 222@gmail.com เท่านั้นที่มอบสิทธิ์แอดมินหรือจัดการบัญชีผู้ใช้ได้")
+                with st.container(border=True):
+                    user_keys = list(st.session_state.get("user_database", {}).keys())
+                    if not user_keys:
+                        st.warning("ยังไม่มีข้อมูลสมาชิกในตาราง user_profiles")
+                    else:
+                        selected_user_email = st.selectbox("เลือกบัญชีอีเมลที่ต้องการแก้ไข:", user_keys)
+                        current_user_role = st.session_state.user_database[selected_user_email]["role"]
+                        new_role = st.selectbox("ระบุสิทธิ์ใหม่ที่ต้องการมอบให้:", ["user", "admin"], index=0 if current_user_role == "user" else 1)
+
+                        if st.button("💾 บันทึกการเปลี่ยนสิทธิ์", use_container_width=True, type="primary"):
+                            if update_user_profile_role(selected_user_email, new_role):
+                                st.success(f"🎉 อัปเดตสิทธิ์ของ {selected_user_email} เป็น {new_role.upper()} สำเร็จ")
+                                st.rerun()
+
+                        st.markdown("### 🗑️ ลบ/ระงับบัญชีผู้ใช้")
+                        confirm_disable_user = st.checkbox("ยืนยันว่าต้องการลบ/ระงับบัญชีนี้", key="confirm_disable_user_profile")
+                        disable_self = selected_user_email.strip().lower() == SUPER_ADMIN_EMAIL
+                        if disable_self:
+                            st.warning("ไม่สามารถลบหรือระงับบัญชีแอดมินใหญ่ได้")
+                        if st.button("🗑️ ลบ/ระงับบัญชีผู้ใช้", use_container_width=True, type="secondary", disabled=(not confirm_disable_user or disable_self)):
+                            if delete_user_profile(selected_user_email):
+                                st.success(f"ลบ/ระงับบัญชี {selected_user_email} เรียบร้อยแล้ว")
+                                st.rerun()
+        else:
+            st.info("บัญชีแอดมินนี้ยังจัดการข้อมูลส่วนอื่นได้เหมือนเดิม แต่การมอบสิทธิ์แอดมินและการลบ/ระงับผู้ใช้ทำได้เฉพาะแอดมินใหญ่ 222@gmail.com เท่านั้น")
         
     st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("สลับกลับไปหน้าผู้ใช้งานทั่วไป", use_container_width=True):
@@ -3085,6 +3133,3 @@ else:
         else:
             st.info("ยังไม่มีสูตรอาหารสำหรับทำใบสั่งผสม กรุณาไปหน้า 'คำนวณสูตรอาหาร' แล้วคำนวณหรือดึงสูตรที่บันทึกไว้ก่อน")
         st.markdown("</div>", unsafe_allow_html=True)
-
-
-
