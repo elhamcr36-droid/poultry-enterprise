@@ -480,6 +480,26 @@ def get_ingredient_owner_for_write(existing_ingredient=None):
         return DEFAULT_INGREDIENT_OWNER
     return st.session_state.get("current_user_key") or DEFAULT_INGREDIENT_OWNER
 
+def require_supabase_rows(response, action_label):
+    rows = getattr(response, "data", None)
+    return rows or []
+
+def table_mutation(table_name, action, payload=None, filters=None):
+    query = supabase.table(table_name)
+    if action == "insert":
+        query = query.insert(payload)
+    elif action == "update":
+        query = query.update(payload)
+    elif action == "delete":
+        query = query.delete()
+    else:
+        raise ValueError(f"Unsupported table action: {action}")
+
+    for column, value in (filters or {}).items():
+        if value is not None and value != "":
+            query = query.eq(column, value)
+    return query.execute()
+
 def fetch_first_available_table(table_key):
     if "master_load_debug" not in st.session_state:
         st.session_state.master_load_debug = []
@@ -1401,6 +1421,20 @@ st.markdown("---")
 if st.session_state.user_role == "admin":
     st.title("💻 Admin Master Data Control")
     st.caption("ระบบจัดการโครงสร้างสารอาหาร วัตถุดิบ สายพันธุ์ และผู้ใช้งานแบบ Dynamic ร่วมกับคลาวด์")
+    verified_admin_role = get_user_role_from_supabase(st.session_state.get("current_user_key", ""))
+    if verified_admin_role != "admin":
+        st.error("บัญชีนี้ยังไม่ได้รับสิทธิ์ admin ในตาราง user_profiles จึงอาจเพิ่ม/แก้/ลบข้อมูลกลางไม่ได้")
+    with st.expander("สถานะการเชื่อมต่อฐานข้อมูลสำหรับผู้ดูแล", expanded=False):
+        if st.button("รีเฟรชข้อมูลกลางจาก Supabase", use_container_width=True):
+            fetch_master_data_from_supabase()
+            fetch_ingredients_from_supabase()
+            fetch_user_profiles_from_supabase()
+            st.success("โหลดข้อมูลล่าสุดจาก Supabase แล้ว")
+            st.rerun()
+        debug_rows = st.session_state.get("master_load_debug", [])
+        if debug_rows:
+            render_readable_table(pd.DataFrame(debug_rows))
+        st.caption("ถ้ากดเพิ่ม/ลบ/แก้ไขแล้วยังไม่ได้ ให้รันไฟล์ supabase_admin_crud_policies.sql ใน Supabase SQL Editor ก่อน")
     
     selected_admin_page = render_big_menu(
         "selected_admin_page",
@@ -1430,6 +1464,7 @@ if st.session_state.user_role == "admin":
     # --- แท็บที่ 0: เพิ่ม/ลบ สารอาหารด้วยตัวเอง ---
     if selected_admin_page == "nutrients":
         st.subheader("⚙️ สารอาหารที่มีในระบบปัจจุบัน")
+        st.info("หมายเหตุ: หน้านี้ปรับหัวข้อสารอาหารในแอปเท่านั้น ถ้าต้องการเพิ่มคอลัมน์สารอาหารใหม่ให้บันทึกลง Supabase จริง ต้องเพิ่มคอลัมน์ในตาราง ingredients/db_targets/nutrition_standards ผ่าน SQL ก่อน")
         
         with st.expander("📊 ดูโครงสร้างสารอาหารที่ใช้งานอยู่ทั้งหมด", expanded=True):
             df_nutrients = pd.DataFrame([
@@ -1541,22 +1576,20 @@ if st.session_state.user_role == "admin":
                     if edit_ing_min > edit_ing_max:
                         st.error("❌ ข้อผิดพลาด: สัดส่วนต่ำสุด (% Min) ห้ามมากกว่าสัดส่วนสูงสุด (% Max)")
                     else:
-                        # อัปเดตข้อมูลลง Local State
-                        st.session_state.db_ingredients[selected_ing_edit].update(edited_values)
-                        st.session_state.db_ingredients[selected_ing_edit].update({"min_limit": edit_ing_min, "max_limit": edit_ing_max})
-                        
                         # ⚡ ซิงค์ความถาวรลง Supabase Cloud Database แบบเรียลไทม์
                         try:
                             owner_email = get_ingredient_owner_for_write(target_ing)
                             payload = {"name": selected_ing_edit, "min_limit": edit_ing_min, "max_limit": edit_ing_max, "owner_email": owner_email}
                             payload.update(edited_values)
-                            st.session_state.db_ingredients[selected_ing_edit]["owner_email"] = owner_email
-                            supabase.table("ingredients").update(payload).eq("name", selected_ing_edit).eq("owner_email", owner_email).execute()
+                            filters = {"id": target_ing.get("id")} if target_ing.get("id") else {"name": selected_ing_edit, "owner_email": owner_email}
+                            table_mutation("ingredients", "update", payload, filters)
                             fetch_ingredients_from_supabase()
+                            st.session_state.pop("auto_formula_context", None)
+                            st.session_state.current_weights = {}
                             st.success(f"🎉 ปรับปรุงข้อมูลสารอาหารของ '{selected_ing_edit}' ลงระบบคลาวด์เรียบร้อยแล้ว")
                             st.rerun()
                         except Exception as cloud_err:
-                            st.warning(f"⚠️ บันทึกในระบบจำลองสำเร็จ แต่ไม่สามารถซิงค์ขึ้น Cloud ได้: {cloud_err}")
+                            st.error(f"❌ บันทึกวัตถุดิบไม่สำเร็จ: {cloud_err}")
 
         elif crud_mode == "➕ เพิ่มวัตถุดิบใหม่":
             with st.form(key="form_add_new_ingredient"):
@@ -1589,30 +1622,32 @@ if st.session_state.user_role == "admin":
                         base_data = {"name": ing_name, "min_limit": ing_min, "max_limit": ing_max, "owner_email": owner_email}
                         base_data.update(new_material_data)
                         
-                        # บันทึกลงเครื่องและยิงขึ้นฐานข้อมูลคลาวด์ Supabase
-                        st.session_state.db_ingredients[ing_name] = base_data
                         try:
-                            supabase.table("ingredients").insert(base_data).execute()
+                            table_mutation("ingredients", "insert", base_data)
                             fetch_ingredients_from_supabase()
+                            st.session_state.pop("auto_formula_context", None)
+                            st.session_state.current_weights = {}
                             st.success(f"🎉 นำเข้า '{ing_name}' สู่คลาวด์ฐานข้อมูลเรียบร้อย!")
                             st.rerun()
                         except Exception as cloud_err:
-                            st.success(f"🎉 บันทึกชั่วคราวสำเร็จ (Cloud Error: {cloud_err})")
+                            st.error(f"❌ เพิ่มวัตถุดิบไม่สำเร็จ: {cloud_err}")
 
         elif crud_mode == "🗑️ ลบวัตถุดิบออก" and st.session_state.db_ingredients:
             st.markdown("#### 🗑️ ลบรายการวัตถุดิบ")
             to_del = st.selectbox("เลือกวัตถุดิบที่จะนำออกจากระบบถาวร:", list(st.session_state.db_ingredients.keys()))
             if st.button("🗑️ ยืนยันคำสั่งลบวัตถุดิบออกจากระบบ", type="primary", use_container_width=True):
-                owner_email = get_ingredient_owner_for_write(st.session_state.db_ingredients.get(to_del, {}))
+                ingredient_to_delete = st.session_state.db_ingredients.get(to_del, {})
+                owner_email = get_ingredient_owner_for_write(ingredient_to_delete)
                 try:
-                    supabase.table("ingredients").delete().eq("name", to_del).eq("owner_email", owner_email).execute()
+                    filters = {"id": ingredient_to_delete.get("id")} if ingredient_to_delete.get("id") else {"name": to_del, "owner_email": owner_email}
+                    table_mutation("ingredients", "delete", filters=filters)
                     fetch_ingredients_from_supabase()
-                except:
-                    pass
-                if to_del in st.session_state.db_ingredients:
-                    del st.session_state.db_ingredients[to_del]
-                st.success(f"🔥 ลบ '{to_del}' ออกจากคลังเรียบร้อยแล้ว")
-                st.rerun()
+                    st.session_state.pop("auto_formula_context", None)
+                    st.session_state.current_weights = {}
+                    st.success(f"🔥 ลบ '{to_del}' ออกจากคลังเรียบร้อยแล้ว")
+                    st.rerun()
+                except Exception as cloud_err:
+                    st.error(f"❌ ลบวัตถุดิบไม่สำเร็จ: {cloud_err}")
 
     # --- แท็บที่ 2: จัดการทำเนียบสายพันธุ์ ---
     if selected_admin_page == "breeds":
@@ -1632,31 +1667,34 @@ if st.session_state.user_role == "admin":
                 if st.button("➕ บันทึกสายพันธุ์ใหม่", use_container_width=True, type="primary"):
                     if b_name.strip():
                         breed_payload = {"group_name": b_group, "breed_name": b_name, "egg_color": b_egg, "default_feed": b_feed}
-                        st.session_state.db_breeds.append(breed_payload)
                         try:
-                            supabase.table("db_breeds").insert(breed_payload).execute()
+                            table_mutation("db_breeds", "insert", breed_payload)
                             fetch_master_data_from_supabase()
+                            st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
+                            st.rerun()
                         except Exception as cloud_err:
-                            st.warning(f"บันทึกสายพันธุ์ในหน่วยความจำแล้ว แต่ยังส่งขึ้น Supabase ไม่สำเร็จ: {cloud_err}")
-                        st.success(f"🎉 เพิ่มสายพันธุ์ '{b_name}' สำเร็จ")
-                        st.rerun()
+                            st.error(f"❌ เพิ่มสายพันธุ์ไม่สำเร็จ: {cloud_err}")
                     else: st.warning("⚠️ กรุณากรอกชื่อสายพันธุ์")
         with bc2:
             st.markdown("### ❌ ลบข้อมูลสายพันธุ์")
             with st.container(border=True):
                 if st.session_state.db_breeds:
-                    b_del = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", [b["breed_name"] for b in st.session_state.db_breeds])
+                    breed_delete_options = {
+                        f"#{b.get('id', '-')}: {b['breed_name']}": b
+                        for b in st.session_state.db_breeds
+                    }
+                    b_del_label = st.selectbox("เลือกสายพันธุ์ที่ต้องการลบ:", list(breed_delete_options.keys()))
+                    b_del = breed_delete_options[b_del_label]
                     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
                     if st.button("🗑️ ยืนยันลบออกจากทำเนียบ", type="primary", use_container_width=True):
                         try:
-                            supabase.table("db_breeds").delete().eq("breed_name", b_del).execute()
+                            filters = {"id": b_del.get("id")} if b_del.get("id") else {"breed_name": b_del.get("breed_name")}
+                            table_mutation("db_breeds", "delete", filters=filters)
                             fetch_master_data_from_supabase()
+                            st.success(f"🔥 ลบสายพันธุ์ '{b_del.get('breed_name')}' เรียบร้อยแล้ว")
+                            st.rerun()
                         except Exception as cloud_err:
-                            st.warning(f"ลบออกจากหน้าจอแล้ว แต่ยังลบจาก Supabase ไม่สำเร็จ: {cloud_err}")
-                        if any(b["breed_name"] == b_del for b in st.session_state.db_breeds):
-                            st.session_state.db_breeds = [b for b in st.session_state.db_breeds if b["breed_name"] != b_del]
-                        st.success(f"🔥 ลบสายพันธุ์ '{b_del}' เรียบร้อยแล้ว")
-                        st.rerun()
+                            st.error(f"❌ ลบสายพันธุ์ไม่สำเร็จ: {cloud_err}")
                 else: st.info("ไม่มีข้อมูลสายพันธุ์ในระบบ")
 
     # --- แท็บที่ 3: แก้ไขเป้าหมายความต้องการโภชนาการสัตว์แยกตามอายุ ---
@@ -1688,9 +1726,9 @@ if st.session_state.user_role == "admin":
                     ("fiber_max" if key == "fiber" else key): value
                     for key, value in updated_target_values.items()
                 }
-                st.session_state.db_targets[select_stage_crud].update(db_target_update)
                 try:
-                    supabase.table("db_targets").update(db_target_update).eq("stage_key", select_stage_crud).execute()
+                    target_response = supabase.table("db_targets").update(db_target_update).eq("stage_key", select_stage_crud).execute()
+                    require_supabase_rows(target_response, "อัปเดตเกณฑ์อาหารหลัก")
                     standard_update = {
                         "min_protein": updated_target_values.get("protein", 0.0),
                         "min_me": updated_target_values.get("me", 0.0),
@@ -1701,12 +1739,15 @@ if st.session_state.user_role == "admin":
                     }
                     if "fiber" in updated_target_values:
                         standard_update["max_fiber"] = updated_target_values["fiber"]
-                    supabase.table("nutrition_standards").update(standard_update).eq("phase_key", select_stage_crud).execute()
+                    standard_response = supabase.table("nutrition_standards").update(standard_update).eq("phase_key", select_stage_crud).execute()
+                    require_supabase_rows(standard_response, "อัปเดตมาตรฐานโภชนาการหน้าคำนวณ")
                     fetch_master_data_from_supabase()
+                    st.session_state.pop("auto_formula_context", None)
+                    st.session_state.current_weights = {}
+                    st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
+                    st.rerun()
                 except Exception as cloud_err:
-                    st.warning(f"อัปเดตในหน้าจอแล้ว แต่ยังส่งขึ้น Supabase ไม่สำเร็จ: {cloud_err}")
-                st.success("🎉 อัปเดตเกณฑ์มาตรฐานความต้องการทางโภชนาการเรียบร้อยแล้ว!")
-                st.rerun()
+                    st.error(f"❌ อัปเดตเกณฑ์โภชนาการไม่สำเร็จ: {cloud_err}")
 
     # --- แท็บที่ 4: จัดการสมาชิกผู้ใช้งาน ---
     if selected_admin_page == "users":
