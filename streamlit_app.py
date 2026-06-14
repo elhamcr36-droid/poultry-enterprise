@@ -2132,8 +2132,8 @@ else:
         dash_left, dash_right = st.columns([1.35, 0.85], gap="large")
         with dash_left:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-            st.markdown("<div class='section-title'><h3>แนวโน้มผลผลิตและกำไร</h3></div>", unsafe_allow_html=True)
-            render_hint("ดูภาพรวมว่าไข่และกำไรเปลี่ยนไปอย่างไรในแต่ละวัน ชี้เมาส์ที่เส้นกราฟเพื่อดูตัวเลขของวันนั้น")
+            st.markdown("<div class='section-title'><h3>สรุปผลผลิตและกำไรย้อนหลัง</h3></div>", unsafe_allow_html=True)
+            render_hint("ดูข้อมูลย้อนหลังแบบตาราง เพื่อเช็กไข่รวมและกำไรสุทธิรายวันโดยไม่ต้องอ่านกราฟ")
             if logs_sorted:
                 trend_df = build_daily_logs_analysis(logs_sorted).tail(30)
                 trend_summary = (
@@ -2147,41 +2147,13 @@ else:
                 )
                 trend_summary["day_label"] = pd.to_datetime(trend_summary["day"]).dt.strftime("%d/%m")
 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=trend_summary["day_label"],
-                    y=trend_summary["collected_eggs"],
-                    mode="lines+markers",
-                    name="ไข่รวม (ฟอง)",
-                    line=dict(color="#38bdf8", width=3),
-                    marker=dict(size=9),
-                    hovertemplate="วันที่ %{x}<br>ไข่ %{y:,.0f} ฟอง<extra></extra>",
-                ))
-                fig.add_trace(go.Scatter(
-                    x=trend_summary["day_label"],
-                    y=trend_summary["net_profit_day"],
-                    name="กำไรสุทธิ (บาท)",
-                    mode="lines+markers",
-                    line=dict(color="#22c55e", width=3),
-                    marker=dict(size=9),
-                    yaxis="y2",
-                    hovertemplate="วันที่ %{x}<br>กำไร %{y:,.0f} บาท<extra></extra>",
-                ))
-                fig.update_layout(
-                    height=340,
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(15,23,42,0.35)",
-                    font=dict(color="#e2e8f0"),
-                    legend=dict(orientation="h", y=1.10),
-                    hovermode="x unified",
-                    xaxis=dict(title="วันที่", type="category", gridcolor="rgba(148,163,184,0.12)"),
-                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)", rangemode="tozero"),
-                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", showgrid=False, zeroline=True, zerolinecolor="rgba(248,250,252,0.35)"),
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                trend_display = trend_summary.tail(10).copy()
+                trend_display["วันที่"] = pd.to_datetime(trend_display["day"]).dt.strftime("%Y-%m-%d")
+                trend_display["ไข่รวม (ฟอง)"] = trend_display["collected_eggs"].round(0).astype(int)
+                trend_display["กำไรสุทธิ (บาท)"] = trend_display["net_profit_day"].round(2)
+                render_readable_table(trend_display[["วันที่", "ไข่รวม (ฟอง)", "กำไรสุทธิ (บาท)"]])
             else:
-                st.info("ยังไม่มีข้อมูลบันทึกประจำวันสำหรับสร้างกราฟ")
+                st.info("ยังไม่มีข้อมูลบันทึกประจำวันสำหรับสร้างสรุปย้อนหลัง")
             st.markdown("</div>", unsafe_allow_html=True)
 
         with dash_right:
@@ -2379,13 +2351,9 @@ else:
 
         with col_left:
             st.markdown("<div class='farmer-card'>", unsafe_allow_html=True)
-            cl_title, cl_reset = st.columns([6, 4])
+            cl_title = st.container()
             with cl_title:
                 st.markdown("<div class='section-title'><h3>3. ปรับสัดส่วนวัตถุดิบ</h3></div>", unsafe_allow_html=True)
-            with cl_reset:
-                if st.button("🔄 รีเซ็ตค่าใหม่ทั้งหมด", use_container_width=True) and nutrient_targets:
-                    st.session_state.current_weights = run_ai_solver(nutrient_targets)
-                    st.rerun()
 
             current_total_pct = sum(float(value or 0.0) for value in st.session_state.current_weights.values())
             st.markdown(
@@ -2449,6 +2417,15 @@ else:
 
                 temp_weights[name] = user_val
                 running_total += user_val
+
+            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+            if st.button("รีเซ็ตสัดส่วนวัตถุดิบเป็นค่าที่ระบบคำนวณ", use_container_width=True, key="reset_formula_weights") and nutrient_targets:
+                st.session_state.current_weights = run_ai_solver(custom_targets)
+                for slider_key in list(st.session_state.keys()):
+                    if str(slider_key).startswith("sld_user_"):
+                        del st.session_state[slider_key]
+                st.session_state.pop("current_net_cost", None)
+                st.rerun()
 
             st.session_state.current_weights = temp_weights
 
@@ -2759,7 +2736,7 @@ else:
             unsafe_allow_html=True,
         )
         st.markdown("<div class='section-title'><h3>4. ประวัติฟาร์มย้อนหลัง</h3></div>", unsafe_allow_html=True)
-        render_hint("เลือกจากวันที่เริ่มต้นถึงวันที่สิ้นสุด เพื่อดูสรุปย้อนหลัง กราฟ และเปรียบเทียบวันต่อวัน")
+        render_hint("เลือกวันที่เริ่มต้นและวันที่สิ้นสุด เพื่อดูสรุปย้อนหลัง ตารางข้อมูล และเปรียบเทียบวันต่อวัน")
         if not st.session_state.daily_logs:
             st.info("💡 ยังไม่มีข้อมูลย้อนหลัง")
         else:
@@ -2777,7 +2754,7 @@ else:
                     st.metric("กำไรสุทธิล่าสุด", f"{float(latest_log.get('net_profit_day') or 0):,.2f} บาท")
 
             st.markdown("#### วิเคราะห์ตามช่วงวันที่")
-            render_hint("เลือกวันเริ่มและวันสิ้นสุด เพื่อให้ตารางและกราฟแสดงเฉพาะข้อมูลช่วงนั้น")
+            render_hint("เลือกวันที่เริ่มต้นและวันที่สิ้นสุด เพื่อดูสรุปย้อนหลัง ตารางข้อมูล และเปรียบเทียบวันต่อวัน")
             date_values = analysis_df["date"].dropna()
             min_log_date = date_values.min().date() if not date_values.empty else datetime.date.today()
             max_log_date = date_values.max().date() if not date_values.empty else datetime.date.today()
@@ -2834,71 +2811,15 @@ else:
                         )
                 st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-                history_fig = go.Figure()
-                history_fig.add_trace(go.Scatter(
-                    x=daily_summary["day_label"],
-                    y=daily_summary["collected_eggs"],
-                    mode="lines+markers",
-                    name="ไข่รวม (ฟอง)",
-                    line=dict(color="#38bdf8", width=3),
-                    marker=dict(size=9),
-                    hovertemplate="วันที่ %{x}<br>ไข่ %{y:,.0f} ฟอง<extra></extra>",
-                ))
-                history_fig.add_trace(go.Scatter(
-                    x=daily_summary["day_label"],
-                    y=daily_summary["net_profit_day"],
-                    mode="lines+markers",
-                    name="กำไรสุทธิ (บาท)",
-                    line=dict(color="#22c55e", width=3),
-                    marker=dict(size=9),
-                    yaxis="y2",
-                    hovertemplate="วันที่ %{x}<br>กำไร %{y:,.0f} บาท<extra></extra>",
-                ))
-                history_fig.update_layout(
-                    height=340,
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(15,23,42,0.35)",
-                    font=dict(color="#e2e8f0"),
-                    legend=dict(orientation="h", y=1.10),
-                    hovermode="x unified",
-                    xaxis=dict(title="วันที่", type="category", gridcolor="rgba(148,163,184,0.12)"),
-                    yaxis=dict(title="ไข่ (ฟอง)", gridcolor="rgba(148,163,184,0.18)", rangemode="tozero"),
-                    yaxis2=dict(title="กำไร (บาท)", overlaying="y", side="right", showgrid=False, zeroline=True, zerolinecolor="rgba(248,250,252,0.35)"),
-                )
-                st.plotly_chart(history_fig, use_container_width=True)
-
-                health_fig = go.Figure()
-                health_fig.add_trace(go.Scatter(
-                    x=daily_summary["day_label"],
-                    y=daily_summary["henday_pct"],
-                    mode="lines+markers",
-                    name="Hen-day (%)",
-                    line=dict(color="#fbbf24", width=3),
-                    marker=dict(size=8),
-                ))
-                health_fig.add_trace(go.Scatter(
-                    x=daily_summary["day_label"],
-                    y=daily_summary["fcr_ratio"],
-                    mode="lines+markers",
-                    name="FCR",
-                    line=dict(color="#f97316", width=3),
-                    marker=dict(size=8),
-                    yaxis="y2",
-                ))
-                health_fig.update_layout(
-                    height=240,
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(15,23,42,0.35)",
-                    font=dict(color="#e2e8f0"),
-                    legend=dict(orientation="h", y=1.18),
-                    hovermode="x unified",
-                    xaxis=dict(title="วันที่", type="category", gridcolor="rgba(148,163,184,0.12)"),
-                    yaxis=dict(title="Hen-day (%)", gridcolor="rgba(148,163,184,0.18)", rangemode="tozero"),
-                    yaxis2=dict(title="FCR", overlaying="y", side="right", showgrid=False, rangemode="tozero"),
-                )
-                st.plotly_chart(health_fig, use_container_width=True)
+                st.markdown("#### สรุปรายวันในช่วงที่เลือก")
+                summary_display = daily_summary.copy()
+                summary_display["วันที่"] = pd.to_datetime(summary_display["day"]).dt.strftime("%Y-%m-%d")
+                summary_display["ไข่รวม (ฟอง)"] = summary_display["collected_eggs"].round(0).astype(int)
+                summary_display["รายได้รวม (บาท)"] = summary_display["total_revenue"].round(2)
+                summary_display["กำไรรวม (บาท)"] = summary_display["net_profit_day"].round(2)
+                summary_display["Hen-day เฉลี่ย (%)"] = summary_display["henday_pct"].round(1)
+                summary_display["FCR เฉลี่ย"] = summary_display["fcr_ratio"].round(2)
+                render_readable_table(summary_display[['วันที่', 'ไข่รวม (ฟอง)', 'รายได้รวม (บาท)', 'กำไรรวม (บาท)', 'Hen-day เฉลี่ย (%)', 'FCR เฉลี่ย']])
 
                 st.markdown("#### เปรียบเทียบวันต่อวัน")
                 render_hint("เลือกสองวันที่ต้องการเทียบ ระบบจะแสดงผลต่างของไข่ กำไร Hen-day และ FCR")
