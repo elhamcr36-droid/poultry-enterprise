@@ -308,26 +308,42 @@ st.markdown(
     """
     <style>
     [data-testid="collapsedControl"] { display: none; }
+    :root {
+        --app-font-base: 1.18rem;
+        --app-font-label: 1.2rem;
+        --app-font-input: 1.18rem;
+        --app-font-button: 1.22rem;
+        --app-font-table: 1.12rem;
+        --app-font-heading: 1.35rem;
+    }
     .stApp {
         background-image: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)), 
                           url("https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?q=80&w=1920");
         background-size: cover; background-position: center;
         background-repeat: no-repeat; background-attachment: fixed;
     }
+    html, body, .stApp, .block-container, .stMarkdown, .stText, p, span, div, li {
+        font-size: var(--app-font-base) !important;
+    }
     h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, [data-testid="stHeader"] {
         color: #ffffff !important;
         text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.95) !important;
     }
+    h1 { font-size: 2.75rem !important; line-height: 1.18 !important; }
+    h2 { font-size: 2.2rem !important; line-height: 1.22 !important; }
+    h3 { font-size: 1.75rem !important; line-height: 1.25 !important; }
+    h4 { font-size: 1.45rem !important; }
+    h5, h6 { font-size: 1.28rem !important; }
     
     div[data-testid="stSelectbox"] > label {
-        font-size: 1.15rem !important;
+        font-size: var(--app-font-label) !important;
         font-weight: 800 !important;
         color: #ffb703 !important;
         margin-bottom: 6px !important;
         display: block;
     }
     div[data-testid="stSelectbox"] div[data-baseweb="select"] {
-        font-size: 1.1rem !important; 
+        font-size: var(--app-font-input) !important; 
         font-weight: bold !important;
         background-color: rgba(26, 26, 26, 0.9) !important;
         border: 2px solid #ffb703 !important; 
@@ -344,14 +360,14 @@ st.markdown(
         background-color: rgba(255, 255, 255, 0.1) !important;
         padding: 8px; border-radius: 10px; backdrop-filter: blur(10px);
     }
-    .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold !important; font-size:1.05rem !important; }
+    .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold !important; font-size:1.2rem !important; }
     .content-card {
         background-color: rgba(0, 0, 0, 0.90) !important; padding: 30px;
         border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.18);
         backdrop-filter: blur(10px); margin-bottom: 25px;
     }
     div[data-testid="stMetricValue"] {
-        font-size: 2.2rem !important; color: #ffb703 !important;
+        font-size: 2.55rem !important; color: #ffb703 !important;
     }
     [data-testid="stDataFrame"] {
         background-color: rgba(15, 23, 42, 0.94) !important;
@@ -361,7 +377,7 @@ st.markdown(
         overflow: hidden;
     }
     [data-testid="stDataFrame"] * {
-        font-size: 1rem !important;
+        font-size: var(--app-font-table) !important;
     }
     .block-container {
         max-width: 1220px;
@@ -369,12 +385,12 @@ st.markdown(
         padding-bottom: 4rem;
     }
     div[data-testid="stButton"] > button {
-        min-height: 58px;
+        min-height: 68px;
         border-radius: 10px !important;
         border: 1px solid rgba(255, 255, 255, 0.20) !important;
         background: rgba(15, 23, 42, 0.92) !important;
         color: #ffffff !important;
-        font-size: 1.05rem !important;
+        font-size: var(--app-font-button) !important;
         font-weight: 800 !important;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
     }
@@ -396,7 +412,7 @@ st.markdown(
     }
     .app-main-title h1 {
         margin: 0 !important;
-        font-size: 2rem !important;
+        font-size: 2.75rem !important;
     }
     .app-main-title p {
         margin: 8px 0 0 0 !important;
@@ -411,17 +427,34 @@ st.markdown(
         border-left: 3px solid #38bdf8;
         border-radius: 8px;
         color: #cbd5e1;
-        font-size: 0.95rem;
+        font-size: 1.12rem;
         line-height: 1.5;
         margin: 8px 0 14px 0;
         padding: 10px 12px;
     }
     div[data-testid="stTextInput"] input,
     div[data-testid="stNumberInput"] input,
-    div[data-testid="stDateInput"] input {
-        min-height: 50px !important;
-        font-size: 1.05rem !important;
+    div[data-testid="stDateInput"] input,
+    div[data-testid="stTextArea"] textarea,
+    div[data-testid="stSelectbox"] input,
+    div[data-baseweb="select"] * {
+        min-height: 58px !important;
+        font-size: var(--app-font-input) !important;
         border-radius: 8px !important;
+    }
+    div[data-testid="stCheckbox"] label,
+    div[data-testid="stRadio"] label,
+    div[data-testid="stFileUploader"] label,
+    div[data-testid="stSlider"] label,
+    div[data-testid="stTextInput"] label,
+    div[data-testid="stNumberInput"] label,
+    div[data-testid="stDateInput"] label,
+    div[data-testid="stTextArea"] label,
+    div[data-testid="stMetricLabel"],
+    div[data-testid="stCaptionContainer"],
+    .stAlert,
+    .stAlert * {
+        font-size: var(--app-font-label) !important;
     }
     .farm-page-card {
         background: rgba(2, 6, 23, 0.76);
@@ -433,12 +466,12 @@ st.markdown(
     }
     .farm-page-card h2 {
         margin: 0 0 6px 0 !important;
-        font-size: 1.55rem !important;
+        font-size: 1.8rem !important;
     }
     .farm-page-card p {
         margin: 0 !important;
         color: #cbd5e1 !important;
-        font-size: 1.02rem;
+        font-size: 1.18rem;
     }
     .farmer-card {
         background-color: rgba(2, 6, 23, 0.82) !important;
@@ -451,9 +484,9 @@ st.markdown(
         .block-container { padding-left: 0.8rem; padding-right: 0.8rem; }
         div[data-testid="stButton"] > button {
             min-height: 64px;
-            font-size: 1rem !important;
+            font-size: 1.12rem !important;
         }
-        h1 { font-size: 2rem !important; }
+        h1 { font-size: 2.25rem !important; }
         .farm-page-card { padding: 14px 16px; }
     }
     </style>
@@ -2126,20 +2159,20 @@ else:
         """
         <style>
             .stNumberInput input, .stSelectbox div, .stSlider div {
-                font-size: 1rem !important;
+                font-size: 1.18rem !important;
                 font-weight: 650 !important;
             }
             label {
-                font-size: 0.98rem !important;
+                font-size: 1.2rem !important;
                 font-weight: 750 !important;
                 color: #f1f5f9 !important;
             }
             .stButton button {
-                font-size: 1rem !important;
+                font-size: 1.22rem !important;
                 font-weight: 800 !important;
-                padding: 12px 16px !important;
+                padding: 16px 20px !important;
                 border-radius: 8px !important;
-                min-height: 48px !important;
+                min-height: 66px !important;
             }
             .farmer-card {
                 background: rgba(15, 23, 42, 0.86) !important;
@@ -2150,12 +2183,12 @@ else:
                 box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
             }
             .big-metric-value {
-                font-size: 1.9rem !important;
+                font-size: 2.35rem !important;
                 font-weight: 850 !important;
                 color: #38bdf8;
             }
             .big-metric-label {
-                font-size: 0.92rem !important;
+                font-size: 1.08rem !important;
                 color: #94a3b8;
                 text-transform: uppercase;
                 letter-spacing: 0.02em;
@@ -2170,19 +2203,19 @@ else:
             }
             .ops-kpi .label {
                 color: #94a3b8 !important;
-                font-size: 0.88rem;
+                font-size: 1.08rem;
                 font-weight: 800;
                 margin-bottom: 8px !important;
             }
             .ops-kpi .value {
                 color: #f8fafc !important;
-                font-size: 1.9rem;
+                font-size: 2.35rem;
                 font-weight: 900;
                 margin-bottom: 4px !important;
             }
             .ops-kpi .note {
                 color: #cbd5e1 !important;
-                font-size: 0.9rem;
+                font-size: 1.08rem;
                 margin: 0 !important;
             }
             .section-title {
@@ -2192,7 +2225,11 @@ else:
             }
             .section-title h3 {
                 margin: 0 !important;
-                font-size: 1.18rem !important;
+                font-size: 1.45rem !important;
+            }
+            .status-panel,
+            .status-panel * {
+                font-size: 1.14rem !important;
             }
             .status-panel {
                 background: rgba(2, 6, 23, 0.58);
