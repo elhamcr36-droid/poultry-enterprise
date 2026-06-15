@@ -313,7 +313,7 @@ st.markdown(
         --app-font-label: 1.2rem;
         --app-font-input: 1.18rem;
         --app-font-button: 1.22rem;
-        --app-font-table: 1.12rem;
+        --app-font-table: 1.32rem;
         --app-font-heading: 1.35rem;
     }
     .stApp {
@@ -378,6 +378,19 @@ st.markdown(
     }
     [data-testid="stDataFrame"] * {
         font-size: var(--app-font-table) !important;
+    }
+    [data-testid="stDataFrame"] div,
+    [data-testid="stDataFrame"] span,
+    [data-testid="stDataFrame"] button,
+    [data-testid="stDataFrame"] canvas,
+    [data-testid="stTable"] *,
+    .stDataFrame *,
+    .stTable * {
+        font-size: var(--app-font-table) !important;
+        line-height: 1.45 !important;
+    }
+    [data-testid="stDataFrame"] {
+        min-height: 220px;
     }
     .block-container {
         max-width: 1220px;
